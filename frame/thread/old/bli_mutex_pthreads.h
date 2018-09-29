@@ -40,7 +40,7 @@
 // Define mutex_t for situations when POSIX multithreading is enabled.
 #ifdef BLIS_ENABLE_PTHREADS
 
-#include <pthread.h>
+#include "bli_wrap_pthread.h"
 
 // Define mtx_t.
 

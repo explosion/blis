@@ -103,7 +103,7 @@
 
 // POSIX threads are unconditionally required, regardless of whether
 // multithreading is enabled via pthreads or OpenMP (or disabled).
-#include <pthread.h>
+#include "bli_wrap_pthread.h"
 
 
 #endif

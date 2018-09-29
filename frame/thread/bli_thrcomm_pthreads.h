@@ -38,7 +38,7 @@
 // Define thrcomm_t for situations when POSIX multithreading is enabled.
 #ifdef BLIS_ENABLE_PTHREADS 
 
-#include <pthread.h>
+#include "bli_wrap_pthread.h"
 
 #ifdef BLIS_USE_PTHREAD_BARRIER
 struct thrcomm_s
