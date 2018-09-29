@@ -1,3 +1,6 @@
+#ifndef BLIS_WRAP_PTHREAD_H
+#define BLIS_WRAP_PTHREAD_H
+
 #if BLIS_OS_WINDOWS
 // By devinamatthews, see https://github.com/flame/blis/issues/247
 // This provides threading primitives on Windows, avoiding the need for
@@ -76,4 +79,5 @@ void pthread_once(pthread_once_t* once, void (*init)(void))
 
 #else
   #include <pthread.h>
+#endif
 #endif
