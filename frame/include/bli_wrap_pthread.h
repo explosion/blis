@@ -3,12 +3,12 @@
 // This provides threading primitives on Windows, avoiding the need for
 // a pthreads dependency.
 
-enum
+enum bli_is_init
 {
   BLIS_UNINITIALIZED,
   BLIS_INITIALIZING,
   BLIS_INITIALIZED
-}
+};
 
 typedef volatile long pthread_mutex_t;
 
