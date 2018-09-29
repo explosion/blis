@@ -25,7 +25,7 @@ build_script:
 - set LIBPTHREAD=-lpthreads
 - set "PATH=%PATH%;C:\projects\blis\lib\%CONFIG%"
 - set "CFLAGS=-Wno-macro-redefined"
-- bash -lc "source activate && cd /c/projects/blis && ./configure %CONFIGURE_OPTS% --enable-cblas --enable-threading=pthreads --enable-arg-max-hack --prefix=/c/blis %CONFIG%"
+- bash -lc "source activate && cd /c/projects/blis && ./configure %CONFIGURE_OPTS% --enable-cblas --disable-threading --enable-arg-max-hack --prefix=/c/blis %CONFIG%"
 - bash -lc "source activate && cd /c/projects/blis && make -j4 V=1"
 - bash -lc "source activate && cd /c/projects/blis && make install"
 - ps: Compress-Archive -Path C:\blis -DestinationPath C:\blis.zip
