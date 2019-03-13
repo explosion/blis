@@ -15,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -59,7 +59,7 @@ void libblis_test_trsm_experiment
        test_params_t* params,
        test_op_t*     op,
        iface_t        iface,
-       num_t          datatype,
+       char*          dc_str,
        char*          pc_str,
        char*          sc_str,
        unsigned int   p_cur,
@@ -150,7 +150,7 @@ void libblis_test_trsm_experiment
        test_params_t* params,
        test_op_t*     op,
        iface_t        iface,
-       num_t          datatype,
+       char*          dc_str,
        char*          pc_str,
        char*          sc_str,
        unsigned int   p_cur,
@@ -164,6 +164,8 @@ void libblis_test_trsm_experiment
 	double       time_min  = DBL_MAX;
 	double       time;
 
+	num_t        datatype;
+
 	dim_t        m, n;
 	dim_t        mn_side;
 
@@ -175,6 +177,9 @@ void libblis_test_trsm_experiment
 	obj_t        alpha, a, b;
 	obj_t        b_save;
 
+
+	// Use the datatype of the first char in the datatype combination string.
+	bli_param_map_char_to_blis_dt( dc_str[0], &datatype );
 
 	// Map the dimension specifier to actual dimensions.
 	m = libblis_test_get_dim_from_prob_size( op->dim_spec[0], p_cur );
@@ -267,9 +272,15 @@ void libblis_test_trsm_impl
 	switch ( iface )
 	{
 		case BLIS_TEST_SEQ_FRONT_END:
+#if 0
+bli_printm( "a", a, "%5.2f", "" );
+bli_printm( "b", b, "%5.2f", "" );
+//bli_printm( "alpha", alpha, "%5.2f", "" );
+#endif
 		bli_trsm( side, alpha, a, b );
-		//bli_trsm4m( side, alpha, a, b );
-		//bli_trsm3m( side, alpha, a, b );
+#if 0
+bli_printm( "b after", b, "%5.2f", "" );
+#endif
 		break;
 
 		default:

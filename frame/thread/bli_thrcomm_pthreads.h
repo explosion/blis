@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -41,10 +41,10 @@
 #ifdef BLIS_USE_PTHREAD_BARRIER
 struct thrcomm_s
 {
-	void*             sent_object;
-	dim_t             n_threads;
+	void*                 sent_object;
+	dim_t                 n_threads;
 
-	pthread_barrier_t barrier;
+	bli_pthread_barrier_t barrier;
 };
 #else
 struct thrcomm_s
@@ -53,7 +53,7 @@ struct thrcomm_s
 	dim_t  n_threads;
 
 //#ifdef BLIS_USE_PTHREAD_MUTEX
-//	pthread_mutex_t mutex;
+//	bli_pthread_mutex_t mutex;
 //#endif
 
 	//volatile bool_t  barrier_sense;

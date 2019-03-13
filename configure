@@ -15,9 +15,9 @@
 #   - Redistributions in binary form must reproduce the above copyright
 #     notice, this list of conditions and the following disclaimer in the
 #     documentation and/or other materials provided with the distribution.
-#   - Neither the name of The University of Texas at Austin nor the names
-#     of its contributors may be used to endorse or promote products
-#     derived from this software without specific prior written permission.
+#   - Neither the name(s) of the copyright holder(s) nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
 #
 #  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -148,23 +148,36 @@ print_usage()
 	echo "                 --disable-threading is specified, threading will be"
 	echo "                 disabled. The default is 'no'."
 	echo " "
-	echo "   --disable-packbuf-pools, --enable-packbuf-pools"
+	echo "   --disable-pba-pools, --enable-pba-pools"
+	echo "   --disable-sba-pools, --enable-sba-pools"
 	echo " "
-	echo "                 Disable (enabled by default) use of internal memory"
-	echo "                 pools for managing packing buffers. When disabled,"
-	echo "                 the function specified by BLIS_MALLOC_POOL is called"
-	echo "                 on-demand, whenever a packing buffer is needed, and"
-	echo "                 the buffer is released via the function specified by"
-	echo "                 BLIS_FREE_POOL() when the loop in which it was"
-	echo "                 allocated terminates. When enabled, the memory pools"
-	echo "                 minimize calls to both BLIS_MALLOC_POOL() and"
-	echo "                 BLIS_FREE_POOL(), especially in a multithreaded"
-	echo "                 environment, but does so through a mechanism that may"
-	echo "                 incur additional overhead in some (but not all)"
-	echo "                 situations."
+	echo "                 Disable (enabled by default) use of internal memory pools"
+	echo "                 within the packing block allocator (pba) and/or the small"
+	echo "                 block allocator (sba). The former is used to allocate"
+	echo "                 memory used to pack submatrices while the latter is used"
+	echo "                 to allocate control/thread tree nodes and thread"
+	echo "                 communicators. Both allocations take place in the context"
+	echo "                 of level-3 operations. When the pba is disabled, the"
+	echo "                 malloc()-like function specified by BLIS_MALLOC_POOL is"
+	echo "                 called on-demand whenever a packing block is needed, and"
+	echo "                 when the sba is disabled, the malloc()-like function"
+	echo "                 specified by BLIS_MALLOC_INTL is called whenever a small"
+	echo "                 block is needed, with the two allocators calling free()-"
+	echo "                 like functions BLIS_FREE_POOL and BLIS_FREE_INTL,"
+	echo "                 respectively when blocks are released. When enabled,"
+	echo "                 either or both pools are populated via the same functions"
+	echo "                 mentioned previously, and henceforth blocks are checked"
+	echo "                 out and in. The library quickly reaches a state in which"
+	echo "                 it no longer needs to call malloc() or free(), even"
+	echo "                 across many separate level-3 operation invocations."
 	echo " "
-	echo "   -q, --quiet   Suppress informational output. By default, configure"
-	echo "                 is verbose. (NOTE: -q is not yet implemented)"
+	echo "   --enable-mem-tracing, --disable-mem-tracing"
+	echo " "
+	echo "                 Enable (disable by default) output to stdout that traces"
+	echo "                 the allocation and freeing of memory, including the names"
+	echo "                 of the functions that triggered the allocation/freeing."
+	echo "                 Enabling this option WILL NEGATIVELY IMPACT PERFORMANCE."
+	echo "                 Please use only for informational/debugging purposes."
 	echo " "
 	echo "   -i SIZE, --int-size=SIZE"
 	echo " "
@@ -191,6 +204,24 @@ print_usage()
 	echo "                 compatibility layer. This automatically enables the"
 	echo "                 BLAS compatibility layer as well."
 	echo " "
+	echo "   --disable-mixed-dt, --enable-mixed-dt"
+	echo " "
+	echo "                 Disable (enabled by default) support for mixing the"
+	echo "                 storage domain and/or storage precision of matrix"
+	echo "                 operands for the gemm operation, as well as support"
+	echo "                 for computing in a precision different from one or"
+	echo "                 both of matrices A and B."
+	echo " "
+	echo "   --disable-mixed-dt-extra-mem, --enable-mixed-dt-extra-mem"
+	echo " "
+	echo "                 Disable (enabled by default) support for additional"
+	echo "                 mixed datatype optimizations that require temporarily"
+	echo "                 allocating extra memory--specifically, a single m x n"
+	echo "                 matrix (per application thread) whose storage datatype"
+	echo "                 is equal to the computation datatype. This option may"
+	echo "                 only be enabled when mixed domain/precision support is"
+	echo "                 enabled."
+	echo " "
 	echo "   -s NAME --enable-sandbox=NAME"
 	echo " "
 	echo "                 Enable a separate sandbox implementation of gemm. This"
@@ -212,6 +243,19 @@ print_usage()
 	echo "                 detects the presence of libmemkind, libmemkind is used"
 	echo "                 by default, and otherwise it is not used by default."
 	echo " "
+	echo "   -r METHOD, --thread-part-jrir=METHOD"
+	echo " "
+	echo "                 Request a method of assigning micropanels to threads in"
+	echo "                 the JR and IR loops. Valid values for METHOD are 'slab'"
+	echo "                 and 'rr'. Using 'slab' assigns (as much as possible)"
+	echo "                 contiguous regions of micropanels to each thread while"
+	echo "                 using 'rr' assigns micropanels to threads in a round-"
+	echo "                 robin fashion. The chosen method also applies during"
+	echo "                 the packing of A and B. The default method is 'slab'."
+	echo "                 NOTE: Specifying this option constitutes a request,"
+	echo "                 which may be ignored in select situations if the"
+	echo "                 implementation has a good reason to do so."
+	echo " "
 	echo "   --force-version=STRING"
 	echo " "
 	echo "                 Force configure to use an arbitrary version string"
@@ -226,6 +270,9 @@ print_usage()
 	echo "                 a sanity check to make sure these lists are constituted"
 	echo "                 as expected."
 	echo " "
+	echo "   -q, --quiet   Suppress informational output. By default, configure"
+	echo "                 is verbose. (NOTE: -q is not yet implemented)"
+	echo " "
 	echo "   -h, --help    Output this information and quit."
 	echo " "
 	echo " Environment Variables:"
@@ -234,8 +281,9 @@ print_usage()
 	echo "   RANLIB        Specifies the ranlib executable to use."
 	echo "   AR            Specifies the archiver to use."
 	echo "   CFLAGS        Specifies additional compiler flags to use (prepended)."
-    echo "   LDFLAGS       Specifies additional linker flags to use (prepended)."
-    echo "   LIBPTHREAD    Pthreads library to use."
+	echo "   LDFLAGS       Specifies additional linker flags to use (prepended)."
+	echo "   LIBPTHREAD    Pthreads library to use."
+	echo "   PYTHON        Specifies the python interpreter to use."
 	echo " "
 	echo "   Environment variables may also be specified as command line"
 	echo "   options, e.g.:"
@@ -871,32 +919,32 @@ get_cxx_search_list()
 	echo "${list}"
 }
 
-select_cc()
+select_tool()
 {
 	local search_list CC_env the_cc cc
 
-	# This is the list of compilers to search for, and the order in which
-	# to search for them.
+	# This is the list of compilers/tools to search for, and the order in
+	# which to search for them.
 	search_list=$1
 
-	# The environment variable associated with the compiler type we
-	# are searching (e.g. CC, CXX).
+	# The environment variable associated with the compiler/tool type we
+	# are searching (e.g. CC, CXX, PYTHON).
 	CC_env=$2
 
-	# If CC contains something, add it to the beginning of our default
+	# If CC_env contains something, add it to the beginning of our default
 	# search list.
 	if [ -n "${CC_env}" ]; then
 		search_list="${CC_env} ${search_list}"
 	fi
 
-	# Initialize our selected compiler to empty.
+	# Initialize our selected compiler/tool to empty.
 	the_cc=""
 
-	# Try each compiler in the list and select the first one we find that
+	# Try each compiler/tool in the list and select the first one we find that
 	# works.
 	for cc in ${search_list}; do
 
-		# See if the current compiler works and/or is present.
+		# See if the current compiler/tool works and/or is present.
 		${cc} --version > /dev/null 2>&1
 
 		if [ "$?" == 0 ]; then
@@ -905,7 +953,7 @@ select_cc()
 		fi
 	done
 
-	# Return the selected compiler.
+	# Return the selected compiler/tool.
 	echo "${the_cc}"
 }
 
@@ -951,6 +999,9 @@ auto_detect()
 	bli_typed_h_path=${bli_typed_h_filepath%/${bli_typed_h}}
 
 	# Locate other headers needed by bli_type_defs.h.
+	bli_pthread_h="bli_pthread.h"
+	bli_pthread_h_filepath=$(find ${dist_path}/frame -name "${bli_pthread_h}")
+	bli_pthread_h_path=${bli_pthread_h_filepath%/${bli_pthread_h}}
 	bli_malloc_h="bli_malloc.h"
 	bli_malloc_h_filepath=$(find ${dist_path}/frame -name "${bli_malloc_h}")
 	bli_malloc_h_path=${bli_malloc_h_filepath%/${bli_malloc_h}}
@@ -965,17 +1016,22 @@ auto_detect()
 	# Set the linker flags. We need pthreads because it is needed for
 	# parts of bli_arch.c unrelated to bli_arch_string(), which is called
 	# by the main() function in ${main_c}.
-	ldflags="${LIBPTHREAD--lpthread}"
+	if [ $is_win = no ]; then
+		ldflags="${LIBPTHREAD--lpthread}"
+	fi
 
 	# Compile the auto-detect program using source code inside the
 	# framework.
+	# NOTE: -D_GNU_SOURCE is needed to enable POSIX extensions to
+	# pthreads (i.e., barriers).
 	${cc} ${config_defines} \
 	      -DBLIS_CONFIGURETIME_CPUID \
 	      -I${bli_cpuid_h_path} \
 	      -I${bli_arch_h_path} \
 	      -I${bli_typed_h_path} \
+	      -I${bli_pthread_h_path} \
 	      -I${bli_malloc_h_path} \
-	      -std=c99 \
+	      -std=c99 -D_GNU_SOURCE \
 	      ${cflags} \
 	      ${bli_arch_c_filepath} \
 	      ${bli_cpuid_c_filepath} \
@@ -1010,6 +1066,36 @@ has_libmemkind()
 	# Attempt to compile a simple main() program that contains a call
 	# to hbw_malloc() and that links to libmemkind.
 	${found_cc} -o ${binname} ${main_c_filepath} ${LDFLAGS_mk} 2> /dev/null
+
+	# Depending on the return code from the compile step above, we set
+	# enable_memkind accordingly.
+	if [ "$?" == 0 ]; then
+	    rval='yes'
+	else
+	    rval='no'
+	fi
+
+	# Remove the executable generated above.
+	rm -f ./${binname}
+
+	echo "${rval}"
+}
+
+has_pragma_omp_simd()
+{
+	local main_c main_c_filepath binname rval
+
+	# Path to omp-simd detection source file.
+	main_c="omp_simd_detect.c"
+	main_c_filepath=$(find ${dist_path}/build -name "${main_c}")
+
+	# Binary executable filename.
+	binname="omp_simd-detect.x"
+
+	# Attempt to compile a simple main() program that contains a
+	# #pragma omp simd.
+	${found_cc} -std=c99 -O3 -march=native -fopenmp-simd \
+	            -o ${binname} ${main_c_filepath} 2> /dev/null
 
 	# Depending on the return code from the compile step above, we set
 	# enable_memkind accordingly.
@@ -1075,6 +1161,12 @@ echoerr_unsupportedcc()
 	exit 1
 }
 
+echoerr_unsupportedpython()
+{
+	echoerr "${script_name}: *** Unsupported python version: ${python_version}."
+	exit 1
+}
+
 get_binutils_version()
 {
 	binutil=${AS:-as}
@@ -1107,6 +1199,82 @@ get_binutils_version()
 	echo "${script_name}: found assembler ('as') version ${bu_version} (maj: ${bu_major}, min: ${bu_minor}, rev: ${bu_revision})."
 }
 
+get_python_search_list()
+{
+	local list
+
+	# For Linux, Darwin (OS X), and generic OSes, prioritize 'python'.
+	list="python python3 python2"
+
+	echo "${list}"
+}
+
+get_python_version()
+{
+	local python vendor_string
+
+	python="${found_python}"
+
+	# Query the python version. This includes the version number along
+	# with other text, such as "Python ".
+	# NOTE: Python seems to echo its version info to stderr, not
+	# stdout, and thus we redirect stderr to stdout and capture that.
+	vendor_string="$(${python} --version 2>&1)"
+
+	# Drop any preceding text and save only the first numbers and what
+	# comes after.
+	python_version=$(echo "${vendor_string}" | sed -e "s/[a-zA-Z_ ]* \([0-9]*\..*\)/\1/g")
+	# Parse the version number into its major, minor, and revision
+	# components.
+	python_major=$(echo "${python_version}" | cut -d. -f1)
+	python_minor=$(echo "${python_version}" | cut -d. -f2)
+	python_revision=$(echo "${python_version}" | cut -d. -f3)
+
+	echo "${script_name}: found python version ${python_version} (maj: ${python_major}, min: ${python_minor}, rev: ${python_revision})."
+}
+
+check_python()
+{
+	local python
+
+	python="${found_python}"
+
+	#
+	# Python requirements
+	#
+	# python1: no versions supported
+	# python2: 2.7+
+	# python3: 3.4+
+	#
+	# NOTE: It's actually unclear whether python 3.0 through 3.3.x would work.
+	# Python 3.5 is the oldest python3 that I have available to test with, and
+	# I only know that 3.4 will work thanks to feedback from Dave Love. So it's
+	# quite possible that some of those "unsupported" python3 versions are
+	# sufficient. -FGVZ
+	#
+
+	# Python 1.x is unsupported.
+	if [ ${python_major} -eq 1 ]; then
+		echoerr_unsupportedpython
+	fi
+
+	# Python 2.6.x or older is unsupported.
+	if [ ${python_major} -eq 2 ]; then
+		if [ ${python_minor} -lt 7 ]; then
+			echoerr_unsupportedpython
+		fi
+	fi
+
+	# Python 3.3.x or older is unsupported.
+	if [ ${python_major} -eq 3 ]; then
+		if [ ${python_minor} -lt 4 ]; then
+			echoerr_unsupportedpython
+		fi
+	fi
+
+	echo "${script_name}: python ${python_version} appears to be supported."
+}
+
 get_compiler_version()
 {
 	local cc vendor_string
@@ -1125,8 +1293,9 @@ get_compiler_version()
 	# The last part ({ read first rest ; echo $first ; }) is a workaround
 	# to OS X's egrep only returning the first match.
 	cc_vendor=$(echo "${vendor_string}" | egrep -o 'icc|gcc|clang|emcc|pnacl|IBM' | { read first rest ; echo $first ; })
-	if [ "$cc_vendor" = "icc" -o "$cc_vendor" = "gcc" -o "$cc_vendor" = "clang" ]
-	then
+	if [ "${cc_vendor}" = "icc" -o \
+	     "${cc_vendor}" = "gcc" -o \
+	     "${cc_vendor}" = "clang" ]; then
 		cc_version=$(${cc} -dumpversion)
 	else
 		cc_version=$(echo "${vendor_string}" | egrep -o '[0-9]+\.[0-9]+\.?[0-9]*' | { read first rest ; echo ${first} ; })
@@ -1137,6 +1306,23 @@ get_compiler_version()
 	cc_major=$(echo "${cc_version}" | cut -d. -f1)
 	cc_minor=$(echo "${cc_version}" | cut -d. -f2)
 	cc_revision=$(echo "${cc_version}" | cut -d. -f3)
+
+	# gcc 7 introduced new behavior to -dumpversion whereby only the major
+	# version component is output. However, as part of this change, gcc 7
+	# also introduced a new option, -dumpfullversion, which is guaranteed to
+	# always output the major, minor, and revision numbers. Thus, if we're
+	# using gcc and its version is 7 or later, we re-query and re-parse the
+	# version string.
+	if [ "${cc_vendor}" = "gcc" -a ${cc_major} -ge 7 ]; then
+
+		# Re-query the version number using -dumpfullversion.
+		cc_version=$(${cc} -dumpfullversion)
+
+		# And parse the result.
+		cc_major=$(echo "${cc_version}" | cut -d. -f1)
+		cc_minor=$(echo "${cc_version}" | cut -d. -f2)
+		cc_revision=$(echo "${cc_version}" | cut -d. -f3)
+	fi
 
 	echo "${script_name}: found ${cc_vendor} version ${cc_version} (maj: ${cc_major}, min: ${cc_minor}, rev: ${cc_revision})."
 }
@@ -1574,6 +1760,9 @@ main()
 	# The threading flag.
 	threading_model='no'
 
+	# The method of assigning micropanels to threads in the JR and JR loops.
+	thread_part_jrir='slab'
+
 	# Option variables.
 	quiet_flag=''
 	show_config_list=''
@@ -1583,11 +1772,15 @@ main()
 	enable_arg_max_hack='no'
 	enable_static='yes'
 	enable_shared='yes'
-	enable_packbuf_pools='yes'
+	enable_pba_pools='yes'
+	enable_sba_pools='yes'
+	enable_mem_tracing='no'
 	int_type_size=0
 	blas_int_type_size=32
 	enable_blas='yes'
 	enable_cblas='no'
+	enable_mixed_dt='yes'
+	enable_mixed_dt_extra_mem='yes'
 	enable_memkind='' # The default memkind value is determined later on.
 	force_version='no'
 
@@ -1623,180 +1816,211 @@ main()
 
 	# -- Command line option/argument parsing ----------------------------------
 
-    found=true
-    while $found = true; do
-     
-    	# Process our command line options.
-    	unset OPTIND
-    	while getopts ":hp:d:s:t:qci:b:-:" opt; do
-    		case $opt in
-    			-)
-    				case "$OPTARG" in
-    					help)
-    						print_usage
-    						;;
-    					quiet)
-    						quiet_flag=1
-    						;;
-    					prefix=*)
-    						prefix_flag=1
-    						install_prefix_user=${OPTARG#*=}
-    						;;
-    					libdir=*)
-    						libdir_flag=1
-    						install_libdir_user=${OPTARG#*=}
-    						;;
-    					includedir=*)
-    						incdir_flag=1
-    						install_incdir_user=${OPTARG#*=}
-    						;;
-    					sharedir=*)
-    						sharedir_flag=1
-    						install_sharedir_user=${OPTARG#*=}
-    						;;
-    					enable-debug)
-    						debug_flag=1
-    						debug_type=noopt
-    						;;
-    					enable-debug=*)
-    						debug_flag=1
-    						debug_type=${OPTARG#*=}
-    						;;
-    					disable-debug)
-    						debug_flag=0
-    						;;
-    					enable-verbose-make)
-    						enable_verbose='yes'
-    						;;
-    					disable-verbose-make)
-    						enable_verbose='no'
-    						;;
-    					enable-arg-max-hack)
-    						enable_arg_max_hack='yes'
-    						;;
-    					disable-arg-max-hack)
-    						enable_arg_max_hack='no'
-    						;;
-    					enable-static)
-    						enable_static='yes'
-    						;;
-    					disable-static)
-    						enable_static='no'
-    						;;
-    					enable-shared)
-    						enable_shared='yes'
-    						;;
-    					disable-shared)
-    						enable_shared='no'
-    						;;
-    					enable-threading=*)
-    						threading_model=${OPTARG#*=}
-    						;;
-    					disable-threading)
-    						threading_model='no'
-    						;;
-    					enable-packbuf-pools)
-    						enable_packbuf_pools='yes'
-    						;;
-    					disable-packbuf-pools)
-    						enable_packbuf_pools='no'
-    						;;
-    					enable-sandbox=*)
-    						sandbox_flag=1
-    						sandbox=${OPTARG#*=}
-    						;;
-    					disable-sandbox)
-    						sandbox_flag=0
-    						;;
-    					int-size=*)
-    						int_type_size=${OPTARG#*=}
-    						;;
-    					blas-int-size=*)
-    						blas_int_type_size=${OPTARG#*=}
-    						;;
-    					enable-blas)
-    						enable_blas='yes'
-    						;;
-    					disable-blas)
-    						enable_blas='no'
-    						;;
-    					enable-cblas)
-    						enable_cblas='yes'
-    						;;
-    					disable-cblas)
-    						enable_cblas='no'
-    						;;
-    					with-memkind)
-    						enable_memkind='yes'
-    						;;
-    					without-memkind)
-    						enable_memkind='no'
-    						;;
-    					force-version=*)
-    						force_version=${OPTARG#*=}
-    						;;
-    					show-config-list)
-    						show_config_list=1
-    						;;
-    					*)
-    						print_usage
-    						;;
-    				esac;;
-    			h)
-    				print_usage
-    				;;
-    			p)
-    				prefix_flag=1
-    				install_prefix_user=$OPTARG
-    				;;
-    			d)
-    				debug_flag=1
-    				debug_type=$OPTARG
-    				;;
-    			s)
-    				sandbox_flag=1
-    				sandbox=$OPTARG
-    				;;
-    			q)
-    				quiet_flag=1
-    				;;
-    			t)
-    				threading_model=$OPTARG
-    				;;
-    			i)
-    				int_type_size=$OPTARG
-    				;;
-    			b)
-    				blas_int_type_size=$OPTARG
-    				;;
-    			c)
-    				show_config_list=1
-    				;;
-    			\?)
-                    print_usage
-                    ;;
-    		esac
-    	done
-    	shift $(($OPTIND - 1))
-    	
-        # Parse environment variables
-        found=false
-        while [ $# -gt 0 ]; do
-            case $1 in
-                *=*)
-                    var=`expr "$1" : '\([^=]*\)='`
-                    value=`expr "$1" : '[^=]*=\(.*\)'`
-                    eval $var=\$value
-                    export $var
-                    shift
-                    found=true
-                    ;;
-                *)
-                    break
-                    ;;
-            esac
-        done
-    done
+	found=true
+	while $found = true; do
+
+		# Process our command line options.
+		unset OPTIND
+		while getopts ":hp:d:s:t:r:qci:b:-:" opt; do
+			case $opt in
+				-)
+					case "$OPTARG" in
+						help)
+							print_usage
+							;;
+						quiet)
+							quiet_flag=1
+							;;
+						prefix=*)
+							prefix_flag=1
+							install_prefix_user=${OPTARG#*=}
+							;;
+						libdir=*)
+							libdir_flag=1
+							install_libdir_user=${OPTARG#*=}
+							;;
+						includedir=*)
+							incdir_flag=1
+							install_incdir_user=${OPTARG#*=}
+							;;
+						sharedir=*)
+							sharedir_flag=1
+							install_sharedir_user=${OPTARG#*=}
+							;;
+						enable-debug)
+							debug_flag=1
+							debug_type=noopt
+							;;
+						enable-debug=*)
+							debug_flag=1
+							debug_type=${OPTARG#*=}
+							;;
+						disable-debug)
+							debug_flag=0
+							;;
+						enable-verbose-make)
+							enable_verbose='yes'
+							;;
+						disable-verbose-make)
+							enable_verbose='no'
+							;;
+						enable-arg-max-hack)
+							enable_arg_max_hack='yes'
+							;;
+						disable-arg-max-hack)
+							enable_arg_max_hack='no'
+							;;
+						enable-static)
+							enable_static='yes'
+							;;
+						disable-static)
+							enable_static='no'
+							;;
+						enable-shared)
+							enable_shared='yes'
+							;;
+						disable-shared)
+							enable_shared='no'
+							;;
+						enable-threading=*)
+							threading_model=${OPTARG#*=}
+							;;
+						thread-part-jrir=*)
+							thread_part_jrir=${OPTARG#*=}
+							;;
+						disable-threading)
+							threading_model='no'
+							;;
+						enable-pba-pools)
+							enable_pba_pools='yes'
+							;;
+						disable-pba-pools)
+							enable_pba_pools='no'
+							;;
+						enable-sba-pools)
+							enable_sba_pools='yes'
+							;;
+						disable-sba-pools)
+							enable_sba_pools='no'
+							;;
+						enable-mem-tracing)
+							enable_mem_tracing='yes'
+							;;
+						disable-mem-tracing)
+							enable_mem_tracing='no'
+							;;
+						enable-sandbox=*)
+							sandbox_flag=1
+							sandbox=${OPTARG#*=}
+							;;
+						disable-sandbox)
+							sandbox_flag=0
+							;;
+						int-size=*)
+							int_type_size=${OPTARG#*=}
+							;;
+						blas-int-size=*)
+							blas_int_type_size=${OPTARG#*=}
+							;;
+						enable-blas)
+							enable_blas='yes'
+							;;
+						disable-blas)
+							enable_blas='no'
+							;;
+						enable-cblas)
+							enable_cblas='yes'
+							;;
+						disable-cblas)
+							enable_cblas='no'
+							;;
+						enable-mixed-dt)
+							enable_mixed_dt='yes'
+							;;
+						disable-mixed-dt)
+							enable_mixed_dt='no'
+							;;
+						enable-mixed-dt-extra-mem)
+							enable_mixed_dt_extra_mem='yes'
+							;;
+						disable-mixed-dt-extra-mem)
+							enable_mixed_dt_extra_mem='no'
+							;;
+						with-memkind)
+							enable_memkind='yes'
+							;;
+						without-memkind)
+							enable_memkind='no'
+							;;
+						force-version=*)
+							force_version=${OPTARG#*=}
+							;;
+						show-config-list)
+							show_config_list=1
+							;;
+						*)
+							print_usage
+							;;
+					esac;;
+				h)
+					print_usage
+					;;
+				p)
+					prefix_flag=1
+					install_prefix_user=$OPTARG
+					;;
+				d)
+					debug_flag=1
+					debug_type=$OPTARG
+					;;
+				s)
+					sandbox_flag=1
+					sandbox=$OPTARG
+					;;
+				q)
+					quiet_flag=1
+					;;
+				t)
+					threading_model=$OPTARG
+					;;
+				r)
+					thread_part_jrir=$OPTARG
+					;;
+				i)
+					int_type_size=$OPTARG
+					;;
+				b)
+					blas_int_type_size=$OPTARG
+					;;
+				c)
+					show_config_list=1
+					;;
+				\?)
+					print_usage
+					;;
+			esac
+		done
+		shift $(($OPTIND - 1))
+
+		# Parse environment variables
+		found=false
+		while [ $# -gt 0 ]; do
+			case $1 in
+				*=*)
+					var=`expr "$1" : '\([^=]*\)='`
+					value=`expr "$1" : '[^=]*=\(.*\)'`
+					eval $var=\$value
+					export $var
+					shift
+					found=true
+					;;
+				*)
+					break
+					;;
+			esac
+		done
+	done
+
 
 	# -- Check the operating system --------------------------------------------
 
@@ -1804,24 +2028,54 @@ main()
 	os_vers=$(uname -r)
 	echo "${script_name}: detected ${os_name} kernel version ${os_vers}."
 
-    # Define a single variable off of which we can branch to tell if we are
-    # building for Windows.
-    is_win=no
-    if  [[ $os_name == MSYS* ]] || [[ $os_name == MINGW* ]]  || [[ $os_name == CYGWIN* ]] ;
-    then
-        is_win=yes
-    fi
+	# Define a single variable off of which we can branch to tell if we are
+	# building for Windows.
+	is_win=no
+	if [[ $os_name == MSYS* ]] || \
+	   [[ $os_name == MINGW* ]]  || \
+	   [[ $os_name == CYGWIN* ]] ; then
+		is_win=yes
+	fi
+
+
+	# -- Find a python interpreter ---------------------------------------------
+
+	# Acquire the python search order. This may vary based on the os found
+	# above.
+	python_search_list=$(get_python_search_list)
+
+	echo "${script_name}: python interpeter search list is: ${python_search_list}."
+
+	# Find a working python interpreter.
+	found_python=$(select_tool "${python_search_list}" "${PYTHON}")
+
+	# If we didn't find any working python interpreters, we print an error
+	# message.
+	if [ -z "${found_python}" ]; then
+		echo "${script_name}: *** Could not find working python interperter! Cannot continue."
+		exit 1
+	fi
+
+	echo "${script_name}: using '${found_python}' python interpreter."
+
+
+	# -- Check the python version ----------------------------------------------
+
+	# Check the python interpreter's version.
+	get_python_version
+	check_python
+
 
 	# -- Find a C compiler -----------------------------------------------------
 
-	# Acquire the compiler search order. This will vary based on the os
-	# found above.
+	# Acquire the compiler search order. This will vary based on the os found
+	# above.
 	cc_search_list=$(get_cc_search_list)
 
 	echo "${script_name}: C compiler search list is: ${cc_search_list}."
 
 	# Find a working C compiler.
-	found_cc=$(select_cc "${cc_search_list}" "${CC}")
+	found_cc=$(select_tool "${cc_search_list}" "${CC}")
 
 	# If we didn't find any working C compilers, we print an error message.
 	if [ -z "${found_cc}" ]; then
@@ -1840,9 +2094,9 @@ main()
 
 	echo "${script_name}: C++ compiler search list is: ${cxx_search_list}."
 
-	# Find a working C++ compiler. NOTE: We can reuse the select_cc()
+	# Find a working C++ compiler. NOTE: We can reuse the select_tool()
 	# function since it is written in a way that is general-purpose.
-	found_cxx=$(select_cc "${cxx_search_list}" "${CXX}")
+	found_cxx=$(select_tool "${cxx_search_list}" "${CXX}")
 
 	# If we didn't find any working C++ compilers, we print an error message.
 	if [ -z "${found_cxx}" ]; then
@@ -2199,6 +2453,9 @@ main()
 	# --without-memkind.
 	has_memkind=$(has_libmemkind)
 
+	# Try to determine whether the chosen compiler supports #pragma omp simd.
+	pragma_omp_simd=$(has_pragma_omp_simd)
+
 
 	# -- Prepare variables for subsitution into template files -----------------
 
@@ -2333,7 +2590,7 @@ main()
 	elif [ "x${threading_model}" = "xpthreads" ] ||
 	     [ "x${threading_model}" = "xpthread" ] ||
 	     [ "x${threading_model}" = "xposix" ]; then
-		echo "${script_name}: using Pthreads for threading."
+		echo "${script_name}: using POSIX threads for threading."
 		enable_pthreads='yes'
 		enable_pthreads_01=1
 		threading_model="pthreads" # Standardize the value.
@@ -2344,14 +2601,43 @@ main()
 		echo "${script_name}: *** Unsupported threading model: ${threading_model}."
 		exit 1
 	fi
-	
-	# Convert 'yes' and 'no' flags to booleans.
-	if [ "x${enable_packbuf_pools}" = "xyes" ]; then
-		echo "${script_name}: internal memory pools for packing buffers are enabled."
-		enable_packbuf_pools_01=1
+
+	# Check the method of assigning micropanels to threads in the JR and IR
+	# loops.
+	enable_jrir_slab_01=0
+	enable_jrir_rr_01=0
+	if [ "x${thread_part_jrir}" = "xslab" ]; then
+		echo "${script_name}: requesting slab threading in jr and ir loops."
+		enable_jrir_slab_01=1
+	elif [ "x${thread_part_jrir}" = "xrr" ]; then
+		echo "${script_name}: requesting round-robin threading in jr and ir loops."
+		enable_jrir_rr_01=1
 	else
-		echo "${script_name}: internal memory pools for packing buffers are disabled."
-		enable_packbuf_pools_01=0
+		echo "${script_name}: *** Unsupported method of thread partitioning in jr and ir loops: ${threading_model}."
+		exit 1
+	fi
+
+	# Convert 'yes' and 'no' flags to booleans.
+	if [ "x${enable_pba_pools}" = "xyes" ]; then
+		echo "${script_name}: internal memory pools for packing blocks are enabled."
+		enable_pba_pools_01=1
+	else
+		echo "${script_name}: internal memory pools for packing blocks are disabled."
+		enable_pba_pools_01=0
+	fi
+	if [ "x${enable_sba_pools}" = "xyes" ]; then
+		echo "${script_name}: internal memory pools for small blocks are enabled."
+		enable_sba_pools_01=1
+	else
+		echo "${script_name}: internal memory pools for small blocks are disabled."
+		enable_sba_pools_01=0
+	fi
+	if [ "x${enable_mem_tracing}" = "xyes" ]; then
+		echo "${script_name}: memory tracing output is enabled."
+		enable_mem_tracing_01=1
+	else
+		echo "${script_name}: memory tracing output is disabled."
+		enable_mem_tracing_01=0
 	fi
 	if [ "x${has_memkind}" = "xyes" ]; then
 		if [ "x${enable_memkind}" = "x" ]; then
@@ -2380,6 +2666,13 @@ main()
 		enable_memkind="no"
 		enable_memkind_01=0
 	fi
+	if [ "x${pragma_omp_simd}" = "xyes" ]; then
+		echo "${script_name}: compiler appears to support #pragma omp simd."
+		enable_pragma_omp_simd_01=1
+	else
+		echo "${script_name}: compiler appears to not support #pragma omp simd."
+		enable_pragma_omp_simd_01=0
+	fi
 	if [ "x${enable_blas}" = "xyes" ]; then
 		echo "${script_name}: the BLAS compatibility layer is enabled."
 		enable_blas_01=1
@@ -2396,21 +2689,46 @@ main()
 		echo "${script_name}: the CBLAS compatibility layer is disabled."
 		enable_cblas_01=0
 	fi
-	
-	# Report integer sizes
-	if [ "x${int_type_size}" = "x32" ]; then
-		echo "${script_name}: the internal integer size is 32-bit."
-	elif [ "x${int_type_size}" = "x64" ]; then
-		echo "${script_name}: the internal integer size is 64-bit."
+	if [ "x${enable_mixed_dt}" = "xyes" ]; then
+		echo "${script_name}: mixed datatype support is enabled."
+
+		if [ "x${enable_mixed_dt_extra_mem}" = "xyes" ]; then
+			echo "${script_name}: mixed datatype optimizations requiring extra memory are enabled."
+			enable_mixed_dt_extra_mem_01=1
+		else
+			echo "${script_name}: mixed datatype optimizations requiring extra memory are disabled."
+			enable_mixed_dt_extra_mem_01=0
+		fi
+
+		enable_mixed_dt_01=1
 	else
-		echo "${script_name}: the internal integer size is automatically determined."
+		echo "${script_name}: mixed datatype support is disabled."
+
+		enable_mixed_dt_extra_mem_01=0
+		enable_mixed_dt_01=0
+	fi
+
+	# Report integer sizes.
+	if [ "x${int_type_size}" = "x32" ]; then
+		echo "${script_name}: the BLIS API integer size is 32-bit."
+	elif [ "x${int_type_size}" = "x64" ]; then
+		echo "${script_name}: the BLIS API integer size is 64-bit."
+	else
+		echo "${script_name}: the BLIS API integer size is automatically determined."
 	fi
 	if [ "x${blas_int_type_size}" = "x32" ]; then
-		echo "${script_name}: the BLAS/CBLAS interface integer size is 32-bit."
+		echo "${script_name}: the BLAS/CBLAS API integer size is 32-bit."
 	elif [ "x${blas_int_type_size}" = "x64" ]; then
-		echo "${script_name}: the BLAS/CBLAS interface integer size is 64-bit."
+		echo "${script_name}: the BLAS/CBLAS API integer size is 64-bit."
 	else
-		echo "${script_name}: the BLAS/CBLAS interface integer size is automatically determined."
+		echo "${script_name}: the BLAS/CBLAS API integer size is automatically determined."
+	fi
+
+	# Disallow the simultaneous use of 64-bit integers in the BLAS and
+	# 32-bit integers in BLIS.
+	if [ "x${blas_int_type_size}" = "x64" -a "x${int_type_size}" = "x32" ]; then
+		echo "${script_name}: *** To avoid the possibility of truncation, we do not allow use of 64-bit integers in the BLAS API with 32-bit integers in BLIS. Please use a different configuration of integers."
+		exit 1
 	fi
 
 	# Check if a sandbox was given.
@@ -2437,15 +2755,16 @@ main()
 	fi
 
 
-	# Variables that contain forward slashes, such as paths, need extra
+	# Variables that may contain forward slashes, such as paths, need extra
 	# escaping when used in sed commands. We insert those extra escape
 	# characters here so that the sed commands below do the right thing.
-	install_libdir_esc=$(echo "${install_libdir}" | sed 's/\//\\\//g')
-	install_incdir_esc=$(echo "${install_incdir}" | sed 's/\//\\\//g')
+	os_name_esc=$(echo          "${os_name}"          | sed 's/\//\\\//g')
+	install_libdir_esc=$(echo   "${install_libdir}"   | sed 's/\//\\\//g')
+	install_incdir_esc=$(echo   "${install_incdir}"   | sed 's/\//\\\//g')
 	install_sharedir_esc=$(echo "${install_sharedir}" | sed 's/\//\\\//g')
-	dist_path_esc=$(echo "${dist_path}"           | sed 's/\//\\\//g')
-	cc_esc=$(echo "${found_cc}" | sed 's/\//\\\//g')
-	cxx_esc=$(echo "${found_cxx}" | sed 's/\//\\\//g')
+	dist_path_esc=$(echo        "${dist_path}"        | sed 's/\//\\\//g')
+	cc_esc=$(echo               "${found_cc}"         | sed 's/\//\\\//g')
+	cxx_esc=$(echo              "${found_cxx}"        | sed 's/\//\\\//g')
 	#sandbox_relpath_esc=$(echo "${sandbox_relpath}" | sed 's/\//\\\//g')
 
 	# For RANLIB, if the variable is not set, we use a default value of
@@ -2456,6 +2775,13 @@ main()
 	libpthread_esc=$(echo "${LIBPTHREAD--lpthread}" | sed 's/\//\\\//g')
 	cflags_preset_esc=$(echo "${cflags_preset}" | sed 's/\//\\\//g')
 	ldflags_preset_esc=$(echo "${ldflags_preset}" | sed 's/\//\\\//g')
+
+	# For Windows builds, clear the libpthread_esc variable so that
+	# no pthreads library is substituted into config.mk. (Windows builds
+	# employ an implementation of pthreads that is internal to BLIS.)
+	if [ $is_win = yes ]; then
+		libpthread_esc=
+	fi
 
 	# Typically, there are no slashes in the version variable. However,
 	# downstream maintainers (such as those for Debian) may create custom
@@ -2532,7 +2858,7 @@ main()
 		| sed -e "s/@config_list@/${config_list}/g" \
 		| sed -e "s/@kernel_list@/${kernel_list}/g" \
 		| sed -e "s/@kconfig_map@/${kconfig_map}/g" \
-		| sed -e "s/@os_name@/${os_name}/g" \
+		| sed -e "s/@os_name@/${os_name_esc}/g" \
 		| sed -e "s/@is_win@/${is_win}/g" \
 		| sed -e "s/@dist_path@/${dist_path_esc}/g" \
 		| sed -e "s/@CC_VENDOR@/${cc_vendor}/g" \
@@ -2556,6 +2882,7 @@ main()
 		| sed -e "s/@enable_blas@/${enable_blas}/g" \
 		| sed -e "s/@enable_cblas@/${enable_cblas}/g" \
 		| sed -e "s/@enable_memkind@/${enable_memkind}/g" \
+		| sed -e "s/@pragma_omp_simd@/${pragma_omp_simd}/g" \
 		| sed -e "s/@sandbox@/${sandbox}/g" \
 		> "${config_mk_out_path}"
 		
@@ -2572,12 +2899,19 @@ main()
 		| perl -pe "s/\@kernel_list_defines\@/${kernel_list_defines}/g" \
 		| sed   -e "s/@enable_openmp@/${enable_openmp_01}/g" \
 		| sed   -e "s/@enable_pthreads@/${enable_pthreads_01}/g" \
-		| sed   -e "s/@enable_packbuf_pools@/${enable_packbuf_pools_01}/g" \
+		| sed   -e "s/@enable_jrir_slab@/${enable_jrir_slab_01}/g" \
+		| sed   -e "s/@enable_jrir_rr@/${enable_jrir_rr_01}/g" \
+		| sed   -e "s/@enable_pba_pools@/${enable_pba_pools_01}/g" \
+		| sed   -e "s/@enable_sba_pools@/${enable_sba_pools_01}/g" \
+		| sed   -e "s/@enable_mem_tracing@/${enable_mem_tracing_01}/g" \
 		| sed   -e "s/@int_type_size@/${int_type_size}/g" \
 		| sed   -e "s/@blas_int_type_size@/${blas_int_type_size}/g" \
 		| sed   -e "s/@enable_blas@/${enable_blas_01}/g" \
 		| sed   -e "s/@enable_cblas@/${enable_cblas_01}/g" \
+		| sed   -e "s/@enable_mixed_dt@/${enable_mixed_dt_01}/g" \
+		| sed   -e "s/@enable_mixed_dt_extra_mem@/${enable_mixed_dt_extra_mem_01}/g" \
 		| sed   -e "s/@enable_memkind@/${enable_memkind_01}/g" \
+		| sed   -e "s/@enable_pragma_omp_simd@/${enable_pragma_omp_simd_01}/g" \
 		| sed   -e "s/@enable_sandbox@/${enable_sandbox_01}/g" \
 		| sed   -e "s/@enable_shared@/${enable_shared_01}/g" \
 		> "${bli_config_h_out_path}"
@@ -2663,7 +2997,7 @@ main()
 
 
 	# -- Mirror source directory hierarchies to object directories -------------
-	
+
 	# Combine the config_list with the config_name and then remove duplicates.
 	config_list_plus_name=$(rm_duplicate_words "${config_list} ${config_name}")
 

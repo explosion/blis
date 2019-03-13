@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -59,5 +59,24 @@
 	(bi) = (ai); \
 }
 
-#endif
+#define bli_sscopyris( ar, ai, br, bi )  bli_scopyris( ar, 0.0F, br, bi )
+#define bli_dscopyris( ar, ai, br, bi )  bli_scopyris( ar, 0.0,  br, bi )
+#define bli_cscopyris( ar, ai, br, bi )  bli_scopyris( ar, ai,   br, bi )
+#define bli_zscopyris( ar, ai, br, bi )  bli_scopyris( ar, ai,   br, bi )
 
+#define bli_sdcopyris( ar, ai, br, bi )  bli_dcopyris( ar, 0.0F, br, bi )
+#define bli_ddcopyris( ar, ai, br, bi )  bli_dcopyris( ar, 0.0,  br, bi )
+#define bli_cdcopyris( ar, ai, br, bi )  bli_dcopyris( ar, ai,   br, bi )
+#define bli_zdcopyris( ar, ai, br, bi )  bli_dcopyris( ar, ai,   br, bi )
+
+#define bli_sccopyris( ar, ai, br, bi )  bli_ccopyris( ar, 0.0F, br, bi )
+#define bli_dccopyris( ar, ai, br, bi )  bli_ccopyris( ar, 0.0,  br, bi )
+#define bli_cccopyris( ar, ai, br, bi )  bli_ccopyris( ar, ai,   br, bi )
+#define bli_zccopyris( ar, ai, br, bi )  bli_ccopyris( ar, ai,   br, bi )
+
+#define bli_szcopyris( ar, ai, br, bi )  bli_zcopyris( ar, 0.0F, br, bi )
+#define bli_dzcopyris( ar, ai, br, bi )  bli_zcopyris( ar, 0.0,  br, bi )
+#define bli_czcopyris( ar, ai, br, bi )  bli_zcopyris( ar, ai,   br, bi )
+#define bli_zzcopyris( ar, ai, br, bi )  bli_zcopyris( ar, ai,   br, bi )
+
+#endif

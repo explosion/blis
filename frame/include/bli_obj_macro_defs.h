@@ -15,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -122,13 +122,15 @@ static num_t bli_obj_dt_proj_to_double_prec( obj_t* obj )
 static bool_t bli_obj_is_real( obj_t* obj )
 {
 	return ( bool_t )
-	       ( bli_obj_domain( obj ) == BLIS_BITVAL_REAL );
+	       ( bli_obj_domain( obj ) == BLIS_BITVAL_REAL &&
+	         !bli_obj_is_const( obj ) );
 }
 
 static bool_t bli_obj_is_complex( obj_t* obj )
 {
 	return ( bool_t )
-	       ( bli_obj_domain( obj ) == BLIS_BITVAL_COMPLEX );
+	       ( bli_obj_domain( obj ) == BLIS_BITVAL_COMPLEX &&
+	         !bli_obj_is_const( obj ) );
 }
 
 static num_t bli_obj_dt_proj_to_real( obj_t* obj )
@@ -177,6 +179,45 @@ static prec_t bli_obj_exec_prec( obj_t* obj )
 {
 	return ( prec_t )
 	       ( ( obj->info & BLIS_EXEC_PREC_BIT ) >> BLIS_EXEC_DT_SHIFT );
+}
+
+static num_t bli_obj_comp_dt( obj_t* obj )
+{
+	return ( num_t )
+	       ( ( obj->info & BLIS_COMP_DT_BITS ) >> BLIS_COMP_DT_SHIFT );
+}
+
+static dom_t bli_obj_comp_domain( obj_t* obj )
+{
+	return ( dom_t )
+	       ( ( obj->info & BLIS_COMP_DOMAIN_BIT ) >> BLIS_COMP_DT_SHIFT );
+}
+
+static prec_t bli_obj_comp_prec( obj_t* obj )
+{
+	return ( prec_t )
+	       ( ( obj->info & BLIS_COMP_PREC_BIT ) >> BLIS_COMP_DT_SHIFT );
+}
+
+// NOTE: This function queries info2.
+static num_t bli_obj_scalar_dt( obj_t* obj )
+{
+	return ( num_t )
+	       ( ( obj->info2 & BLIS_SCALAR_DT_BITS ) >> BLIS_SCALAR_DT_SHIFT );
+}
+
+// NOTE: This function queries info2.
+static dom_t bli_obj_scalar_domain( obj_t* obj )
+{
+	return ( dom_t )
+	       ( ( obj->info2 & BLIS_SCALAR_DOMAIN_BIT ) >> BLIS_SCALAR_DT_SHIFT );
+}
+
+// NOTE: This function queries info2.
+static prec_t bli_obj_scalar_prec( obj_t* obj )
+{
+	return ( prec_t )
+	       ( ( obj->info2 & BLIS_SCALAR_PREC_BIT ) >> BLIS_SCALAR_DT_SHIFT );
 }
 
 static trans_t bli_obj_conjtrans_status( obj_t* obj )
@@ -421,37 +462,88 @@ static void bli_obj_set_dt( num_t dt, obj_t* obj )
 static void bli_obj_set_target_dt( num_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_TARGET_DT_BITS ) | ( dt << BLIS_TARGET_DT_SHIFT );
+	            ( obj->info & ~BLIS_TARGET_DT_BITS ) |
+	            ( dt << BLIS_TARGET_DT_SHIFT );
 }
 
 static void bli_obj_set_target_domain( dom_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_TARGET_DOMAIN_BIT ) | ( dt << BLIS_TARGET_DT_SHIFT );
+	            ( obj->info & ~BLIS_TARGET_DOMAIN_BIT ) |
+	            ( dt << BLIS_TARGET_DT_SHIFT );
 }
 
 static void bli_obj_set_target_prec( prec_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_TARGET_PREC_BIT ) | ( dt << BLIS_TARGET_DT_SHIFT );
+	            ( obj->info & ~BLIS_TARGET_PREC_BIT ) |
+	            ( dt << BLIS_TARGET_DT_SHIFT );
 }
 
 static void bli_obj_set_exec_dt( num_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_EXEC_DT_BITS ) | ( dt << BLIS_EXEC_DT_SHIFT );
+	            ( obj->info & ~BLIS_EXEC_DT_BITS ) |
+	            ( dt << BLIS_EXEC_DT_SHIFT );
 }
 
 static void bli_obj_set_exec_domain( dom_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_EXEC_DOMAIN_BIT ) | ( dt << BLIS_EXEC_DT_SHIFT );
+	            ( obj->info & ~BLIS_EXEC_DOMAIN_BIT ) |
+	            ( dt << BLIS_EXEC_DT_SHIFT );
 }
 
 static void bli_obj_set_exec_prec( prec_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_EXEC_PREC_BIT ) | ( dt << BLIS_EXEC_DT_SHIFT );
+	            ( obj->info & ~BLIS_EXEC_PREC_BIT ) |
+	            ( dt << BLIS_EXEC_DT_SHIFT );
+}
+
+static void bli_obj_set_comp_dt( num_t dt, obj_t* obj )
+{
+	obj->info = ( objbits_t )
+	            ( obj->info & ~BLIS_COMP_DT_BITS ) |
+	            ( dt << BLIS_COMP_DT_SHIFT );
+}
+
+static void bli_obj_set_comp_domain( dom_t dt, obj_t* obj )
+{
+	obj->info = ( objbits_t )
+	            ( obj->info & ~BLIS_COMP_DOMAIN_BIT ) |
+	            ( dt << BLIS_COMP_DT_SHIFT );
+}
+
+static void bli_obj_set_comp_prec( prec_t dt, obj_t* obj )
+{
+	obj->info = ( objbits_t )
+	            ( obj->info & ~BLIS_COMP_PREC_BIT ) |
+	            ( dt << BLIS_COMP_DT_SHIFT );
+}
+
+// NOTE: This function queries and modifies info2.
+static void bli_obj_set_scalar_dt( num_t dt, obj_t* obj )
+{
+	obj->info2 = ( objbits_t )
+	             ( obj->info2 & ~BLIS_SCALAR_DT_BITS ) |
+	             ( dt << BLIS_SCALAR_DT_SHIFT );
+}
+
+// NOTE: This function queries and modifies info2.
+static void bli_obj_set_scalar_domain( dom_t dt, obj_t* obj )
+{
+	obj->info2 = ( objbits_t )
+	             ( obj->info2 & ~BLIS_SCALAR_DOMAIN_BIT ) |
+	             ( dt << BLIS_SCALAR_DT_SHIFT );
+}
+
+// NOTE: This function queries and modifies info2.
+static void bli_obj_set_scalar_prec( prec_t dt, obj_t* obj )
+{
+	obj->info2 = ( objbits_t )
+	             ( obj->info2 & ~BLIS_SCALAR_PREC_BIT ) |
+	             ( dt << BLIS_SCALAR_DT_SHIFT );
 }
 
 static void bli_obj_set_pack_schema( pack_t schema, obj_t* obj )
@@ -1183,9 +1275,13 @@ static void bli_obj_real_part( obj_t* c, obj_t* r )
 		const num_t dt_stor_r = bli_dt_proj_to_real( bli_obj_dt( c )        );
 		const num_t dt_targ_r = bli_dt_proj_to_real( bli_obj_target_dt( c ) );
 		const num_t dt_exec_r = bli_dt_proj_to_real( bli_obj_exec_dt( c )   );
+		const num_t dt_comp_r = bli_dt_proj_to_real( bli_obj_comp_dt( c )   );
 		bli_obj_set_dt(        dt_stor_r, r );
 		bli_obj_set_target_dt( dt_targ_r, r );
 		bli_obj_set_exec_dt(   dt_exec_r, r );
+		bli_obj_set_comp_dt(   dt_comp_r, r );
+
+		// Don't touch the attached scalar datatype.
 
 		// Update the element size.
 		siz_t es_c = bli_obj_elem_size( c );
@@ -1212,9 +1308,13 @@ static void bli_obj_imag_part( obj_t* c, obj_t* i )
 		const num_t dt_stor_r = bli_dt_proj_to_real( bli_obj_dt( c )        );
 		const num_t dt_targ_r = bli_dt_proj_to_real( bli_obj_target_dt( c ) );
 		const num_t dt_exec_r = bli_dt_proj_to_real( bli_obj_exec_dt( c )   );
+		const num_t dt_comp_r = bli_dt_proj_to_real( bli_obj_comp_dt( c )   );
 		bli_obj_set_dt(        dt_stor_r, i );
 		bli_obj_set_target_dt( dt_targ_r, i );
 		bli_obj_set_exec_dt(   dt_exec_r, i );
+		bli_obj_set_comp_dt(   dt_comp_r, i );
+
+		// Don't touch the attached scalar datatype.
 
 		// Update the element size.
 		siz_t es_c = bli_obj_elem_size( c );
@@ -1251,11 +1351,22 @@ static void bli_obj_scalar_set_dt_buffer( obj_t* obj, num_t dt_aux, num_t* dt, v
 	}
 }
 
-// Swap object contents.
+// Swap all object fields (metadata/properties).
 
 static void bli_obj_swap( obj_t* a, obj_t* b )
 {
 	obj_t t = *b; *b = *a; *a = t;
+}
+
+// Swap object pack schemas.
+
+static void bli_obj_swap_pack_schemas( obj_t* a, obj_t* b )
+{
+	const pack_t schema_a = bli_obj_pack_schema( a );
+	const pack_t schema_b = bli_obj_pack_schema( b );
+
+	bli_obj_set_pack_schema( schema_b, a );
+	bli_obj_set_pack_schema( schema_a, b );
 }
 
 // Induce a transposition on an object: swap dimensions, increments, and

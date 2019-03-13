@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -75,33 +75,4 @@ AXPYF_KER_PROT( double,   d, axpyf_zen_int_8 )
 // dotxf (intrinsics)
 DOTXF_KER_PROT( float,    s, dotxf_zen_int_8 )
 DOTXF_KER_PROT( double,   d, dotxf_zen_int_8 )
-
-// -- level-3 --
-
-// gemm (asm d6x8)
-GEMM_UKR_PROT( float,    s, gemm_zen_asm_6x16 )
-GEMM_UKR_PROT( double,   d, gemm_zen_asm_6x8 )
-GEMM_UKR_PROT( scomplex, c, gemm_zen_asm_3x8 )
-GEMM_UKR_PROT( dcomplex, z, gemm_zen_asm_3x4 )
-
-// gemm (asm d8x6)
-GEMM_UKR_PROT( float,    s, gemm_zen_asm_16x6 )
-GEMM_UKR_PROT( double,   d, gemm_zen_asm_8x6 )
-GEMM_UKR_PROT( scomplex, c, gemm_zen_asm_8x3 )
-GEMM_UKR_PROT( dcomplex, z, gemm_zen_asm_4x3 )
-
-// gemmtrsm_l (asm d6x8)
-GEMMTRSM_UKR_PROT( float,    s, gemmtrsm_l_zen_asm_6x16 )
-GEMMTRSM_UKR_PROT( double,   d, gemmtrsm_l_zen_asm_6x8 )
-
-// gemmtrsm_u (asm d6x8)
-GEMMTRSM_UKR_PROT( float,    s, gemmtrsm_u_zen_asm_6x16 )
-GEMMTRSM_UKR_PROT( double,   d, gemmtrsm_u_zen_asm_6x8 )
-
-
-// gemm (asm d8x6)
-//GEMM_UKR_PROT( float,    s, gemm_zen_asm_16x6 )
-//GEMM_UKR_PROT( double,   d, gemm_zen_asm_8x6 )
-//GEMM_UKR_PROT( scomplex, c, gemm_zen_asm_8x3 )
-//GEMM_UKR_PROT( dcomplex, z, gemm_zen_asm_4x3 )
 

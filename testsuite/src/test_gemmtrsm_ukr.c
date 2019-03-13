@@ -15,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -59,7 +59,7 @@ void libblis_test_gemmtrsm_ukr_experiment
        test_params_t* params,
        test_op_t*     op,
        iface_t        iface,
-       num_t          datatype,
+       char*          dc_str,
        char*          pc_str,
        char*          sc_str,
        unsigned int   p_cur,
@@ -171,7 +171,7 @@ void libblis_test_gemmtrsm_ukr_experiment
        test_params_t* params,
        test_op_t*     op,
        iface_t        iface,
-       num_t          datatype,
+       char*          dc_str,
        char*          pc_str,
        char*          sc_str,
        unsigned int   p_cur,
@@ -184,6 +184,8 @@ void libblis_test_gemmtrsm_ukr_experiment
 
 	double       time_min  = DBL_MAX;
 	double       time;
+
+	num_t        datatype;
 
 	dim_t        m, n, k;
 	inc_t        ldap, ldbp;
@@ -203,8 +205,12 @@ void libblis_test_gemmtrsm_ukr_experiment
 
 	cntx_t*      cntx;
 
+
 	// Query a context.
 	cntx = bli_gks_query_cntx();
+
+	// Use the datatype of the first char in the datatype combination string.
+	bli_param_map_char_to_blis_dt( dc_str[0], &datatype );
 
 	// Map the dimension specifier to actual dimensions.
 	k = libblis_test_get_dim_from_prob_size( op->dim_spec[0], p_cur );
@@ -314,7 +320,7 @@ void libblis_test_gemmtrsm_ukr_experiment
 	// allocated.
 	void* buf_ap = bli_obj_buffer( &ap );
 	void* buf_bp = bli_obj_buffer( &bp );
-	bli_packm_init_pack( BLIS_NO_INVERT_DIAG, BLIS_PACKED_ROW_PANELS,
+	bli_packm_init_pack( BLIS_INVERT_DIAG, BLIS_PACKED_ROW_PANELS,
 	                     BLIS_PACK_FWD_IF_UPPER, BLIS_PACK_FWD_IF_LOWER,
 	                     BLIS_MR, BLIS_KR, &a, &ap, cntx );
 	bli_packm_init_pack( BLIS_NO_INVERT_DIAG, BLIS_PACKED_COL_PANELS,
@@ -345,8 +351,10 @@ void libblis_test_gemmtrsm_ukr_experiment
 	// know which set of micro-kernels (lower or upper) to choose from.
 	bli_obj_set_uplo( uploa, &a11p );
 
-//bli_printm( "a", &a, "%4.1f", "" );
-//bli_printm( "ap", &ap, "%4.1f", "" );
+#if 0
+bli_printm( "a", &a, "%5.2f", "" );
+bli_printm( "ap", &ap, "%5.2f", "" );
+#endif
 
 	// Repeat the experiment n_repeats times and record results. 
 	for ( i = 0; i < n_repeats; ++i )
@@ -486,6 +494,10 @@ void libblis_test_gemmtrsm_ukr_check
 	libblis_test_vobj_randomize( params, TRUE, &t );
 
 	bli_gemv( &BLIS_ONE, b11, &t, &BLIS_ZERO, &v );
+
+#if 0
+bli_printm( "a11", a11, "%5.2f", "" );
+#endif
 
 	// Restore the diagonal of a11 to its original, un-inverted state
 	// (needed for trsv).

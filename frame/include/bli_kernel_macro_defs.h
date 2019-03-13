@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -38,20 +38,20 @@
 
 // -- Define default threading parameters --------------------------------------
 
-#ifndef BLIS_DEFAULT_M_THREAD_RATIO
-#define BLIS_DEFAULT_M_THREAD_RATIO 2
+#ifndef BLIS_THREAD_RATIO_M
+#define BLIS_THREAD_RATIO_M     2
 #endif
 
-#ifndef BLIS_DEFAULT_N_THREAD_RATIO
-#define BLIS_DEFAULT_N_THREAD_RATIO 1
+#ifndef BLIS_THREAD_RATIO_N
+#define BLIS_THREAD_RATIO_N     1
 #endif
 
-#ifndef BLIS_DEFAULT_MR_THREAD_MAX
-#define BLIS_DEFAULT_MR_THREAD_MAX 1
+#ifndef BLIS_THREAD_MAX_IR
+#define BLIS_THREAD_MAX_IR      1
 #endif
 
-#ifndef BLIS_DEFAULT_NR_THREAD_MAX
-#define BLIS_DEFAULT_NR_THREAD_MAX 4
+#ifndef BLIS_THREAD_MAX_JR
+#define BLIS_THREAD_MAX_JR      4
 #endif
 
 

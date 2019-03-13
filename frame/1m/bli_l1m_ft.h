@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -140,4 +140,26 @@ typedef void (*PASTECH3(ch,opname,EX_SUF,tsuf)) \
 
 INSERT_GENTDEF( scalm )
 INSERT_GENTDEF( setm )
+
+// xpbym
+
+#undef  GENTDEF
+#define GENTDEF( ctype, ch, opname, tsuf ) \
+\
+typedef void (*PASTECH3(ch,opname,EX_SUF,tsuf)) \
+     ( \
+       doff_t  diagoffx, \
+       diag_t  diagx, \
+       uplo_t  uplox, \
+       trans_t transx, \
+       dim_t   m, \
+       dim_t   n, \
+       ctype*  x, inc_t rs_x, inc_t cs_x, \
+       ctype*  beta, \
+       ctype*  y, inc_t rs_y, inc_t cs_y  \
+       BLIS_TAPI_EX_PARAMS  \
+     );
+
+INSERT_GENTDEF( xpbym )
+INSERT_GENTDEF( xpbym_md )
 

@@ -14,9 +14,9 @@
 #   - Redistributions in binary form must reproduce the above copyright
 #     notice, this list of conditions and the following disclaimer in the
 #     documentation and/or other materials provided with the distribution.
-#   - Neither the name of The University of Texas at Austin nor the names
-#     of its contributors may be used to endorse or promote products
-#     derived from this software without specific prior written permission.
+#   - Neither the name(s) of the copyright holder(s) nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
 #
 #  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -111,6 +111,9 @@ DEBUG_TYPE        := @debug_type@
 
 # The requested threading model.
 THREADING_MODEL   := @threading_model@
+
+# Whether the compiler supports "#pragma omp simd" via the -fopenmp-simd option.
+PRAGMA_OMP_SIMD   := @pragma_omp_simd@
 
 # The install libdir, includedir, and shareddir values from configure tell
 # us where to install the libraries, header files, and public makefile

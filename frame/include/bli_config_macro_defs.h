@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -96,6 +96,25 @@
 #if defined ( BLIS_ENABLE_OPENMP ) || \
     defined ( BLIS_ENABLE_PTHREADS )
   #define BLIS_ENABLE_MULTITHREADING
+#endif
+
+
+// -- MIXED DATATYPE SUPPORT ---------------------------------------------------
+
+// Enable mixed datatype support?
+#ifdef BLIS_DISABLE_MIXED_DT
+  #undef BLIS_ENABLE_GEMM_MD
+#else
+  // Default behavior is enabled.
+  #define BLIS_ENABLE_GEMM_MD
+#endif
+
+// Enable memory-intensive optimizations for mixed datatype support?
+#ifdef BLIS_DISABLE_MIXED_DT_EXTRA_MEM
+  #undef BLIS_ENABLE_GEMM_MD_EXTRA_MEM
+#else
+  // Default behavior is enabled.
+  #define BLIS_ENABLE_GEMM_MD_EXTRA_MEM
 #endif
 
 

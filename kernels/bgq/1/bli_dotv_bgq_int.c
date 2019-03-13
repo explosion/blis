@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -34,8 +34,8 @@
 
 #include "blis.h"
 
-void bli_ddotv_bgq_int 
-     ( 
+void bli_ddotv_bgq_int
+     (
        conj_t           conjx,
        conj_t           conjy,
        dim_t            n,
@@ -44,14 +44,14 @@ void bli_ddotv_bgq_int
        double* restrict rho,
        cntx_t* restrict cntx
      )
-{ 
+{
 	bool_t use_ref = FALSE;
 
 	// If the vector lengths are zero, set rho to zero and return.
 	if ( bli_zero_dim1( n ) ) {
-		PASTEMAC(d,set0s)( rho ); 
-		return; 
-	} 
+		PASTEMAC(d,set0s)( *rho );
+		return;
+	}
 	// If there is anything that would interfere with our use of aligned
 	// vector loads/stores, call the reference implementation.
 	if ( incx != 1 || incy != 1 || bli_is_unaligned_to( ( siz_t )x, 32 ) || bli_is_unaligned_to( ( siz_t )y, 32 ) )
@@ -64,7 +64,7 @@ void bli_ddotv_bgq_int
 
 	dim_t n_run       = n / 4;
 	dim_t n_left      = n % 4;
-    
+
     double rhos = 0.0;
     #pragma omp parallel reduction(+:rhos)
     {

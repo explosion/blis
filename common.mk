@@ -14,9 +14,9 @@
 #   - Redistributions in binary form must reproduce the above copyright
 #     notice, this list of conditions and the following disclaimer in the
 #     documentation and/or other materials provided with the distribution.
-#   - Neither the name of The University of Texas at Austin nor the names
-#     of its contributors may be used to endorse or promote products
-#     derived from this software without specific prior written permission.
+#   - Neither the name(s) of the copyright holder(s) nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
 #
 #  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -124,6 +124,7 @@ get-refinit-cflags-for   = $(strip $(call load-var-for,COPTFLAGS,$(1)) \
 get-refkern-cflags-for   = $(strip $(call load-var-for,CROPTFLAGS,$(1)) \
                                    $(call load-var-for,CRVECFLAGS,$(1)) \
                                    $(call get-noopt-cflags-for,$(1)) \
+                                   $(COMPSIMDFLAGS) \
                                    -DBLIS_CNAME=$(1) \
                                    $(BUILD_FLAGS) \
                             )
@@ -321,6 +322,10 @@ TESTSUITE_CONF_GEN := input.general
 TESTSUITE_CONF_OPS := input.operations
 TESTSUITE_FAST_GEN := input.general.fast
 TESTSUITE_FAST_OPS := input.operations.fast
+TESTSUITE_MIXD_GEN := input.general.mixed
+TESTSUITE_MIXD_OPS := input.operations.mixed
+TESTSUITE_SALT_GEN := input.general.salt
+TESTSUITE_SALT_OPS := input.operations.salt
 TESTSUITE_OUT_FILE := output.testsuite
 
 # CHANGELOG file.
@@ -375,7 +380,11 @@ LIBBLIS            := libblis
 ifeq ($(OS_NAME),Darwin)
 SHLIB_EXT          := dylib
 else ifeq ($(IS_WIN),yes)
+ifeq ($(CC_VENDOR),gcc)
+SHLIB_EXT          := dll.a
+else
 SHLIB_EXT          := lib
+endif
 else
 SHLIB_EXT          := so
 endif
@@ -438,7 +447,7 @@ INSTALL    := install -c
 
 # Script for creating a monolithic header file.
 #FLATTEN_H  := $(DIST_PATH)/build/flatten-headers.sh
-FLATTEN_H  := $(DIST_PATH)/build/flatten-headers.py
+FLATTEN_H  := $(PYTHON) $(DIST_PATH)/build/flatten-headers.py
 
 # Default archiver flags.
 ARFLAGS    := cr
@@ -497,9 +506,9 @@ SOFLAGS    := -shared
 ifeq ($(IS_WIN),yes)
 # Windows shared library link flags.
 ifeq ($(CC_VENDOR),clang)
-SOFLAGS    += -Wl,-def:windows/build/libblis-symbols.def -Wl,-implib:$(BASE_LIB_PATH)/$(LIBBLIS).lib
+SOFLAGS    += -Wl,-implib:$(BASE_LIB_PATH)/$(LIBBLIS).lib
 else
-SOFLAGS    += windows/build/libblis-symbols.def -Wl,--out-implib,$(LIBBLIS).dll.a
+SOFLAGS    += -Wl,--out-implib,$(BASE_LIB_PATH)/$(LIBBLIS).dll.a
 endif
 else
 # Linux shared library link flags.
@@ -627,7 +636,6 @@ $(foreach c, $(CONFIG_LIST_FAM), $(eval $(call append-var-for,CXXLANGFLAGS,$(c))
 CPPROCFLAGS := -D_POSIX_C_SOURCE=200112L
 $(foreach c, $(CONFIG_LIST_FAM), $(eval $(call append-var-for,CPPROCFLAGS,$(c))))
 
-
 # --- Threading flags ---
 
 ifeq ($(CC_VENDOR),gcc)
@@ -670,6 +678,14 @@ ifeq ($(THREADING_MODEL),pthreads)
 CTHREADFLAGS := -pthread
 LDFLAGS      += $(LIBPTHREAD)
 endif
+endif
+
+# --- #pragma omp simd flags (used for reference kernels only) ---
+
+ifeq ($(PRAGMA_OMP_SIMD),yes)
+COMPSIMDFLAGS := -fopenmp-simd
+else
+COMPSIMDFLAGS :=
 endif
 
 
@@ -940,7 +956,8 @@ BLIS_CONFIG_H   := ./bli_config.h
 VERS_DEF       := -DBLIS_VERSION_STRING=\"$(VERSION)\"
 
 # Define a C preprocessor flag that is *only* defined when BLIS is being
-# compiled.
+# compiled. (In other words, an application that #includes blis.h will not
+# get this cpp macro.)
 BUILD_FLAGS    := -DBLIS_IS_BUILDING_LIBRARY
 
 

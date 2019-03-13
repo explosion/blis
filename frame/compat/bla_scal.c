@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -67,7 +67,7 @@ void PASTEF772(chx,cha,blasname) \
 	   that is, we just always sub-optimally implement those cases
 	   by casting alpha to ctype_x (potentially the complex domain) and
 	   using the homogeneous datatype instance according to that type. */ \
-	PASTEMAC2(cha,chx,cast)( (ftype_a*)alpha, alpha_cast ); \
+	PASTEMAC2(cha,chx,copys)( *alpha, alpha_cast ); \
 \
 	/* Call BLIS interface. */ \
 	PASTEMAC2(chx,blisname,BLIS_TAPI_EX_SUF) \

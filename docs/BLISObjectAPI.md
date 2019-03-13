@@ -24,7 +24,7 @@
   * [Level-2 operations](BLISObjectAPI.md#level-2-operations)
   * [Level-3 operations](BLISObjectAPI.md#level-3-operations)
   * [Utility operations](BLISObjectAPI.md#utility-operations)
-  * [Level-3 micro-kernels](BLISObjectAPI.md#level-3-micro-kernels)
+  * [Level-3 microkernels](BLISObjectAPI.md#level-3-microkernels)
 * **[Query function reference](BLISObjectAPI.md#query-function-reference)**
   * [General library information](BLISObjectAPI.md#general-library-information)
   * [Specific configuration](BLISObjectAPI.md#specific-configuration)
@@ -174,7 +174,7 @@ The expert interface contains two additional parameters: a `cntx_t*` and `rntm_t
 
 ## Context type
 
-In general, it is permissible to pass in `NULL` for a `cntx_t*` parameter when calling an expert interface such as `bli_gemm_ex()`. However, there are cases where `NULL` values are not accepted and may result in a segmentation fault. Specifically, the `cntx_t*` argument appears in the interfaces to the `gemm`, `trsm`, and `gemmtrsm` [level-3 micro-kernels](KernelsHowTo.md#level-3) along with all [level-1v](KernelsHowTo.md#level-1v) and [level-1f](KernelsHowTo.md#level-1f) kernels. There, as a general rule, a valid pointer must be passed in. Whenever a valid context is needed, the developer may query a default context from the global kernel structure (if a context is not already available in the current scope):
+In general, it is permissible to pass in `NULL` for a `cntx_t*` parameter when calling an expert interface such as `bli_gemm_ex()`. However, there are cases where `NULL` values are not accepted and may result in a segmentation fault. Specifically, the `cntx_t*` argument appears in the interfaces to the `gemm`, `trsm`, and `gemmtrsm` [level-3 microkernels](KernelsHowTo.md#level-3) along with all [level-1v](KernelsHowTo.md#level-1v) and [level-1f](KernelsHowTo.md#level-1f) kernels. There, as a general rule, a valid pointer must be passed in. Whenever a valid context is needed, the developer may query a default context from the global kernel structure (if a context is not already available in the current scope):
 ```c
 cntx_t* bli_gks_query_cntx( void );
 ```
@@ -260,7 +260,7 @@ void bli_obj_create_without_buffer
        obj_t* obj
      );
 ```
-Partially initialize an _m x n_ object `obj` that will eventually contain elements whose storage type is specified by `dt`. This function does not result in any memory allocation. Before `obj` can be used, the object must be fully initialized by attaching a buffer via `bli_obj_attach_buffer()`. This function is useful when the user wishes to encapsulate existing buffers into one or more `obj_t` objects. 
+Partially initialize an _m x n_ object `obj` that will eventually contain elements whose storage type is specified by `dt`. This function does not result in any memory allocation. Before `obj` can be used, the object must be fully initialized by attaching a buffer via `bli_obj_attach_buffer()`. This function is useful when the user wishes to encapsulate existing buffers into one or more `obj_t` objects.
 An object (partially) initialized via this function should generally not be passed to `bli_obj_free()` even after a buffer is attached to it via `bli_obj_attach_buffer()`, unless the user wishes to pass that buffer into `free()`.
 
 ---
@@ -559,14 +559,14 @@ However, there is at least one field (one that only developers should be concern
 ```c
 void bli_obj_real_part( obj_t* c, obj_t* r );
 ```
-Initialize `r` to be a modified shallow copy of `c` that refers only to the real part of `c`. 
+Initialize `r` to be a modified shallow copy of `c` that refers only to the real part of `c`.
 
 ---
 
 ```c
 void bli_obj_imag_part( obj_t* c, obj_t* i );
 ```
-Initialize `i` to be a modified shallow copy of `c` that refers only to the imaginary part of `c`. 
+Initialize `i` to be a modified shallow copy of `c` that refers only to the imaginary part of `c`.
 
 ---
 
@@ -597,7 +597,7 @@ Notes for interpreting function descriptions:
   * **[Level-1v](BLISObjectAPI.md#level-1v-operations)**: Operations on vectors:
     * [addv](BLISObjectAPI.md#addv), [amaxv](BLISObjectAPI.md#amaxv), [axpyv](BLISObjectAPI.md#axpyv), [axpbyv](BLISObjectAPI.md#axpbyv), [copyv](BLISObjectAPI.md#copyv), [dotv](BLISObjectAPI.md#dotv), [dotxv](BLISObjectAPI.md#dotxv), [invertv](BLISObjectAPI.md#invertv), [scal2v](BLISObjectAPI.md#scal2v), [scalv](BLISObjectAPI.md#scalv), [setv](BLISObjectAPI.md#setv), [setrv](BLISObjectAPI.md#setrv), [setiv](BLISObjectAPI.md#setiv), [subv](BLISObjectAPI.md#subv), [swapv](BLISObjectAPI.md#swapv), [xpbyv](BLISObjectAPI.md#xpbyv)
   * **[Level-1d](BLISObjectAPI.md#level-1d-operations)**: Element-wise operations on matrix diagonals:
-    * [addd](BLISObjectAPI.md#addd), [axpyd](BLISObjectAPI.md#axpyd), [copyd](BLISObjectAPI.md#copyd), [invertd](BLISObjectAPI.md#invertd), [scald](BLISObjectAPI.md#scald), [scal2d](BLISObjectAPI.md#scal2d), [setd](BLISObjectAPI.md#setd), [setid](BLISObjectAPI.md#setid), [subd](BLISObjectAPI.md#subd)
+    * [addd](BLISObjectAPI.md#addd), [axpyd](BLISObjectAPI.md#axpyd), [copyd](BLISObjectAPI.md#copyd), [invertd](BLISObjectAPI.md#invertd), [scald](BLISObjectAPI.md#scald), [scal2d](BLISObjectAPI.md#scal2d), [setd](BLISObjectAPI.md#setd), [setid](BLISObjectAPI.md#setid), [shiftd](BLISObjectAPI.md#shiftd), [subd](BLISObjectAPI.md#subd), [xpbyd](BLISObjectAPI.md#xpbyd)
   * **[Level-1m](BLISObjectAPI.md#level-1m-operations)**: Element-wise operations on matrices:
     * [addm](BLISObjectAPI.md#addm), [axpym](BLISObjectAPI.md#axpym), [copym](BLISObjectAPI.md#copym), [scalm](BLISObjectAPI.md#scalm), [scal2m](BLISObjectAPI.md#scal2m), [setm](BLISObjectAPI.md#setm), [setrm](BLISObjectAPI.md#setrm), [setim](BLISObjectAPI.md#setim), [subm](BLISObjectAPI.md#subm)
   * **[Level-1f](BLISObjectAPI.md#level-1f-operations)**: Fused operations on multiple vectors:
@@ -681,7 +681,7 @@ void bli_axpbyv
        obj_t*  alpha,
        obj_t*  x,
        obj_t*  beta,
-       obj_t*  y 
+       obj_t*  y
      )
 ```
 Perform
@@ -771,6 +771,8 @@ Perform
 ```
 where `x` is a vector of length _n_, and `alpha` is a scalar.
 
+Observed object properties: `conj?(alpha)`.
+
 ---
 
 #### scal2v
@@ -788,6 +790,8 @@ Perform
 ```
 where `x` and `y` are vectors of length _n_, and `alpha` is a scalar.
 
+Observed object properties: `conj?(alpha)`, `conj?(x)`.
+
 ---
 
 #### setv
@@ -803,6 +807,8 @@ Perform
   x := conj?(alpha)
 ```
 That is, set all elements of an _n_-length vector `x` to scalar `conj?(alpha)`.
+
+Observed object properties: `conj?(alpha)`.
 
 ---
 
@@ -856,6 +862,8 @@ Perform
 ```
 where `x` and `y` are vectors of length _n_.
 
+Observed object properties: `conj?(x)`.
+
 ---
 
 #### swapv
@@ -885,6 +893,8 @@ Perform
 ```
 where `x` and `y` are vectors of length _n_, and `beta` is a scalar.
 
+Observed object properties: `conj?(beta)`, `conj?(x)`.
+
 ---
 
 
@@ -908,6 +918,8 @@ void bli_addd
      );
 ```
 
+Observed object properties: `diagoff(A)`, `diag(A)`, `trans?(A)`.
+
 ---
 
 #### axpyd
@@ -920,6 +932,8 @@ void bli_axpyd
      );
 ```
 
+Observed object properties: `conj?(alpha)`, `diagoff(A)`, `diag(A)`, `trans?(A)`.
+
 ---
 
 #### copyd
@@ -931,6 +945,8 @@ void bli_copyd
      );
 ```
 
+Observed object properties: `diagoff(A)`, `diag(A)`, `trans?(A)`.
+
 ---
 
 #### invertd
@@ -940,6 +956,8 @@ void bli_invertd
        obj_t*  a
      );
 ```
+
+Observed object properties: `diagoff(A)`.
 
 ---
 
@@ -951,6 +969,8 @@ void bli_scald
        obj_t*  a
      );
 ```
+
+Observed object properties: `conj?(alpha)`, `diagoff(A)`.
 
 ---
 
@@ -964,6 +984,8 @@ void bli_scal2d
      );
 ```
 
+Observed object properties: `conj?(alpha)`, `diagoff(A)`, `diag(A)`, `trans?(A)`.
+
 ---
 
 #### setd
@@ -975,6 +997,8 @@ void bli_setd
      );
 ```
 
+Observed object properties: `conj?(alpha)`, `diagoff(A)`, `diag(A)`.
+
 ---
 
 #### setid
@@ -985,7 +1009,26 @@ void bli_setid
        obj_t*  a
      );
 ```
-Set the imaginary components of a matrix diagonal to a scalar `alpha`.
+Set the imaginary components of every element along the diagonal of `a`
+to a scalar `alpha`.
+Note that the datatype of `alpha` must be the real projection of the datatype
+of `a`.
+
+Observed object properties: `diagoff(A)`.
+
+---
+
+#### shiftd
+```c
+void bli_shiftd
+     (
+       obj_t*  alpha,
+       obj_t*  a
+     );
+```
+Add a constant value `alpha` to every element along the diagonal of `a`.
+
+Observed object properties: `diagoff(A)`.
 
 ---
 
@@ -997,6 +1040,22 @@ void bli_subd
        obj_t*  b
      );
 ```
+
+Observed object properties: `diagoff(A)`, `diag(A)`, `trans?(A)`.
+
+---
+
+#### xpbyd
+```c
+void bli_xpbyd
+     (
+       obj_t*  a,
+       obj_t*  beta,
+       obj_t*  b
+     );
+```
+
+Observed object properties: `conj?(beta)`, `diagoff(A)`, `diag(A)`, `trans?(A)`.
 
 ---
 
@@ -1515,7 +1574,7 @@ Observed object properties: `conj?(alpha)`, `uplo(A)`, `trans?(A)`, `diag(A)`.
 ## Level-3 operations
 
 Level-3 operations perform various level-3 BLAS-like operations.
-**Note**: Each All level-3 operations are implemented through a handful of level-3 micro-kernels. Please see the [Kernels Guide](KernelsHowTo.md) for more details.
+**Note**: Each All level-3 operations are implemented through a handful of level-3 microkernels. Please see the [Kernels Guide](KernelsHowTo.md) for more details.
 
 
 ---
@@ -2047,7 +2106,7 @@ gint_t bli_info_get_blas_int_type_size( void );
 
 ### Micro-kernel implementation type query
 
-The following routines allow the caller to obtain a string that identifies the implementation type of each micro-kernel that is currently active (ie: part of the current active configuration, as identified bi `bli_arch_query_id()`). 
+The following routines allow the caller to obtain a string that identifies the implementation type of each microkernel that is currently active (ie: part of the current active configuration, as identified bi `bli_arch_query_id()`).
 
 ```c
 char* bli_info_get_gemm_ukr_impl_string( ind_t method, num_t dt )
@@ -2058,21 +2117,21 @@ char* bli_info_get_trsm_u_ukr_impl_string( ind_t method, num_t dt )
 ```
 
 Possible implementation (ie: the `ind_t method` argument) types are:
- * `BLIS_3MH`: Implementation based on the 3m method applied at the highest level, outside the 5th loop around the micro-kernel.
- * `BLIS_3M1`: Implementation based on the 3m method applied within the 1st loop around the micro-kernel.
- * `BLIS_4MH`: Implementation based on the 4m method applied at the highest level, outside the 5th loop around the micro-kernel.
- * `BLIS_4M1B`: Implementation based on the 4m method applied within the 1st loop around the micro-kernel. Computation is ordered such that the 1st loop is fissured into two loops, the first of which multiplies the real part of the current micro-panel of packed matrix B (against all real and imaginary parts of packed matrix A), and the second of which multiplies the imaginary part of the current micro-panel of packed matrix B.
- * `BLIS_4M1A`: Implementation based on the 4m method applied within the 1st loop around the micro-kernel. Computation is ordered such that real and imaginary components of the current micro-panels are completely used before proceeding to the next virtual micro-kernel invocation.
+ * `BLIS_3MH`: Implementation based on the 3m method applied at the highest level, outside the 5th loop around the microkernel.
+ * `BLIS_3M1`: Implementation based on the 3m method applied within the 1st loop around the microkernel.
+ * `BLIS_4MH`: Implementation based on the 4m method applied at the highest level, outside the 5th loop around the microkernel.
+ * `BLIS_4M1B`: Implementation based on the 4m method applied within the 1st loop around the microkernel. Computation is ordered such that the 1st loop is fissured into two loops, the first of which multiplies the real part of the current micropanel of packed matrix B (against all real and imaginary parts of packed matrix A), and the second of which multiplies the imaginary part of the current micropanel of packed matrix B.
+ * `BLIS_4M1A`: Implementation based on the 4m method applied within the 1st loop around the microkernel. Computation is ordered such that real and imaginary components of the current micropanels are completely used before proceeding to the next virtual microkernel invocation.
  * `BLIS_1M`: Implementation based on the 1m method. (This is the default induced method when real domain kernels are present but complex kernels are missing.)
  * `BLIS_NAT`: Implementation based on "native" execution (ie: NOT an induced method).
 
-**NOTE**: `BLIS_3M3` and `BLIS_3M2` have been deprecated from the `typedef enum` of `ind_t`, and `BLIS_4M1B` is also effectively no longer available, though the `typedef enum` value still exists. 
+**NOTE**: `BLIS_3M3` and `BLIS_3M2` have been deprecated from the `typedef enum` of `ind_t`, and `BLIS_4M1B` is also effectively no longer available, though the `typedef enum` value still exists.
 
-Possible micro-kernel types (ie: the return values for `bli_info_get_*_ukr_impl_string()`) are:
- * `BLIS_REFERENCE_UKERNEL` (`"refrnce"`): This value is returned when the queried micro-kernel is provided by the reference implementation.
- * `BLIS_VIRTUAL_UKERNEL` (`"virtual"`): This value is returned when the queried micro-kernel is driven by a the "virtual" micro-kernel provided by an induced method. This happens for any `method` value that is not `BLIS_NAT` (ie: native), but only applies to the complex domain.
- * `BLIS_OPTIMIZED_UKERNEL` (`"optimzd"`): This value is returned when the queried micro-kernel is provided by an implementation that is neither reference nor virtual, and thus we assume the kernel author would deem it to be "optimized". Such a micro-kernel may not be optimal in the literal sense of the word, but nonetheless is _intended_ to be optimized, at least relative to the reference micro-kernels.
- * `BLIS_NOTAPPLIC_UKERNEL` (`"notappl"`): This value is returned usually when performing a `gemmtrsm` or `trsm` micro-kernel type query for any `method` value that is not `BLIS_NAT` (ie: native). That is, induced methods cannot be (purely) used on `trsm`-based micro-kernels because these micro-kernels perform more a triangular inversion, which is not matrix multiplication.
+Possible microkernel types (ie: the return values for `bli_info_get_*_ukr_impl_string()`) are:
+ * `BLIS_REFERENCE_UKERNEL` (`"refrnce"`): This value is returned when the queried microkernel is provided by the reference implementation.
+ * `BLIS_VIRTUAL_UKERNEL` (`"virtual"`): This value is returned when the queried microkernel is driven by a the "virtual" microkernel provided by an induced method. This happens for any `method` value that is not `BLIS_NAT` (ie: native), but only applies to the complex domain.
+ * `BLIS_OPTIMIZED_UKERNEL` (`"optimzd"`): This value is returned when the queried microkernel is provided by an implementation that is neither reference nor virtual, and thus we assume the kernel author would deem it to be "optimized". Such a microkernel may not be optimal in the literal sense of the word, but nonetheless is _intended_ to be optimized, at least relative to the reference microkernels.
+ * `BLIS_NOTAPPLIC_UKERNEL` (`"notappl"`): This value is returned usually when performing a `gemmtrsm` or `trsm` microkernel type query for any `method` value that is not `BLIS_NAT` (ie: native). That is, induced methods cannot be (purely) used on `trsm`-based microkernels because these microkernels perform more a triangular inversion, which is not matrix multiplication.
 
 # Example code
 

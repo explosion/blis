@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2018, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -14,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -38,24 +39,34 @@
 
 // gemm
 
-#define bli_gemm_get_next_a_upanel( thread, a1, step ) ( a1 + step * thread->n_way )
-#define bli_gemm_get_next_b_upanel( thread, b1, step ) ( b1 + step * thread->n_way )
+// NOTE: The definition of bli_gemm_get_next_?_upanel() does not need to
+// change depending on BLIS_ENABLE_JRIR_SLAB / BLIS_ENABLE_JRIR_RR.
+#define bli_gemm_get_next_a_upanel( a1, step, inc ) ( a1 + step * inc )
+#define bli_gemm_get_next_b_upanel( b1, step, inc ) ( b1 + step * inc )
 
 // herk
 
-#define bli_herk_get_next_a_upanel( thread, a1, step ) ( a1 + step * thread->n_way )
-#define bli_herk_get_next_b_upanel( thread, b1, step ) ( b1 + step * thread->n_way )
+// NOTE: The definition of bli_herk_get_next_?_upanel() does not need to
+// change depending on BLIS_ENABLE_JRIR_SLAB / BLIS_ENABLE_JRIR_RR.
+#define bli_herk_get_next_a_upanel( a1, step, inc ) ( a1 + step * inc )
+#define bli_herk_get_next_b_upanel( b1, step, inc ) ( b1 + step * inc )
 
 // trmm
 
-#define bli_trmm_r_ir_my_iter( index, thread ) ( index % thread->n_way == thread->work_id % thread->n_way )
-#define bli_trmm_r_jr_my_iter( index, thread ) ( index % thread->n_way == thread->work_id % thread->n_way )
-#define bli_trmm_l_ir_my_iter( index, thread ) ( index % thread->n_way == thread->work_id % thread->n_way )
-#define bli_trmm_l_jr_my_iter( index, thread ) ( index % thread->n_way == thread->work_id % thread->n_way )
+// NOTE: The definition of bli_trmm_get_next_?_upanel() does not need to
+// change depending on BLIS_ENABLE_JRIR_SLAB / BLIS_ENABLE_JRIR_RR.
+#define bli_trmm_get_next_a_upanel( a1, step, inc ) ( a1 + step * inc )
+#define bli_trmm_get_next_b_upanel( b1, step, inc ) ( b1 + step * inc )
+
+#define bli_trmm_my_iter_rr( index, thread ) \
+\
+	( index % thread->n_way == thread->work_id % thread->n_way )
 
 // trsm
 
-#define bli_trsm_my_iter( index, thread ) ( index % thread->n_way == thread->work_id % thread->n_way )
+#define bli_trsm_my_iter_rr( index, thread ) \
+\
+	( index % thread->n_way == thread->work_id % thread->n_way )
 
 //
 // thrinfo_t APIs specific to level-3 operations.
@@ -78,6 +89,7 @@ void bli_l3_thrinfo_init_single
 
 void bli_l3_thrinfo_free
      (
+       rntm_t*    rntm,
        thrinfo_t* thread
      );
 
@@ -92,7 +104,12 @@ void bli_l3_thrinfo_create_root
        thrinfo_t** thread
      );
 
-void bli_l3_thrinfo_print_paths
+void bli_l3_thrinfo_print_gemm_paths
+     (
+       thrinfo_t** threads
+     );
+
+void bli_l3_thrinfo_print_trsm_paths
      (
        thrinfo_t** threads
      );
@@ -101,6 +118,7 @@ void bli_l3_thrinfo_print_paths
 
 void bli_l3_thrinfo_free_paths
      (
+       rntm_t*     rntm,
        thrinfo_t** threads
      );
 

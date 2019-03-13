@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -32,23 +32,32 @@
 
 */
 
-// d12x4
-GEMM_UKR_PROT( float,    s, gemm_haswell_asm_24x4 )
-GEMM_UKR_PROT( double,   d, gemm_haswell_asm_12x4 )
+// -- level-3 --
 
-// d4x12
-GEMM_UKR_PROT( float,    s, gemm_haswell_asm_4x24 )
-GEMM_UKR_PROT( double,   d, gemm_haswell_asm_4x12 )
-
-// d6x8
+// gemm (asm d6x8)
 GEMM_UKR_PROT( float,    s, gemm_haswell_asm_6x16 )
 GEMM_UKR_PROT( double,   d, gemm_haswell_asm_6x8 )
 GEMM_UKR_PROT( scomplex, c, gemm_haswell_asm_3x8 )
 GEMM_UKR_PROT( dcomplex, z, gemm_haswell_asm_3x4 )
 
-// d8x6
+// gemm (asm d8x6)
 GEMM_UKR_PROT( float,    s, gemm_haswell_asm_16x6 )
 GEMM_UKR_PROT( double,   d, gemm_haswell_asm_8x6 )
 GEMM_UKR_PROT( scomplex, c, gemm_haswell_asm_8x3 )
 GEMM_UKR_PROT( dcomplex, z, gemm_haswell_asm_4x3 )
+
+// gemmtrsm_l (asm d6x8)
+GEMMTRSM_UKR_PROT( float,    s, gemmtrsm_l_haswell_asm_6x16 )
+GEMMTRSM_UKR_PROT( double,   d, gemmtrsm_l_haswell_asm_6x8 )
+
+// gemmtrsm_u (asm d6x8)
+GEMMTRSM_UKR_PROT( float,    s, gemmtrsm_u_haswell_asm_6x16 )
+GEMMTRSM_UKR_PROT( double,   d, gemmtrsm_u_haswell_asm_6x8 )
+
+
+// gemm (asm d8x6)
+//GEMM_UKR_PROT( float,    s, gemm_haswell_asm_16x6 )
+//GEMM_UKR_PROT( double,   d, gemm_haswell_asm_8x6 )
+//GEMM_UKR_PROT( scomplex, c, gemm_haswell_asm_8x3 )
+//GEMM_UKR_PROT( dcomplex, z, gemm_haswell_asm_4x3 )
 

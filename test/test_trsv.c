@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -113,6 +113,14 @@ int main( int argc, char** argv )
 		bli_obj_set_uplo( uplo, &a );
 		bli_obj_set_onlytrans( BLIS_NO_TRANSPOSE, &a );
 		bli_obj_set_diag( BLIS_NONUNIT_DIAG, &a );
+
+		// Randomize A and zero the unstored triangle to ensure the
+		// implementation reads only from the stored region.
+		bli_randm( &a );
+		bli_mktrim( &a );
+
+		// Load the diagonal of A to make it more likely to be invertible.
+		bli_shiftd( &BLIS_TWO, &a );
 
 		bli_setsc(  (1.0/1.0), 0.0, &alpha );
 

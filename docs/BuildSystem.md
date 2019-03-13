@@ -20,12 +20,12 @@ This document describes how to configure, compile, and install a BLIS library on
 
 The BLIS build system was designed for use with GNU/Linux (or some other sane UNIX). Other requirements are:
 
-  * Python (2.7 or later)
+  * Python (2.7 or later for python2; 3.4 or later for python3)
   * GNU `bash` (3.2 or later)
-  * GNU `make`
-  * a working C compiler
+  * GNU `make` (3.81 or later)
+  * a working C99 compiler
 
-BLIS also requires a POSIX threads library at link-time (`-lpthread` or `libpthread.so`). This requirement holds even when configuring BLIS with multithreading disabled (the default) or with multithreading via OpenMP (`--enable-multithreading=openmp`).
+BLIS also requires a POSIX threads library at link-time (`-lpthread` or `libpthread.so`). This requirement holds even when configuring BLIS with multithreading disabled (the default) or with multithreading via OpenMP (`--enable-multithreading=openmp`). (Note: BLIS implements basic pthreads functionality automatically for Windows builds via [AppVeyor](https://ci.appveyor.com/project/shpc/blis/).)
 
 Finally, we also require various other shell utilities that are so ubiquitous that they are not worth mentioning (such as `mv`, `mkdir`, `find`, and so forth). If you are missing these utilities, then you have much bigger problems than not being able to build BLIS.
 
@@ -390,9 +390,13 @@ The BLIS `Makefile` implements many `make` targets. The table below lists most o
 | `check`         | Execute `checkblis-fast` and `checkblas` targets.  |
 | `checkblis`     | Execute `testblis` and characterize the results to `stdout`. |
 | `checkblis-fast`| Execute `testblis-fast` and characterize the results to `stdout`. |
+| `checkblis-md`  | Execute `testblis-md` and characterize the results to `stdout`. |
+| `checkblis-salt`| Execute `testblis-salt` and characterize the results to `stdout`. |
 | `checkblas`     | Execute `testblas` and characterize the results to `stdout`. |
 | `testblis`      | Run the BLIS testsuite with default parameters (runs for 2-8 minutes). |
 | `testblis-fast` | Run the BLIS testsuite with "fast" parameters (runs for a few seconds). |
+| `testblis-md`   | Run the BLIS testsuite for `gemm` with full mixing of datatypes (runs for 10-30 seconds). |
+| `testblis-salt` | Run the BLIS testsuite while simulating application-level threading (runs for a few seconds). |
 | `testsuite`     | Same as `testblis`.                                |
 | `testblas`      | Run the BLAS test drivers with default parameters (runs for a few seconds). |
 | `showconfig`    | Show a summary of currently selected `configure` options. |

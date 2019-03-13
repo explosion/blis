@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2018, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -14,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -36,66 +37,67 @@
 
 #define FUNCPTR_T packm_fp
 
-typedef void (*FUNCPTR_T)(
-                           struc_t strucc,
-                           doff_t  diagoffc,
-                           diag_t  diagc,
-                           uplo_t  uploc,
-                           trans_t transc,
-                           pack_t  schema,
-                           bool_t  invdiag,
-                           bool_t  revifup,
-                           bool_t  reviflo,
-                           dim_t   m,
-                           dim_t   n,
-                           dim_t   m_max,
-                           dim_t   n_max,
-                           void*   kappa,
-                           void*   c, inc_t rs_c, inc_t cs_c,
-                           void*   p, inc_t rs_p, inc_t cs_p,
-                                      inc_t is_p,
-                                      dim_t pd_p, inc_t ps_p,
-                           void*   packm_ker,
-                           cntx_t* cntx,
-                           thrinfo_t* thread
-                         );
+typedef void (*FUNCPTR_T)
+     (
+       struc_t strucc,
+       doff_t  diagoffc,
+       diag_t  diagc,
+       uplo_t  uploc,
+       trans_t transc,
+       pack_t  schema,
+       bool_t  invdiag,
+       bool_t  revifup,
+       bool_t  reviflo,
+       dim_t   m,
+       dim_t   n,
+       dim_t   m_max,
+       dim_t   n_max,
+       void*   kappa,
+       void*   c, inc_t rs_c, inc_t cs_c,
+       void*   p, inc_t rs_p, inc_t cs_p,
+                  inc_t is_p,
+                  dim_t pd_p, inc_t ps_p,
+       void*   packm_ker,
+       cntx_t* cntx,
+       thrinfo_t* thread
+     );
 
 static FUNCPTR_T GENARRAY(ftypes,packm_blk_var1);
 
 
 static func_t packm_struc_cxk_kers[BLIS_NUM_PACK_SCHEMA_TYPES] =
 {
-                /* float (0)  scomplex (1)  double (2)  dcomplex (3) */
+    /* float (0)  scomplex (1)  double (2)  dcomplex (3) */
 // 0000 row/col panels
-               { { bli_spackm_struc_cxk,      bli_cpackm_struc_cxk,
-                   bli_dpackm_struc_cxk,      bli_zpackm_struc_cxk,      } },
+    { { bli_spackm_struc_cxk,      bli_cpackm_struc_cxk,
+        bli_dpackm_struc_cxk,      bli_zpackm_struc_cxk,      } },
 // 0001 row/col panels: 4m interleaved
-               { { NULL,                      bli_cpackm_struc_cxk_4mi,
-                   NULL,                      bli_zpackm_struc_cxk_4mi,  } },
+    { { NULL,                      bli_cpackm_struc_cxk_4mi,
+        NULL,                      bli_zpackm_struc_cxk_4mi,  } },
 // 0010 row/col panels: 3m interleaved
-               { { NULL,                      bli_cpackm_struc_cxk_3mis,
-                   NULL,                      bli_zpackm_struc_cxk_3mis, } },
+    { { NULL,                      bli_cpackm_struc_cxk_3mis,
+        NULL,                      bli_zpackm_struc_cxk_3mis, } },
 // 0011 row/col panels: 4m separated (NOT IMPLEMENTED)
-               { { NULL,                      NULL,
-                   NULL,                      NULL,                      } },
+    { { NULL,                      NULL,
+        NULL,                      NULL,                      } },
 // 0100 row/col panels: 3m separated
-               { { NULL,                      bli_cpackm_struc_cxk_3mis,
-                   NULL,                      bli_zpackm_struc_cxk_3mis, } },
+    { { NULL,                      bli_cpackm_struc_cxk_3mis,
+        NULL,                      bli_zpackm_struc_cxk_3mis, } },
 // 0101 row/col panels: real only
-               { { NULL,                      bli_cpackm_struc_cxk_rih,
-                   NULL,                      bli_zpackm_struc_cxk_rih,  } },
+    { { NULL,                      bli_cpackm_struc_cxk_rih,
+        NULL,                      bli_zpackm_struc_cxk_rih,  } },
 // 0110 row/col panels: imaginary only
-               { { NULL,                      bli_cpackm_struc_cxk_rih,
-                   NULL,                      bli_zpackm_struc_cxk_rih,  } },
+    { { NULL,                      bli_cpackm_struc_cxk_rih,
+        NULL,                      bli_zpackm_struc_cxk_rih,  } },
 // 0111 row/col panels: real+imaginary only
-               { { NULL,                      bli_cpackm_struc_cxk_rih,
-                   NULL,                      bli_zpackm_struc_cxk_rih,  } },
+    { { NULL,                      bli_cpackm_struc_cxk_rih,
+        NULL,                      bli_zpackm_struc_cxk_rih,  } },
 // 1000 row/col panels: 1m-expanded (1e)
-               { { NULL,                      bli_cpackm_struc_cxk_1er,
-                   NULL,                      bli_zpackm_struc_cxk_1er,  } },
+    { { NULL,                      bli_cpackm_struc_cxk_1er,
+        NULL,                      bli_zpackm_struc_cxk_1er,  } },
 // 1001 row/col panels: 1m-reordered (1r)
-               { { NULL,                      bli_cpackm_struc_cxk_1er,
-                   NULL,                      bli_zpackm_struc_cxk_1er,  } },
+    { { NULL,                      bli_cpackm_struc_cxk_1er,
+        NULL,                      bli_zpackm_struc_cxk_1er,  } },
 };
 
 
@@ -108,7 +110,17 @@ void bli_packm_blk_var1
        thrinfo_t* t
      )
 {
-	num_t     dt_cp      = bli_obj_dt( c );
+#ifdef BLIS_ENABLE_GEMM_MD
+	// Call a different packm implementation when the storage and target
+	// datatypes differ.
+	if ( bli_obj_dt( c ) != bli_obj_target_dt( c ) )
+	{
+		bli_packm_blk_var1_md( c, p, cntx, cntl, t );
+		return;
+	}
+#endif
+
+	num_t     dt_p       = bli_obj_dt( p );
 
 	struc_t   strucc     = bli_obj_struc( c );
 	doff_t    diagoffc   = bli_obj_diag_offset( c );
@@ -137,7 +149,6 @@ void bli_packm_blk_var1
 	inc_t     ps_p       = bli_obj_panel_stride( p );
 
 	obj_t     kappa;
-	obj_t*    kappa_p;
 	void*     buf_kappa;
 
 	func_t*   packm_kers;
@@ -155,10 +166,12 @@ void bli_packm_blk_var1
 		// higher-level operation. Thus, we use BLIS_ONE for kappa so
 		// that the underlying packm implementation does not perform
 		// any scaling during packing.
-		buf_kappa = bli_obj_buffer_for_const( dt_cp, &BLIS_ONE );
+		buf_kappa = bli_obj_buffer_for_const( dt_p, &BLIS_ONE );
 	}
 	else // if ( bli_is_ind_packed( schema ) )
 	{
+		obj_t* kappa_p;
+
 		// The value for kappa we use will depend on whether the scalar
 		// attached to A has a nonzero imaginary component. If it does,
 		// then we will apply the scalar during packing to facilitate
@@ -185,13 +198,12 @@ void bli_packm_blk_var1
 			// use BLIS_ONE to indicate no scaling during packing.
 			kappa_p = &BLIS_ONE;
 		}
-	
+
 		// Acquire the buffer to the kappa chosen above.
-		buf_kappa = bli_obj_buffer_for_1x1( dt_cp, kappa_p );
+		buf_kappa = bli_obj_buffer_for_1x1( dt_p, kappa_p );
 	}
 
 
-	// Choose the correct func_t object based on the pack_t schema.
 #if 0
 	if      ( bli_is_4mi_packed( schema ) ) packm_kers = packm_struc_cxk_4mi_kers;
 	else if ( bli_is_3mi_packed( schema ) ||
@@ -208,7 +220,7 @@ void bli_packm_blk_var1
 
 	//func_t* cntx_packm_kers = bli_cntx_get_packm_ukr( cntx );
 
-	//if ( bli_func_is_null_dt( dt_cp, cntx_packm_kers ) )
+	//if ( bli_func_is_null_dt( dt_c, cntx_packm_kers ) )
 	{
 		// If the packm structure-aware kernel func_t in the context is
 		// NULL (which is the default value after the context is created),
@@ -230,11 +242,11 @@ void bli_packm_blk_var1
 #endif
 
 	// Query the datatype-specific function pointer from the func_t object.
-	packm_ker = bli_func_get_dt( dt_cp, packm_kers );
+	packm_ker = bli_func_get_dt( dt_p, packm_kers );
 
 	// Index into the type combination array to extract the correct
 	// function pointer.
-	f = ftypes[dt_cp];
+	f = ftypes[dt_p];
 
 	// Invoke the function.
 	f( strucc,
@@ -298,7 +310,7 @@ void PASTEMAC(ch,varname) \
 	ctype* restrict p_begin; \
 \
 	dim_t           iter_dim; \
-	dim_t           num_iter; \
+	dim_t           n_iter; \
 	dim_t           it, ic, ip; \
 	dim_t           ic0, ip0; \
 	doff_t          ic_inc, ip_inc; \
@@ -409,16 +421,16 @@ void PASTEMAC(ch,varname) \
 	else                                    { ss_num = 1; ss_den = 1; } \
 \
 	/* Compute the total number of iterations we'll need. */ \
-	num_iter = iter_dim / panel_dim_max + ( iter_dim % panel_dim_max ? 1 : 0 ); \
+	n_iter = iter_dim / panel_dim_max + ( iter_dim % panel_dim_max ? 1 : 0 ); \
 \
 	/* Set the initial values and increments for indices related to C and P
 	   based on whether reverse iteration was requested. */ \
 	if ( ( revifup && bli_is_upper( uploc ) && bli_is_triangular( strucc ) ) || \
 	     ( reviflo && bli_is_lower( uploc ) && bli_is_triangular( strucc ) ) ) \
 	{ \
-		ic0    = (num_iter - 1) * panel_dim_max; \
+		ic0    = (n_iter - 1) * panel_dim_max; \
 		ic_inc = -panel_dim_max; \
-		ip0    = num_iter - 1; \
+		ip0    = n_iter - 1; \
 		ip_inc = -1; \
 	} \
 	else \
@@ -431,16 +443,21 @@ void PASTEMAC(ch,varname) \
 \
 	p_begin = p_cast; \
 \
-/*
-if ( row_stored ) \
-PASTEMAC(ch,fprintm)( stdout, "packm_var2: b", m, n, \
-                      c_cast,        rs_c, cs_c, "%4.1f", "" ); \
-if ( col_stored ) \
-PASTEMAC(ch,fprintm)( stdout, "packm_var2: a", m, n, \
-                      c_cast,        rs_c, cs_c, "%4.1f", "" ); \
-*/ \
+	/* Query the number of threads and thread ids from the current thread's
+	   packm thrinfo_t node. */ \
+	const dim_t nt  = bli_thread_n_way( thread ); \
+	const dim_t tid = bli_thread_work_id( thread ); \
 \
-	for ( ic  = ic0,    ip  = ip0,    it  = 0; it < num_iter; \
+	dim_t it_start, it_end, it_inc; \
+\
+	/* Determine the thread range and increment using the current thread's
+	   packm thrinfo_t node. NOTE: The definition of bli_thread_range_jrir()
+	   will depend on whether slab or round-robin partitioning was requested
+	   at configure-time. */ \
+	bli_thread_range_jrir( thread, n_iter, 1, FALSE, &it_start, &it_end, &it_inc ); \
+\
+	/* Iterate over every logical micropanel in the source matrix. */ \
+	for ( ic  = ic0,    ip  = ip0,    it  = 0; it < n_iter; \
 	      ic += ic_inc, ip += ip_inc, it += 1 ) \
 	{ \
 		panel_dim_i = bli_min( panel_dim_max, iter_dim - ic ); \
@@ -505,7 +522,11 @@ PASTEMAC(ch,fprintm)( stdout, "packm_var2: a", m, n, \
 			/* We nudge the imaginary stride up by one if it is odd. */ \
 			is_p_use += ( bli_is_odd( is_p_use ) ? 1 : 0 ); \
 \
-			if( packm_thread_my_iter( it, thread ) ) \
+			/* NOTE: We MUST use round-robin partitioning when packing
+			   micropanels of a triangular matrix. Hermitian/symmetric
+			   and general packing may use slab or round-robin, depending
+			   on which was selected at configure-time. */ \
+			if ( bli_packm_my_iter_rr( it, it_start, it_end, tid, nt ) ) \
 			{ \
 				packm_ker_cast( strucc, \
 				                diagoffp_i, \
@@ -544,7 +565,9 @@ PASTEMAC(ch,fprintm)( stdout, "packm_var2: a", m, n, \
 \
 			is_p_use = is_p; \
 \
-			if( packm_thread_my_iter( it, thread ) ) \
+			/* The definition of bli_packm_my_iter() will depend on whether slab
+			   or round-robin partitioning was requested at configure-time. */ \
+			if ( bli_packm_my_iter( it, it_start, it_end, tid, nt ) ) \
 			{ \
 				packm_ker_cast( strucc, \
 				                diagoffc_i, \
@@ -580,7 +603,9 @@ PASTEMAC(ch,fprintm)( stdout, "packm_var2: a", m, n, \
 \
 			is_p_use = is_p; \
 \
-			if( packm_thread_my_iter( it, thread ) ) \
+			/* The definition of bli_packm_my_iter() will depend on whether slab
+			   or round-robin partitioning was requested at configure-time. */ \
+			if ( bli_packm_my_iter( it, it_start, it_end, tid, nt ) ) \
 			{ \
 				packm_ker_cast( BLIS_GENERAL, \
 				                0, \
@@ -603,6 +628,32 @@ PASTEMAC(ch,fprintm)( stdout, "packm_var2: a", m, n, \
 			/* NOTE: This value is equivalent to ps_p. */ \
 			p_inc = ps_p; \
 		} \
+\
+		p_begin += p_inc; \
+\
+	} \
+}
+
+INSERT_GENTFUNCR_BASIC( packm, packm_blk_var1 )
+
+
+
+/*
+if ( row_stored ) \
+PASTEMAC(ch,fprintm)( stdout, "packm_var2: b", m, n, \
+                      c_cast,        rs_c, cs_c, "%4.1f", "" ); \
+if ( col_stored ) \
+PASTEMAC(ch,fprintm)( stdout, "packm_var2: a", m, n, \
+                      c_cast,        rs_c, cs_c, "%4.1f", "" ); \
+*/
+/*
+if ( row_stored ) \
+PASTEMAC(ch,fprintm)( stdout, "packm_blk_var1: b packed", *m_panel_max, *n_panel_max, \
+                               p_use, rs_p, cs_p, "%5.2f", "" ); \
+else \
+PASTEMAC(ch,fprintm)( stdout, "packm_blk_var1: a packed", *m_panel_max, *n_panel_max, \
+                               p_use, rs_p, cs_p, "%5.2f", "" ); \
+*/ \
 \
 /*
 if ( col_stored ) { \
@@ -653,8 +704,7 @@ bli_thread_obarrier( thread ); \
 	} \
 bli_thread_obarrier( thread ); \
 } \
-*/ \
-\
+*/
 /*
 		if ( bli_is_4mi_packed( schema ) ) { \
 		printf( "packm_var2: is_p_use = %lu\n", is_p_use ); \
@@ -677,18 +727,11 @@ bli_thread_obarrier( thread ); \
 		                       ( ctype_r* )p_use + is_p_use, rs_p, cs_p, "%4.1f", "" ); \
 		} \
 		} \
-*/ \
-/*
-*/ \
-\
-/*
-*/ \
+*/
 /*
 		PASTEMAC(chr,fprintm)( stdout, "packm_var2: bp_rpi", *m_panel_max, *n_panel_max, \
 		                       ( ctype_r* )p_use,         rs_p, cs_p, "%4.1f", "" ); \
-*/ \
-\
-\
+*/
 /*
 		if ( row_stored ) { \
 		PASTEMAC(chr,fprintm)( stdout, "packm_var2: b_r", *m_panel_max, *n_panel_max, \
@@ -701,9 +744,7 @@ bli_thread_obarrier( thread ); \
 		PASTEMAC(chr,fprintm)( stdout, "packm_var2: bp_i", *m_panel_max, *n_panel_max, \
 		                       ( ctype_r* )p_use + is_b, rs_p, cs_p, "%4.1f", "" ); \
 		} \
-*/ \
-\
-\
+*/
 /*
 		if ( col_stored ) { \
 		PASTEMAC(chr,fprintm)( stdout, "packm_var2: a_r", *m_panel_max, *n_panel_max, \
@@ -715,12 +756,4 @@ bli_thread_obarrier( thread ); \
 		PASTEMAC(chr,fprintm)( stdout, "packm_var2: ap_i", *m_panel_max, *n_panel_max, \
 		                       ( ctype_r* )p_use + p_inc, rs_p, cs_p, "%4.1f", "" ); \
 		} \
-*/ \
-\
-		p_begin += p_inc; \
-\
-	} \
-}
-
-INSERT_GENTFUNCR_BASIC( packm, packm_blk_var1 )
-
+*/

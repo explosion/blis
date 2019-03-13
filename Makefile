@@ -14,9 +14,9 @@
 #   - Redistributions in binary form must reproduce the above copyright
 #     notice, this list of conditions and the following disclaimer in the
 #     documentation and/or other materials provided with the distribution.
-#   - Neither the name of The University of Texas at Austin nor the names
-#     of its contributors may be used to endorse or promote products
-#     derived from this software without specific prior written permission.
+#   - Neither the name(s) of the copyright holder(s) nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
 #
 #  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -51,9 +51,11 @@
         flat-header flat-cblas-header \
         test \
         testblas blastest-f2c blastest-bin blastest-run \
-        testblis testsuite testsuite-bin testsuite-run \
-        testblis-fast testsuite-run-fast \
-        check checkblas checkblis checkblis-fast \
+        testsuite testsuite-bin \
+        testsuite-run testsuite-run-fast testsuite-run-md testsuite-run-salt \
+        testblis testblis-fast testblis-md testblis-salt \
+        check checkblas \
+        checkblis checkblis-fast checkblis-md checkblis-salt \
         install-headers install-libs install-lib-symlinks \
         showconfig \
         clean cleanmk cleanh cleanlib distclean \
@@ -332,6 +334,10 @@ TESTSUITE_CONF_GEN_PATH := $(DIST_PATH)/$(TESTSUITE_DIR)/$(TESTSUITE_CONF_GEN)
 TESTSUITE_CONF_OPS_PATH := $(DIST_PATH)/$(TESTSUITE_DIR)/$(TESTSUITE_CONF_OPS)
 TESTSUITE_FAST_GEN_PATH := $(DIST_PATH)/$(TESTSUITE_DIR)/$(TESTSUITE_FAST_GEN)
 TESTSUITE_FAST_OPS_PATH := $(DIST_PATH)/$(TESTSUITE_DIR)/$(TESTSUITE_FAST_OPS)
+TESTSUITE_MIXD_GEN_PATH := $(DIST_PATH)/$(TESTSUITE_DIR)/$(TESTSUITE_MIXD_GEN)
+TESTSUITE_MIXD_OPS_PATH := $(DIST_PATH)/$(TESTSUITE_DIR)/$(TESTSUITE_MIXD_OPS)
+TESTSUITE_SALT_GEN_PATH := $(DIST_PATH)/$(TESTSUITE_DIR)/$(TESTSUITE_SALT_GEN)
+TESTSUITE_SALT_OPS_PATH := $(DIST_PATH)/$(TESTSUITE_DIR)/$(TESTSUITE_SALT_OPS)
 
 # The locations of the test suite source directory and the local object
 # directory.
@@ -348,6 +354,16 @@ MK_TESTSUITE_OBJS       := $(sort \
                             )
 
 # The test suite binary executable filename.
+# NOTE: The TESTSUITE_WRAPPER variable defaults to the empty string if it
+# is not already set, in which case it has no effect lateron when the
+# testsuite binary is executed via lines such as
+#
+#   $(TESTSUITE_WRAPPER) ./$(TESTSUITE_BIN) ... > $(TESTSUITE_OUT_FILE)
+#
+# The reason TESTSUITE_WRAPPER is employed in this way is so that some
+# unusual environments (e.g. ARM) can run the testsuite through some other
+# binary. See .travis.yml for details on how the variable is employed in
+# practice.
 TESTSUITE_BIN           := test_$(LIBBLIS).x
 TESTSUITE_WRAPPER       ?=
 
@@ -627,20 +643,20 @@ $(LIBBLIS_SO_PATH): $(MK_BLIS_OBJS)
 ifeq ($(ENABLE_VERBOSE),yes)
 ifeq ($(ARG_MAX_HACK),yes)
 	$(file > $@.in,$^)
-	$(LINKER) $(SOFLAGS) $(LDFLAGS) -o $(LIBBLIS_SO_OUTPUT_NAME) @$@.in
+	$(LINKER) $(SOFLAGS) -o $(LIBBLIS_SO_OUTPUT_NAME) @$@.in $(LDFLAGS)
 	$(RM_F) $@.in
 else
-	$(LINKER) $(SOFLAGS) $(LDFLAGS) -o $(LIBBLIS_SO_OUTPUT_NAME) $?
+	$(LINKER) $(SOFLAGS) -o $(LIBBLIS_SO_OUTPUT_NAME) $? $(LDFLAGS)
 endif
 else # ifeq ($(ENABLE_VERBOSE),no)
 ifeq ($(ARG_MAX_HACK),yes)
 	@echo "Dynamically linking $@"
 	@$(file > $@.in,$^)
-	@$(LINKER) $(SOFLAGS) $(LDFLAGS) -o $(LIBBLIS_SO_OUTPUT_NAME) @$@.in
+	@$(LINKER) $(SOFLAGS) -o $(LIBBLIS_SO_OUTPUT_NAME) @$@.in $(LDFLAGS)
 	@$(RM_F) $@.in
 else
 	@echo "Dynamically linking $@"
-	@$(LINKER) $(SOFLAGS) $(LDFLAGS) -o $(LIBBLIS_SO_OUTPUT_NAME) $?
+	@$(LINKER) $(SOFLAGS) -o $(LIBBLIS_SO_OUTPUT_NAME) $? $(LDFLAGS)
 endif
 endif
 
@@ -760,6 +776,10 @@ testblis: testsuite
 
 testblis-fast: testsuite-run-fast
 
+testblis-md: testsuite-run-md
+
+testblis-salt: testsuite-run-salt
+
 testsuite: testsuite-run
 
 testsuite-bin: check-env $(TESTSUITE_BIN)
@@ -811,6 +831,36 @@ else
 	                     > $(TESTSUITE_OUT_FILE)
 endif
 
+# A rule to run the testsuite using the input.*.md files, which
+# run a set of tests designed to only exercise mixed-datatype gemm.
+testsuite-run-md: testsuite-bin
+ifeq ($(ENABLE_VERBOSE),yes)
+	$(TESTSUITE_WRAPPER) ./$(TESTSUITE_BIN) -g $(TESTSUITE_MIXD_GEN_PATH) \
+	                   -o $(TESTSUITE_MIXD_OPS_PATH) \
+	                    > $(TESTSUITE_OUT_FILE)
+
+else
+	@echo "Running $(TESTSUITE_BIN) (mixed dt) with output redirected to '$(TESTSUITE_OUT_FILE)'"
+	@$(TESTSUITE_WRAPPER) ./$(TESTSUITE_BIN) -g $(TESTSUITE_MIXD_GEN_PATH) \
+	                    -o $(TESTSUITE_MIXD_OPS_PATH) \
+	                     > $(TESTSUITE_OUT_FILE)
+endif
+
+# A rule to run the testsuite using the input.*.salt files, which
+# simulates application-level threading across operation tests.
+testsuite-run-salt: testsuite-bin
+ifeq ($(ENABLE_VERBOSE),yes)
+	$(TESTSUITE_WRAPPER) ./$(TESTSUITE_BIN) -g $(TESTSUITE_SALT_GEN_PATH) \
+	                   -o $(TESTSUITE_SALT_OPS_PATH) \
+	                    > $(TESTSUITE_OUT_FILE)
+
+else
+	@echo "Running $(TESTSUITE_BIN) (salt) with output redirected to '$(TESTSUITE_OUT_FILE)'"
+	@$(TESTSUITE_WRAPPER) ./$(TESTSUITE_BIN) -g $(TESTSUITE_SALT_GEN_PATH) \
+	                    -o $(TESTSUITE_SALT_OPS_PATH) \
+	                     > $(TESTSUITE_OUT_FILE)
+endif
+
 # Check the results of the BLIS testsuite.
 checkblis: testsuite-run
 ifeq ($(ENABLE_VERBOSE),yes)
@@ -821,6 +871,22 @@ endif
 
 # Check the results of the BLIS testsuite (fast).
 checkblis-fast: testsuite-run-fast
+ifeq ($(ENABLE_VERBOSE),yes)
+	- $(TESTSUITE_CHECK_PATH) $(TESTSUITE_OUT_FILE)
+else
+	@- $(TESTSUITE_CHECK_PATH) $(TESTSUITE_OUT_FILE)
+endif
+
+# Check the results of the BLIS testsuite (mixed-datatype).
+checkblis-md: testsuite-run-md
+ifeq ($(ENABLE_VERBOSE),yes)
+	- $(TESTSUITE_CHECK_PATH) $(TESTSUITE_OUT_FILE)
+else
+	@- $(TESTSUITE_CHECK_PATH) $(TESTSUITE_OUT_FILE)
+endif
+
+# Check the results of the BLIS testsuite (salt).
+checkblis-salt: testsuite-run-salt
 ifeq ($(ENABLE_VERBOSE),yes)
 	- $(TESTSUITE_CHECK_PATH) $(TESTSUITE_OUT_FILE)
 else

@@ -15,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -59,7 +59,7 @@ void libblis_test_syrk_experiment
        test_params_t* params,
        test_op_t*     op,
        iface_t        iface,
-       num_t          datatype,
+       char*          dc_str,
        char*          pc_str,
        char*          sc_str,
        unsigned int   p_cur,
@@ -150,7 +150,7 @@ void libblis_test_syrk_experiment
        test_params_t* params,
        test_op_t*     op,
        iface_t        iface,
-       num_t          datatype,
+       char*          dc_str,
        char*          pc_str,
        char*          sc_str,
        unsigned int   p_cur,
@@ -164,6 +164,8 @@ void libblis_test_syrk_experiment
 	double       time_min  = DBL_MAX;
 	double       time;
 
+	num_t        datatype;
+
 	dim_t        m, k;
 
 	uplo_t       uploc;
@@ -172,6 +174,9 @@ void libblis_test_syrk_experiment
 	obj_t        alpha, a, beta, c;
 	obj_t        c_save;
 
+
+	// Use the datatype of the first char in the datatype combination string.
+	bli_param_map_char_to_blis_dt( dc_str[0], &datatype );
 
 	// Map the dimension specifier to actual dimensions.
 	m = libblis_test_get_dim_from_prob_size( op->dim_spec[0], p_cur );

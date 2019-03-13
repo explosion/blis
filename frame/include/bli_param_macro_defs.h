@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2018, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -14,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -638,6 +639,13 @@ static bool_t bli_intersects_diag_n( doff_t diagoff, dim_t m, dim_t n )
 	         !bli_is_strictly_below_diag_n( diagoff, m, n ) );
 }
 
+static bool_t bli_is_outside_diag_n( doff_t diagoff, dim_t m, dim_t n )
+{
+	return ( bool_t )
+	       ( bli_is_strictly_above_diag_n( diagoff, m, n ) ||
+	         bli_is_strictly_below_diag_n( diagoff, m, n ) );
+}
+
 static bool_t bli_is_stored_subpart_n( doff_t diagoff, uplo_t uplo, dim_t m, dim_t n )
 {
 	return ( bool_t )
@@ -784,10 +792,25 @@ static bool_t bli_is_not_edge_b( dim_t i, dim_t n_iter, dim_t n_left )
 	       ( i != 0 || n_left == 0 );
 }
 
-static bool_t bli_is_last_iter( dim_t i, dim_t n_iter, dim_t tid, dim_t nth )
+static bool_t bli_is_last_iter_sl( dim_t i, dim_t end_iter, dim_t tid, dim_t nth )
 {
 	return ( bool_t )
-	       ( i == n_iter - 1 - ( ( n_iter - tid - 1 ) % nth ) );
+	       ( i == end_iter - 1 );
+}
+
+static bool_t bli_is_last_iter_rr( dim_t i, dim_t end_iter, dim_t tid, dim_t nth )
+{
+	return ( bool_t )
+	       ( i == end_iter - 1 - ( ( end_iter - tid - 1 ) % nth ) );
+}
+
+static bool_t bli_is_last_iter( dim_t i, dim_t end_iter, dim_t tid, dim_t nth )
+{
+#ifdef BLIS_ENABLE_JRIR_SLAB
+	return bli_is_last_iter_sl( i, end_iter, tid, nth );
+#else // BLIS_ENABLE_JRIR_RR
+	return bli_is_last_iter_rr( i, end_iter, tid, nth );
+#endif
 }
 
 
@@ -938,7 +961,7 @@ static bool_t bli_is_nonnull( void* p )
 // argument.
 
 static
-void bli_set_dims_incs_uplo_1m
+void  bli_set_dims_incs_uplo_1m
      (
        doff_t  diagoffa, diag_t diaga,
        uplo_t  uploa,    dim_t  m,          dim_t  n,      inc_t  rs_a, inc_t  cs_a,
@@ -1033,7 +1056,7 @@ void bli_set_dims_incs_uplo_1m
 // argument (without column-wise stride optimization).
 
 static
-void bli_set_dims_incs_uplo_1m_noswap
+void  bli_set_dims_incs_uplo_1m_noswap
      (
        doff_t  diagoffa, diag_t diaga,
        uplo_t  uploa,    dim_t  m,          dim_t  n,      inc_t  rs_a, inc_t  cs_a,
@@ -1119,7 +1142,7 @@ void bli_set_dims_incs_uplo_1m_noswap
 // Set dimensions and increments for TWO matrix arguments.
 
 static
-void bli_set_dims_incs_2m
+void  bli_set_dims_incs_2m
      (
        trans_t transa,
        dim_t  m,      dim_t  n,      inc_t  rs_a, inc_t  cs_a,
@@ -1155,7 +1178,7 @@ void bli_set_dims_incs_2m
 // arguments.
 
 static
-void bli_set_dims_incs_uplo_2m
+void  bli_set_dims_incs_uplo_2m
      (
        doff_t  diagoffa, diag_t diaga, trans_t transa,
        uplo_t  uploa,    dim_t  m,          dim_t  n,      inc_t  rs_a, inc_t  cs_a,
@@ -1263,7 +1286,7 @@ void bli_set_dims_incs_uplo_2m
 // on the diagonal.
 
 static
-void bli_set_dims_incs_1d
+void  bli_set_dims_incs_1d
      (
        doff_t diagoffx,
        dim_t  m,    dim_t  n,      inc_t  rs_x, inc_t  cs_x,
@@ -1287,7 +1310,7 @@ void bli_set_dims_incs_1d
 // Set dimensions, increments, etc for TWO matrix arguments when operating
 // on diagonals.
 static
-void bli_set_dims_incs_2d
+void  bli_set_dims_incs_2d
      (
        doff_t diagoffx, trans_t transx,
        dim_t  m, dim_t  n, inc_t  rs_x, inc_t  cs_x,
