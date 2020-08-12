@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -14,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -55,11 +56,9 @@ double bli_clock_min_diff( double time_min, double time_start )
 
 	// Assume that anything:
 	// - under or equal to zero,
-	// - over an hour, or
 	// - under a nanosecond
 	// is actually garbled due to the clocks being taken too closely together.
 	if      ( time_min <= 0.0    ) time_min = time_min_prev;
-	else if ( time_min >  3600.0 ) time_min = time_min_prev;
 	else if ( time_min <  1.0e-9 ) time_min = time_min_prev;
 
 	return time_min;

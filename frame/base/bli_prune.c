@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -14,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -45,7 +46,7 @@ void bli_prune_unref_mparts( obj_t* p, mdim_t mdim_p,
 	// matrix is empty. This is not strictly needed but rather a minor
 	// optimization, as it would prevent threads that would otherwise get
 	// subproblems on BLIS_ZEROS operands from calling the macro-kernel,
-	// because bli_thread_get_range*() would return empty ranges, which would
+	// because bli_thread_range*() would return empty ranges, which would
 	// cause the variant's for loop from executing any iterations.
 	// NOTE: this should only ever execute if the primary object is
 	// triangular because that is the only structure type with subpartitions

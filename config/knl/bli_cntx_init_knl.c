@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -79,9 +79,11 @@ void bli_cntx_init_knl( cntx_t* cntx )
 	bli_cntx_set_l1v_kers
 	(
 	  10,
+#if 1
 	  // amaxv
 	  BLIS_AMAXV_KER,  BLIS_FLOAT,  bli_samaxv_zen_int,
 	  BLIS_AMAXV_KER,  BLIS_DOUBLE, bli_damaxv_zen_int,
+#endif
 	  // axpyv
 #if 0
 	  BLIS_AXPYV_KER,  BLIS_FLOAT,  bli_saxpyv_zen_int,

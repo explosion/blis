@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -64,7 +64,7 @@ void PASTEMAC0(opname) \
 	bli_obj_scalar_set_dt_buffer( chi, dt_absq_c, &dt_chi, &buf_chi ); \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH(opname,_vft) f = PASTEMAC(opname,_qfp)( dt_chi ); \
 \
 	f \
@@ -100,7 +100,7 @@ void PASTEMAC0(opname) \
 	    PASTEMAC(opname,_check)( chi, psi ); \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH(opname,_vft) f = PASTEMAC(opname,_qfp)( dt ); \
 \
 	f \
@@ -137,7 +137,7 @@ void PASTEMAC0(opname) \
 	    PASTEMAC(opname,_check)( chi ); \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH(opname,_vft) f = PASTEMAC(opname,_qfp)( dt ); \
 \
 	f \
@@ -170,7 +170,7 @@ void PASTEMAC0(opname) \
 	    PASTEMAC(opname,_check)( chi, psi ); \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH(opname,_vft) f = PASTEMAC(opname,_qfp)( dt ); \
 \
 	f \
@@ -213,7 +213,7 @@ void PASTEMAC0(opname) \
 	else                             dt_use = dt_chi; \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH(opname,_vft) f = PASTEMAC(opname,_qfp)( dt_use ); \
 \
 	f \
@@ -247,7 +247,7 @@ void PASTEMAC0(opname) \
 	    PASTEMAC(opname,_check)( zeta_r, zeta_i, chi ); \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH(opname,_vft) f = PASTEMAC(opname,_qfp)( dt_chi ); \
 \
 	f \
@@ -290,7 +290,7 @@ void PASTEMAC0(opname) \
 	bli_obj_scalar_set_dt_buffer( chi, dt_zeta_c, &dt_chi, &buf_chi ); \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH(opname,_vft) f = PASTEMAC(opname,_qfp)( dt_chi ); \
 \
 	f \
@@ -327,7 +327,7 @@ void PASTEMAC0(opname) \
 	    PASTEMAC(opname,_check)( chi, zeta_r, zeta_i ); \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH(opname,_vft) f = PASTEMAC(opname,_qfp)( dt_chi ); \
 \
 	f \

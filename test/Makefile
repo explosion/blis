@@ -5,7 +5,7 @@
 #  libraries.
 #
 #  Copyright (C) 2014, The University of Texas at Austin
-#  Copyright (C) 2017, Advanced Micro Devices, Inc.
+#  Copyright (C) 2017 - 2019, Advanced Micro Devices, Inc.
 #
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are
@@ -15,9 +15,9 @@
 #   - Redistributions in binary form must reproduce the above copyright
 #     notice, this list of conditions and the following disclaimer in the
 #     documentation and/or other materials provided with the distribution.
-#   - Neither the name of The University of Texas at Austin nor the names
-#     of its contributors may be used to endorse or promote products
-#     derived from this software without specific prior written permission.
+#   - Neither the name(s) of the copyright holder(s) nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
 #
 #  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -115,11 +115,11 @@ MKL_LIB        := -L$(MKL_LIB_PATH) \
 
 # ESSL
 # Note: ESSL is named differently for SMP and/or BG
-ESSL_TYPE      :=       # This is the 32b library on POWER
+#ESSL_TYPE      :=       # This is the 32b library on POWER
 #ESSL_TYPE      := 6464  # This is the 64b library on POWER
 #ESSL_TYPE      := bg    # This is the 32b single-threaded library on Blue Gene
 #ESSL_TYPE      := smpbg # This is the 32b multi-threaded library on Blue Gene
-ESSL_LIB       := $(ESSL_LIB_PATH)/libessl$(ESSL_TYPE).a
+#ESSL_LIB       := $(ESSL_LIB_PATH)/libessl$(ESSL_TYPE).a
 
 # Accelerate
 MAC_LIB        := -framework Accelerate
@@ -150,7 +150,7 @@ CFLAGS         := $(call get-user-cflags-for,$(CONFIG_NAME))
 CFLAGS         += -I$(TEST_SRC_PATH)
 
 # Locate the libblis library to which we will link.
-LIBBLIS_LINK   := $(LIB_PATH)/$(LIBBLIS_L)
+#LIBBLIS_LINK   := $(LIB_PATH)/$(LIBBLIS_L)
 
 
 
@@ -165,22 +165,23 @@ LIBBLIS_LINK   := $(LIB_PATH)/$(LIBBLIS_L)
 #all: blis openblas atlas mkl
 all: blis openblas mkl
 
-blis: test_dotv_blis.x \
-      test_axpyv_blis.x \
-      test_gemv_blis.x \
-      test_ger_blis.x \
-      test_hemv_blis.x \
-      test_her_blis.x \
-      test_her2_blis.x \
-      test_trmv_blis.x \
-      test_trsv_blis.x \
-      \
-      test_gemm_blis.x \
-      test_hemm_blis.x \
-      test_herk_blis.x \
-      test_her2k_blis.x \
-      test_trmm_blis.x \
-      test_trsm_blis.x
+blis: \
+       test_dotv_blis.x \
+       test_axpyv_blis.x \
+       test_gemv_blis.x \
+       test_ger_blis.x \
+       test_hemv_blis.x \
+       test_her_blis.x \
+       test_her2_blis.x \
+       test_trmv_blis.x \
+       test_trsv_blis.x \
+       \
+       test_gemm_blis.x \
+       test_hemm_blis.x \
+       test_herk_blis.x \
+       test_her2k_blis.x \
+       test_trmm_blis.x \
+       test_trsm_blis.x
 
 openblas: \
       test_dotv_openblas.x \

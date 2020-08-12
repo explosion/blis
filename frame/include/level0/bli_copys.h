@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -51,31 +51,17 @@
 #define bli_cdcopys( x, y )  bli_dcopyris( bli_creal(x), bli_cimag(x), bli_dreal(y), bli_dimag(y) )
 #define bli_zdcopys( x, y )  bli_dcopyris( bli_zreal(x), bli_zimag(x), bli_dreal(y), bli_dimag(y) )
 
-#ifndef BLIS_ENABLE_C99_COMPLEX
-
+// NOTE: Use of ccopyris() means the imaginary part of y will be overwritten with zero.
 #define bli_sccopys( x, y )  bli_ccopyris( bli_sreal(x), bli_simag(x), bli_creal(y), bli_cimag(y) )
 #define bli_dccopys( x, y )  bli_ccopyris( bli_dreal(x), bli_dimag(x), bli_creal(y), bli_cimag(y) )
 #define bli_cccopys( x, y )  bli_ccopyris( bli_creal(x), bli_cimag(x), bli_creal(y), bli_cimag(y) )
 #define bli_zccopys( x, y )  bli_ccopyris( bli_zreal(x), bli_zimag(x), bli_creal(y), bli_cimag(y) )
 
+// NOTE: Use of zcopyris() means the imaginary part of y will be overwritten with zero.
 #define bli_szcopys( x, y )  bli_zcopyris( bli_sreal(x), bli_simag(x), bli_zreal(y), bli_zimag(y) )
 #define bli_dzcopys( x, y )  bli_zcopyris( bli_dreal(x), bli_dimag(x), bli_zreal(y), bli_zimag(y) )
 #define bli_czcopys( x, y )  bli_zcopyris( bli_creal(x), bli_cimag(x), bli_zreal(y), bli_zimag(y) )
 #define bli_zzcopys( x, y )  bli_zcopyris( bli_zreal(x), bli_zimag(x), bli_zreal(y), bli_zimag(y) )
-
-#else // ifdef BLIS_ENABLE_C99_COMPLEX
-
-#define bli_sccopys( x, y )  { (y) = (x); }
-#define bli_dccopys( x, y )  { (y) = (x); }
-#define bli_cccopys( x, y )  { (y) = (x); }
-#define bli_zccopys( x, y )  { (y) = (x); }
-
-#define bli_szcopys( x, y )  { (y) = (x); }
-#define bli_dzcopys( x, y )  { (y) = (x); }
-#define bli_czcopys( x, y )  { (y) = (x); }
-#define bli_zzcopys( x, y )  { (y) = (x); }
-
-#endif // BLIS_ENABLE_C99_COMPLEX
 
 
 #define bli_iicopys( x, y )  { (y) = ( gint_t ) (x); }

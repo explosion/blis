@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2018-2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -14,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -60,6 +61,7 @@ bool_t   bli_cpuid_is_sandybridge( uint32_t family, uint32_t model, uint32_t fea
 bool_t   bli_cpuid_is_penryn( uint32_t family, uint32_t model, uint32_t features );
 
 // AMD
+bool_t   bli_cpuid_is_zen2( uint32_t family, uint32_t model, uint32_t features );
 bool_t   bli_cpuid_is_zen( uint32_t family, uint32_t model, uint32_t features );
 bool_t   bli_cpuid_is_excavator( uint32_t family, uint32_t model, uint32_t features );
 bool_t   bli_cpuid_is_steamroller( uint32_t family, uint32_t model, uint32_t features );
@@ -67,6 +69,7 @@ bool_t   bli_cpuid_is_piledriver( uint32_t family, uint32_t model, uint32_t feat
 bool_t   bli_cpuid_is_bulldozer( uint32_t family, uint32_t model, uint32_t features );
 
 // ARM
+bool_t   bli_cpuid_is_thunderx2( uint32_t model, uint32_t part, uint32_t features );
 bool_t   bli_cpuid_is_cortexa57( uint32_t model, uint32_t part, uint32_t features );
 bool_t   bli_cpuid_is_cortexa53( uint32_t model, uint32_t part, uint32_t features );
 bool_t   bli_cpuid_is_cortexa15( uint32_t model, uint32_t part, uint32_t features );
@@ -95,9 +98,9 @@ uint32_t bli_cpuid_query( uint32_t* family, uint32_t* model, uint32_t* features 
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -154,6 +157,8 @@ enum
 };
 
 #elif defined(__aarch64__) || defined(__arm__) || defined(_M_ARM)
+
+char* find_string_in( char* target, char* buffer, size_t buf_len, char* filepath );
 
 enum
 {

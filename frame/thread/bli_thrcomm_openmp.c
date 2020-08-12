@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -14,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -36,24 +37,35 @@
 
 #ifdef BLIS_ENABLE_OPENMP
 
-thrcomm_t* bli_thrcomm_create( dim_t n_threads )
+thrcomm_t* bli_thrcomm_create( rntm_t* rntm, dim_t n_threads )
 {
-	thrcomm_t* comm = bli_malloc_intl( sizeof(thrcomm_t) );
-	bli_thrcomm_init( comm, n_threads );
+	#ifdef BLIS_ENABLE_MEM_TRACING
+	printf( "bli_thrcomm_create(): " );
+	#endif
+
+	thrcomm_t* comm = bli_sba_acquire( rntm, sizeof(thrcomm_t) );
+
+	bli_thrcomm_init( n_threads, comm );
 
 	return comm;
 }
 
-void bli_thrcomm_free( thrcomm_t* comm )
+void bli_thrcomm_free( rntm_t* rntm, thrcomm_t* comm )
 {
 	if ( comm == NULL ) return;
+
 	bli_thrcomm_cleanup( comm );
-	bli_free_intl( comm );
+
+	#ifdef BLIS_ENABLE_MEM_TRACING
+	printf( "bli_thrcomm_free(): " );
+	#endif
+
+	bli_sba_release( rntm, comm );
 }
 
 #ifndef BLIS_TREE_BARRIER
 
-void bli_thrcomm_init( thrcomm_t* comm, dim_t n_threads)
+void bli_thrcomm_init( dim_t n_threads, thrcomm_t* comm )
 {
 	if ( comm == NULL ) return;
 	comm->sent_object = NULL;
@@ -70,7 +82,7 @@ void bli_thrcomm_cleanup( thrcomm_t* comm )
 
 //'Normal' barrier for openmp
 //barrier routine taken from art of multicore programming
-void bli_thrcomm_barrier( thrcomm_t* comm, dim_t t_id )
+void bli_thrcomm_barrier( dim_t t_id, thrcomm_t* comm )
 {
 #if 0
 	if ( comm == NULL || comm->n_threads == 1 )
@@ -92,12 +104,12 @@ void bli_thrcomm_barrier( thrcomm_t* comm, dim_t t_id )
 		while ( *listener == my_sense ) {}
 	}
 #endif
-	bli_thrcomm_barrier_atomic( comm, t_id );
+	bli_thrcomm_barrier_atomic( t_id, comm );
 }
 
 #else
 
-void bli_thrcomm_init( thrcomm_t* comm, dim_t n_threads)
+void bli_thrcomm_init( dim_t n_threads, thrcomm_t* comm )
 {
 	if ( comm == NULL ) return;
 	comm->sent_object = NULL;
@@ -171,7 +183,7 @@ void bli_thrcomm_tree_barrier_free( barrier_t* barrier )
 	return;
 }
 
-void bli_thrcomm_barrier( thrcomm_t* comm, dim_t t_id )
+void bli_thrcomm_barrier( dim_t t_id, thrcomm_t* comm )
 {
 	bli_thrcomm_tree_barrier( comm->barriers[t_id] );
 }
@@ -201,91 +213,6 @@ void bli_thrcomm_tree_barrier( barrier_t* barack )
 }
 
 #endif
-
-//#define PRINT_THRINFO
-
-void bli_l3_thread_decorator
-     (
-       l3int_t     func,
-       opid_t      family,
-       obj_t*      alpha,
-       obj_t*      a,
-       obj_t*      b,
-       obj_t*      beta,
-       obj_t*      c,
-       cntx_t*     cntx,
-       rntm_t*     rntm,
-       cntl_t*     cntl
-     )
-{
-	// Query the total number of threads from the context.
-	dim_t       n_threads = bli_rntm_num_threads( rntm );
-
-	// Allcoate a global communicator for the root thrinfo_t structures.
-	thrcomm_t*  gl_comm   = bli_thrcomm_create( n_threads );
-
-#ifdef PRINT_THRINFO
-	thrinfo_t** threads   = bli_malloc_intl( n_threads * sizeof( thrinfo_t* ) );
-#endif
-
-	_Pragma( "omp parallel num_threads(n_threads)" )
-	{
-		dim_t      id = omp_get_thread_num();
-
-		obj_t      a_t, b_t, c_t;
-		cntl_t*    cntl_use;
-		thrinfo_t* thread;
-
-		// Alias thread-local copies of A, B, and C. These will be the objects
-		// we pass down the algorithmic function stack. Making thread-local
-		// alaises IS ABSOLUTELY IMPORTANT and MUST BE DONE because each thread
-		// will read the schemas from A and B and then reset the schemas to
-		// their expected unpacked state (in bli_l3_cntl_create_if()).
-		bli_obj_alias_to( a, &a_t );
-		bli_obj_alias_to( b, &b_t );
-		bli_obj_alias_to( c, &c_t );
-
-		// Create a default control tree for the operation, if needed.
-		bli_l3_cntl_create_if( family, &a_t, &b_t, &c_t, cntl, &cntl_use );
-
-		// Create the root node of the current thread's thrinfo_t structure.
-		bli_l3_thrinfo_create_root( id, gl_comm, rntm, cntl_use, &thread );
-
-		func
-		(
-		  alpha,
-		  &a_t,
-		  &b_t,
-		  beta,
-		  &c_t,
-		  cntx,
-		  rntm,
-		  cntl_use,
-		  thread
-		);
-
-		// Free the control tree, if one was created locally.
-		bli_l3_cntl_free_if( &a_t, &b_t, &c_t, cntl, cntl_use, thread );
-
-#ifdef PRINT_THRINFO
-		threads[id] = thread;
-#else
-		// Free the current thread's thrinfo_t structure.
-		bli_l3_thrinfo_free( thread );
-#endif
-	}
-
-	// We shouldn't free the global communicator since it was already freed
-	// by the global communicator's chief thread in bli_l3_thrinfo_free()
-	// (called above).
-
-
-#ifdef PRINT_THRINFO
-	bli_l3_thrinfo_print_paths( threads );
-	bli_l3_thrinfo_free_paths( threads );
-	exit(1);
-#endif
-}
 
 #endif
 

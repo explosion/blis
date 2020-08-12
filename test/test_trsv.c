@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -90,10 +90,11 @@ int main( int argc, char** argv )
 	printf( "data_trv_%s", BLAS );
 #endif
 	printf( "( %2lu, 1:2 ) = [ %4lu %7.2f ];\n",
-	        ( unsigned long )(p - p_begin + 1)/p_inc + 1,
+	        ( unsigned long )(p - p_begin)/p_inc + 1,
 	        ( unsigned long )0, 0.0 );
 
-	for ( p = p_begin; p <= p_end; p += p_inc )
+	//for ( p = p_begin; p <= p_end; p += p_inc )
+	for ( p = p_end; p_begin <= p; p -= p_inc )
 	{
 
 		if ( m_input < 0 ) m = p * ( dim_t )abs(m_input);
@@ -113,6 +114,14 @@ int main( int argc, char** argv )
 		bli_obj_set_uplo( uplo, &a );
 		bli_obj_set_onlytrans( BLIS_NO_TRANSPOSE, &a );
 		bli_obj_set_diag( BLIS_NONUNIT_DIAG, &a );
+
+		// Randomize A and zero the unstored triangle to ensure the
+		// implementation reads only from the stored region.
+		bli_randm( &a );
+		bli_mktrim( &a );
+
+		// Load the diagonal of A to make it more likely to be invertible.
+		bli_shiftd( &BLIS_TWO, &a );
 
 		bli_setsc(  (1.0/1.0), 0.0, &alpha );
 
@@ -175,7 +184,7 @@ int main( int argc, char** argv )
 		printf( "data_trsv_%s", BLAS );
 #endif
 		printf( "( %2lu, 1:2 ) = [ %4lu %7.2f ];\n",
-		        ( unsigned long )(p - p_begin + 1)/p_inc + 1,
+		        ( unsigned long )(p - p_begin)/p_inc + 1,
 		        ( unsigned long )m, gflops );
 
 		bli_obj_free( &alpha );

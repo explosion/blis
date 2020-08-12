@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -45,7 +45,7 @@ typedef void (*FUNCPTR_T)(
                            void*   b, inc_t rs_b, dim_t pd_b, inc_t ps_b,
                            void*   beta,
                            void*   c, inc_t rs_c, inc_t cs_c,
-                           void*   gemm_ukr
+                           void_fp gemm_ukr
                          );
 
 static FUNCPTR_T GENARRAY(ftypes,gemm_ker_var5);
@@ -87,7 +87,7 @@ void bli_gemm_ker_var5( obj_t*  a,
 	FUNCPTR_T f;
 
 	func_t*   gemm_ukrs;
-	void*     gemm_ukr;
+	void_fp   gemm_ukr;
 
 
 	// Detach and multiply the scalars attached to A and B.
@@ -135,7 +135,7 @@ void PASTEMAC(ch,varname)( \
                            void*   b, inc_t rs_b, dim_t pd_b, inc_t ps_b, \
                            void*   beta, \
                            void*   c, inc_t rs_c, inc_t cs_c, \
-                           void*   gemm_ukr  \
+                           void_fp gemm_ukr  \
                          ) \
 { \
 	/* Cast the micro-kernel address to its function pointer type. */ \

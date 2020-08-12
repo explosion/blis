@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -37,10 +37,10 @@
 
 func_t* bli_func_create
      (
-       void* ptr_s,
-       void* ptr_d,
-       void* ptr_c,
-       void* ptr_z
+       void_fp ptr_s,
+       void_fp ptr_d,
+       void_fp ptr_c,
+       void_fp ptr_z
      )
 {
 	func_t* f;
@@ -62,10 +62,10 @@ func_t* bli_func_create
 void bli_func_init
      (
        func_t* f,
-       void*   ptr_s,
-       void*   ptr_d,
-       void*   ptr_c,
-       void*   ptr_z
+       void_fp ptr_s,
+       void_fp ptr_d,
+       void_fp ptr_c,
+       void_fp ptr_z
      )
 {
 	bli_func_set_dt( ptr_s, BLIS_FLOAT,    f );

@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -66,7 +66,7 @@ void PASTEMAC(opname,EX_SUF) \
 	    PASTEMAC(opname,_check)( x, asum ); \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH2(opname,BLIS_TAPI_EX_SUF,_vft) f = \
 	PASTEMAC2(opname,BLIS_TAPI_EX_SUF,_qfp)( dt ); \
 \
@@ -108,7 +108,7 @@ void PASTEMAC(opname,EX_SUF) \
 	    PASTEMAC(opname,_check)( a ); \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH2(opname,BLIS_TAPI_EX_SUF,_vft) f = \
 	PASTEMAC2(opname,BLIS_TAPI_EX_SUF,_qfp)( dt ); \
 \
@@ -152,7 +152,7 @@ void PASTEMAC(opname,EX_SUF) \
 	    PASTEMAC(opname,_check)( x, norm ); \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH2(opname,BLIS_TAPI_EX_SUF,_vft) f = \
 	PASTEMAC2(opname,BLIS_TAPI_EX_SUF,_qfp)( dt ); \
 \
@@ -201,7 +201,7 @@ void PASTEMAC(opname,EX_SUF) \
 	    PASTEMAC(opname,_check)( x, norm ); \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH2(opname,BLIS_TAPI_EX_SUF,_vft) f = \
 	PASTEMAC2(opname,BLIS_TAPI_EX_SUF,_qfp)( dt ); \
 \
@@ -257,7 +257,7 @@ void PASTEMAC(opname,EX_SUF) \
 	} \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH(opname,_vft) f = \
 	PASTEMAC(opname,_qfp)( dt ); \
 \
@@ -325,7 +325,7 @@ void PASTEMAC(opname,EX_SUF) \
 	} \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH(opname,_vft) f = \
 	PASTEMAC(opname,_qfp)( dt ); \
 \
@@ -401,7 +401,7 @@ void PASTEMAC(opname,EX_SUF) \
 	    PASTEMAC(opname,_check)( x ); \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH2(opname,BLIS_TAPI_EX_SUF,_vft) f = \
 	PASTEMAC2(opname,BLIS_TAPI_EX_SUF,_qfp)( dt ); \
 \
@@ -445,7 +445,7 @@ void PASTEMAC(opname,EX_SUF) \
 	    PASTEMAC(opname,_check)( x ); \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH2(opname,BLIS_TAPI_EX_SUF,_vft) f = \
 	PASTEMAC2(opname,BLIS_TAPI_EX_SUF,_qfp)( dt ); \
 \
@@ -492,7 +492,7 @@ void PASTEMAC(opname,EX_SUF) \
 	    PASTEMAC(opname,_check)( x, scale, sumsq ); \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH2(opname,BLIS_TAPI_EX_SUF,_vft) f = \
 	PASTEMAC2(opname,BLIS_TAPI_EX_SUF,_qfp)( dt ); \
 \

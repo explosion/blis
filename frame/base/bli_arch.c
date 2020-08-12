@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018-2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -15,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -36,6 +36,7 @@
 #ifndef BLIS_CONFIGURETIME_CPUID
   #include "blis.h"
 #else
+  #define BLIS_EXPORT_BLIS
   #include "bli_system.h"
   #include "bli_type_defs.h"
   #include "bli_arch.h"
@@ -60,17 +61,25 @@ arch_t bli_arch_query_id( void )
 
 // A pthread structure used in pthread_once(). pthread_once() is guaranteed to
 // execute exactly once among all threads that pass in this control object.
-static pthread_once_t once_id = PTHREAD_ONCE_INIT;
+static bli_pthread_once_t once_id = BLIS_PTHREAD_ONCE_INIT;
 
 void bli_arch_set_id_once( void )
 {
-	pthread_once( &once_id, bli_arch_set_id );
+#ifndef BLIS_CONFIGURETIME_CPUID
+	bli_pthread_once( &once_id, bli_arch_set_id );
+#endif
 }
 
 // -----------------------------------------------------------------------------
 
 void bli_arch_set_id( void )
 {
+	// NOTE: Change this usage of getenv() to bli_env_get_var() after
+	// merging #351.
+	//bool_t do_logging = bli_env_get_var( "BLIS_ARCH_DEBUG", 0 );
+	bool_t do_logging = getenv( "BLIS_ARCH_DEBUG" ) != NULL;
+	bli_arch_set_logging( do_logging );
+
 	// Architecture families.
 #if defined BLIS_FAMILY_INTEL64 || \
     defined BLIS_FAMILY_AMD64   || \
@@ -101,6 +110,9 @@ void bli_arch_set_id( void )
 #endif
 
 	// AMD microarchitectures.
+#ifdef BLIS_FAMILY_ZEN2
+	id = BLIS_ARCH_ZEN2;
+#endif
 #ifdef BLIS_FAMILY_ZEN
 	id = BLIS_ARCH_ZEN;
 #endif
@@ -118,6 +130,9 @@ void bli_arch_set_id( void )
 #endif
 
 	// ARM microarchitectures.
+#ifdef BLIS_FAMILY_THUNDERX2
+	id = BLIS_ARCH_THUNDERX2;
+#endif
 #ifdef BLIS_FAMILY_CORTEXA57
 	id = BLIS_ARCH_CORTEXA57;
 #endif
@@ -132,6 +147,9 @@ void bli_arch_set_id( void )
 #endif
 
 	// IBM microarchitectures.
+#ifdef BLIS_FAMILY_POWER9
+	id = BLIS_ARCH_POWER9;
+#endif
 #ifdef BLIS_FAMILY_POWER7
 	id = BLIS_ARCH_POWER7;
 #endif
@@ -143,6 +161,10 @@ void bli_arch_set_id( void )
 #ifdef BLIS_FAMILY_GENERIC
 	id = BLIS_ARCH_GENERIC;
 #endif
+
+	if ( bli_arch_get_logging() )
+		fprintf( stderr, "libblis: selecting sub-configuration '%s'.\n",
+				 bli_arch_string( id ) );
 
 	//printf( "blis_arch_query_id(): id = %u\n", id );
 	//exit(1);
@@ -163,17 +185,20 @@ static char* config_name[ BLIS_NUM_ARCHS ] =
     "sandybridge",
     "penryn",
 
+    "zen2",
     "zen",
     "excavator",
     "steamroller",
     "piledriver",
     "bulldozer",
 
+    "thunderx2",
     "cortexa57",
     "cortexa53",
     "cortexa15",
     "cortexa9",
 
+    "power9",
     "power7",
     "bgq",
 
@@ -183,5 +208,39 @@ static char* config_name[ BLIS_NUM_ARCHS ] =
 char* bli_arch_string( arch_t id )
 {
 	return config_name[ id ];
+}
+
+// -----------------------------------------------------------------------------
+
+static bool_t arch_dolog = 0;
+
+void bli_arch_set_logging( bool_t dolog )
+{
+	arch_dolog = dolog;
+}
+
+bool_t bli_arch_get_logging( void )
+{
+	return arch_dolog;
+}
+
+void bli_arch_log( char* fmt, ... )
+{
+	char prefix[] = "libblis: ";
+	int  n_chars  = strlen( prefix ) + strlen( fmt ) + 1;
+
+	if ( bli_arch_get_logging() && fmt )
+	{
+		char* prefix_fmt = malloc( n_chars );
+
+		snprintf( prefix_fmt, n_chars, "%s%s", prefix, fmt );
+
+		va_list ap;
+		va_start( ap, fmt );
+		vfprintf( stderr, prefix_fmt, ap );
+		va_end( ap );
+
+		free( prefix_fmt );
+	}
 }
 

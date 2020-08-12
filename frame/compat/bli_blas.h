@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -40,10 +40,31 @@
 #endif
 #endif // BLIS_ENABLE_CBLAS
 
+// By default, if the BLAS compatibility layer is enabled, we define
+// (include) all of the BLAS prototypes. However, if the user is
+// #including "blis.h" and also #including another header that also
+// declares the BLAS functions, then we provide an opportunity to
+// #undefine the BLIS_ENABLE_BLAS_DEFS macro (see below).
+#ifdef BLIS_ENABLE_BLAS
+#define BLIS_ENABLE_BLAS_DEFS
+#else
+#undef  BLIS_ENABLE_BLAS_DEFS
+#endif
+
 // Skip prototyping all of the BLAS if the BLAS test drivers are being
 // compiled.
-#ifndef BLIS_VIA_BLASTEST
-#ifdef BLIS_ENABLE_BLAS
+#ifdef BLIS_VIA_BLASTEST
+#undef BLIS_ENABLE_BLAS_DEFS
+#endif
+
+// Skip prototyping all of the BLAS if the environment has defined the
+// macro BLIS_DISABLE_BLAS_DEFS.
+#ifdef BLIS_DISABLE_BLAS_DEFS
+#undef BLIS_ENABLE_BLAS_DEFS
+#endif
+
+// Begin including all BLAS prototypes.
+#ifdef BLIS_ENABLE_BLAS_DEFS
 
 
 // -- System headers needed by BLAS compatibility layer --
@@ -174,6 +195,9 @@
 #include "bla_trmm_check.h"
 #include "bla_trsm_check.h"
 
+// -- Fortran-compatible APIs to BLIS functions --
+
+#include "b77_thread.h"
+
 
 #endif // BLIS_ENABLE_BLAS
-#endif // BLIS_VIA_BLASTEST

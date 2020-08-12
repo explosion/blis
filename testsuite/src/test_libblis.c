@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -15,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -50,6 +50,13 @@ char libblis_test_store_chars[ NUM_OPERAND_TYPES ][ MAX_STORE_VALS_PER_TYPE + 1 
 
 char libblis_test_param_chars[ NUM_PARAM_TYPES ][ MAX_PARAM_VALS_PER_TYPE + 1 ];
 
+char libblis_test_sp_chars[ 2 + 1 ] = "sc";
+char libblis_test_dp_chars[ 2 + 1 ] = "dz";
+
+char libblis_test_rd_chars[ 2 + 1 ] = "sd";
+char libblis_test_cd_chars[ 2 + 1 ] = "cz";
+
+char libblis_test_dt_chars[ 4 + 1 ] = "sdcz";
 
 
 int main( int argc, char** argv )
@@ -77,7 +84,7 @@ int main( int argc, char** argv )
 	libblis_test_thread_decorator( &params, &ops );
 
 	// Finalize libblis.
-	//bli_finalize();
+	bli_finalize();
 
 	// Return peacefully.
 	return 0;
@@ -119,20 +126,32 @@ void libblis_test_thread_decorator( test_params_t* params, test_ops_t* ops )
 
 	// Allocate an array of pthread objects and auxiliary data structs to pass
 	// to the thread entry functions.
-	pthread_t*         pthread = bli_malloc_intl( sizeof( pthread_t       ) * nt );
-	thread_data_t*     tdata   = bli_malloc_intl( sizeof( thread_data_t   ) * nt );
+
+	#ifdef BLIS_ENABLE_MEM_TRACING
+	printf( "libblis_test_thread_decorator(): " );
+	#endif
+	bli_pthread_t* pthread = bli_malloc_user( sizeof( bli_pthread_t ) * nt );
+
+	#ifdef BLIS_ENABLE_MEM_TRACING
+	printf( "libblis_test_thread_decorator(): " );
+	#endif
+	thread_data_t* tdata   = bli_malloc_user( sizeof( thread_data_t ) * nt );
 
 	// Allocate a mutex for the threads to share.
-	//pthread_mutex_t*   mutex   = bli_malloc_intl( sizeof( pthread_mutex_t ) );
+	//bli_pthread_mutex_t* mutex   = bli_malloc_user( sizeof( bli_pthread_mutex_t ) );
 
 	// Allocate a barrier for the threads to share.
-	pthread_barrier_t* barrier = bli_malloc_intl( sizeof( pthread_barrier_t ) );
+
+	#ifdef BLIS_ENABLE_MEM_TRACING
+	printf( "libblis_test_thread_decorator(): " );
+	#endif
+	bli_pthread_barrier_t* barrier = bli_malloc_user( sizeof( bli_pthread_barrier_t ) );
 
 	// Initialize the mutex.
-	//pthread_mutex_init( mutex, NULL );
+	//bli_pthread_mutex_init( mutex, NULL );
 
 	// Initialize the barrier for nt threads.
-	pthread_barrier_init( barrier, NULL, nt );
+	bli_pthread_barrier_init( barrier, NULL, nt );
 
 	// NOTE: We must iterate backwards so that the chief thread (thread id 0)
 	// can spawn all other threads before proceeding with its own computation.
@@ -150,7 +169,7 @@ void libblis_test_thread_decorator( test_params_t* params, test_ops_t* ops )
 
 		// Spawn additional threads for ids greater than 1.
 		if ( id != 0 )
-			pthread_create( &pthread[id], NULL, libblis_test_thread_entry, &tdata[id] );
+			bli_pthread_create( &pthread[id], NULL, libblis_test_thread_entry, &tdata[id] );
 		else
 			libblis_test_thread_entry( ( void* )(&tdata[0]) );
 	}
@@ -158,20 +177,32 @@ void libblis_test_thread_decorator( test_params_t* params, test_ops_t* ops )
 	// Thread 0 waits for additional threads to finish.
 	for ( unsigned int id = 1; id < nt; id++ )
 	{
-		pthread_join( pthread[id], NULL );
+		bli_pthread_join( pthread[id], NULL );
 	}
 
 	// Destroy the mutex.
-	//pthread_mutex_destroy( mutex );
+	//bli_pthread_mutex_destroy( mutex );
 
 	// Destroy the barrier.
-	pthread_barrier_destroy( barrier );
+	bli_pthread_barrier_destroy( barrier );
 
 	// Free the pthread-related memory.
-	bli_free_intl( pthread );
-	bli_free_intl( tdata );
-	//bli_free_intl( mutex );
-	bli_free_intl( barrier );
+
+	#ifdef BLIS_ENABLE_MEM_TRACING
+	printf( "libblis_test_thread_decorator(): " );
+	#endif
+	bli_free_user( pthread );
+
+	#ifdef BLIS_ENABLE_MEM_TRACING
+	printf( "libblis_test_thread_decorator(): " );
+	#endif
+	bli_free_user( tdata );
+
+	#ifdef BLIS_ENABLE_MEM_TRACING
+	printf( "libblis_test_thread_decorator(): " );
+	#endif
+	//bli_free_user( mutex );
+	bli_free_user( barrier );
 }
 
 
@@ -239,6 +270,7 @@ void libblis_test_level1m_ops( thread_data_t* tdata, test_params_t* params, test
 	libblis_test_scal2m( tdata, params, &(ops->scal2m) );
 	libblis_test_setm( tdata, params, &(ops->setm) );
 	libblis_test_subm( tdata, params, &(ops->subm) );
+	libblis_test_xpbym( tdata, params, &(ops->xpbym) );
 }
 
 
@@ -348,6 +380,7 @@ void libblis_test_read_ops_file( char* input_filename, test_ops_t* ops )
 	libblis_test_read_op_info( ops, input_stream, BLIS_NOID, BLIS_TEST_DIMS_MN,  1, &(ops->scal2m) );
 	libblis_test_read_op_info( ops, input_stream, BLIS_NOID, BLIS_TEST_DIMS_MN,  0, &(ops->setm) );
 	libblis_test_read_op_info( ops, input_stream, BLIS_NOID, BLIS_TEST_DIMS_MN,  1, &(ops->subm) );
+	libblis_test_read_op_info( ops, input_stream, BLIS_NOID, BLIS_TEST_DIMS_MN,  1, &(ops->xpbym) );
 
 	// Level-1f
 	libblis_test_read_op_info( ops, input_stream, BLIS_NOID, BLIS_TEST_DIMS_M,   2, &(ops->axpy2v) );
@@ -482,13 +515,24 @@ void libblis_test_read_params_file( char* input_filename, test_params_t* params 
 
 	for( i = 0; i < params->n_datatypes; ++i )
 	{
-		if      ( temp[i] == 's' ) params->datatype[i] = BLIS_FLOAT;
-		else if ( temp[i] == 'd' ) params->datatype[i] = BLIS_DOUBLE;
-		else if ( temp[i] == 'c' ) params->datatype[i] = BLIS_SCOMPLEX;
-		else if ( temp[i] == 'z' ) params->datatype[i] = BLIS_DCOMPLEX;
+		//if      ( temp[i] == 's' ) params->datatype[i] = BLIS_FLOAT;
+		//else if ( temp[i] == 'd' ) params->datatype[i] = BLIS_DOUBLE;
+		//else if ( temp[i] == 'c' ) params->datatype[i] = BLIS_SCOMPLEX;
+		//else if ( temp[i] == 'z' ) params->datatype[i] = BLIS_DCOMPLEX;
+
+		// Map the char in temp[i] to the corresponding num_t value.
+		bli_param_map_char_to_blis_dt( temp[i], &(params->datatype[i]) );
 
 		params->datatype_char[i] = temp[i];
 	}
+
+	// Read whether to test gemm with mixed-domain operands.
+	libblis_test_read_next_line( buffer, input_stream );
+	sscanf( buffer, "%u ", &(params->mixed_domain) );
+
+	// Read whether to test gemm with mixed-precision operands.
+	libblis_test_read_next_line( buffer, input_stream );
+	sscanf( buffer, "%u ", &(params->mixed_precision) );
 
 	// Read the initial problem size to test.
 	libblis_test_read_next_line( buffer, input_stream );
@@ -732,18 +776,72 @@ void libblis_test_output_params_struct( FILE* os, test_params_t* params )
 	// If bli_info_get_int_type_size() returns 32 or 64, the size is forced.
 	// Otherwise, the size is chosen automatically. We query the result of
 	// that automatic choice via sizeof(gint_t).
-/*	
-	if ( bli_info_get_int_type_size() == 32 ||
-	     bli_info_get_int_type_size() == 64 )
-		sprintf( int_type_size_str, "%d", ( int )bli_info_get_int_type_size() );
-	else
-		sprintf( int_type_size_str, "%d", ( int )sizeof(gint_t) * 8 );
-*/
 	if ( bli_info_get_int_type_size() == 32 ||
 	     bli_info_get_int_type_size() == 64 )
 		int_type_size = bli_info_get_int_type_size();
 	else
 		int_type_size = sizeof(gint_t) * 8;
+
+	char impl_str[16];
+	char jrir_str[16];
+
+	// Describe the threading implementation.
+	if      ( bli_info_get_enable_openmp()   ) sprintf( impl_str, "openmp" );
+	else if ( bli_info_get_enable_pthreads() ) sprintf( impl_str, "pthreads" );
+	else    /* threading disabled */           sprintf( impl_str, "disabled" );
+
+	// Describe the status of jrir thread partitioning.
+	if   ( bli_info_get_thread_part_jrir_slab() ) sprintf( jrir_str, "slab" );
+	else /*bli_info_get_thread_part_jrir_rr()*/   sprintf( jrir_str, "round-robin" );
+
+	char nt_str[16];
+	char jc_nt_str[16];
+	char pc_nt_str[16];
+	char ic_nt_str[16];
+	char jr_nt_str[16];
+	char ir_nt_str[16];
+
+	// Query the number of ways of parallelism per loop (and overall) and
+	// convert these values into strings, with "unset" being used if the
+	// value returned was -1 (indicating the environment variable was unset).
+	dim_t nt    = bli_thread_get_num_threads();
+	dim_t jc_nt = bli_thread_get_jc_nt(); 
+	dim_t pc_nt = bli_thread_get_pc_nt(); 
+	dim_t ic_nt = bli_thread_get_ic_nt(); 
+	dim_t jr_nt = bli_thread_get_jr_nt(); 
+	dim_t ir_nt = bli_thread_get_ir_nt(); 
+
+	if (    nt == -1 ) sprintf(    nt_str, "unset" );
+	else               sprintf(    nt_str, "%d", ( int )   nt );
+	if ( jc_nt == -1 ) sprintf( jc_nt_str, "unset" );
+	else               sprintf( jc_nt_str, "%d", ( int )jc_nt );
+	if ( pc_nt == -1 ) sprintf( pc_nt_str, "unset" );
+	else               sprintf( pc_nt_str, "%d", ( int )pc_nt );
+	if ( ic_nt == -1 ) sprintf( ic_nt_str, "unset" );
+	else               sprintf( ic_nt_str, "%d", ( int )ic_nt );
+	if ( jr_nt == -1 ) sprintf( jr_nt_str, "unset" );
+	else               sprintf( jr_nt_str, "%d", ( int )jr_nt );
+	if ( ir_nt == -1 ) sprintf( ir_nt_str, "unset" );
+	else               sprintf( ir_nt_str, "%d", ( int )ir_nt );
+
+	// Set up rntm_t objects for each of the four families:
+	// gemm, herk, trmm, trsm.
+	rntm_t gemm, herk, trmm_l, trmm_r, trsm_l, trsm_r;
+	dim_t  m = 1000, n = 1000, k = 1000;
+
+	bli_rntm_init_from_global( &gemm   );
+	bli_rntm_init_from_global( &herk   );
+	bli_rntm_init_from_global( &trmm_l );
+	bli_rntm_init_from_global( &trmm_r );
+	bli_rntm_init_from_global( &trsm_l );
+	bli_rntm_init_from_global( &trsm_r );
+
+	bli_rntm_set_ways_for_op( BLIS_GEMM, BLIS_LEFT,  m, n, k, &gemm );
+	bli_rntm_set_ways_for_op( BLIS_HERK, BLIS_LEFT,  m, n, k, &herk );
+	bli_rntm_set_ways_for_op( BLIS_TRMM, BLIS_LEFT,  m, n, k, &trmm_l );
+	bli_rntm_set_ways_for_op( BLIS_TRMM, BLIS_RIGHT, m, n, k, &trmm_r );
+	bli_rntm_set_ways_for_op( BLIS_TRSM, BLIS_LEFT,  m, n, k, &trsm_l );
+	bli_rntm_set_ways_for_op( BLIS_TRSM, BLIS_RIGHT, m, n, k, &trsm_r );
 
 	// Output some system parameters.
 	libblis_test_fprintf_c( os, "\n" );
@@ -755,35 +853,85 @@ void libblis_test_output_params_struct( FILE* os, test_params_t* params )
 	libblis_test_fprintf_c( os, "\n" );
 	libblis_test_fprintf_c( os, "active sub-configuration       %s\n", bli_arch_string( bli_arch_query_id() ) );
 	libblis_test_fprintf_c( os, "\n" );
-	libblis_test_fprintf_c( os, "integer type size (bits)       %d\n", ( int )int_type_size );
+	libblis_test_fprintf_c( os, "BLIS integer type size (bits)  %d\n", ( int )int_type_size );
 	libblis_test_fprintf_c( os, "\n" );
-	libblis_test_fprintf_c( os, "SIMD number of registers       %d\n", ( int )bli_info_get_simd_num_registers() );
+	libblis_test_fprintf_c( os, "Assumed max # of SIMD regs     %d\n", ( int )bli_info_get_simd_num_registers() );
 	libblis_test_fprintf_c( os, "SIMD size (bytes)              %d\n", ( int )bli_info_get_simd_size() );
 	libblis_test_fprintf_c( os, "SIMD alignment (bytes)         %d\n", ( int )bli_info_get_simd_align_size() );
 	libblis_test_fprintf_c( os, "Max stack buffer size (bytes)  %d\n", ( int )bli_info_get_stack_buf_max_size() );
 	libblis_test_fprintf_c( os, "Page size (bytes)              %d\n", ( int )bli_info_get_page_size() );
 	libblis_test_fprintf_c( os, "\n" );
-	libblis_test_fprintf_c( os, "memory pools for pack buffers\n" );
-	libblis_test_fprintf_c( os, "  enabled?                     %d\n", ( int )bli_info_get_enable_packbuf_pools() );
+	libblis_test_fprintf_c( os, "memory pools\n" );
+	libblis_test_fprintf_c( os, "  enabled for packing blocks?  %d\n", ( int )bli_info_get_enable_pba_pools() );
+	libblis_test_fprintf_c( os, "  enabled for small blocks?    %d\n", ( int )bli_info_get_enable_sba_pools() );
 	libblis_test_fprintf_c( os, "\n" );
 	libblis_test_fprintf_c( os, "memory alignment (bytes)         \n" );
 	libblis_test_fprintf_c( os, "  stack address                %d\n", ( int )bli_info_get_stack_buf_align_size() );
 	libblis_test_fprintf_c( os, "  obj_t address                %d\n", ( int )bli_info_get_heap_addr_align_size() );
 	libblis_test_fprintf_c( os, "  obj_t stride                 %d\n", ( int )bli_info_get_heap_stride_align_size() );
-	libblis_test_fprintf_c( os, "  pool block addr              %d\n", ( int )bli_info_get_pool_addr_align_size() );
+	libblis_test_fprintf_c( os, "  pool block addr A (+offset)  %d (+%d)\n", ( int )bli_info_get_pool_addr_align_size_a(), ( int )bli_info_get_pool_addr_offset_size_a() );
+	libblis_test_fprintf_c( os, "  pool block addr B (+offset)  %d (+%d)\n", ( int )bli_info_get_pool_addr_align_size_b(), ( int )bli_info_get_pool_addr_offset_size_b() );
 	libblis_test_fprintf_c( os, "\n" );
-	libblis_test_fprintf_c( os, "BLAS compatibility layer         \n" );
-	libblis_test_fprintf_c( os, "  enabled?                     %d\n", ( int )bli_info_get_enable_blas() );
+	libblis_test_fprintf_c( os, "BLAS/CBLAS compatibility layers  \n" );
+	libblis_test_fprintf_c( os, "  BLAS API enabled?            %d\n", ( int )bli_info_get_enable_blas() );
+	libblis_test_fprintf_c( os, "  CBLAS API enabled?           %d\n", ( int )bli_info_get_enable_cblas() );
 	libblis_test_fprintf_c( os, "  integer type size (bits)     %d\n", ( int )bli_info_get_blas_int_type_size() );
 	libblis_test_fprintf_c( os, "\n" );
-	libblis_test_fprintf_c( os, "CBLAS compatibility layer        \n" );
-	libblis_test_fprintf_c( os, "  enabled?                     %d\n", ( int )bli_info_get_enable_cblas() );
+	libblis_test_fprintf_c( os, "libmemkind                       \n" );
+	libblis_test_fprintf_c( os, "  enabled?                     %d\n", ( int )bli_info_get_enable_memkind() );
+	libblis_test_fprintf_c( os, "\n" );
+	libblis_test_fprintf_c( os, "gemm sandbox                     \n" );
+	libblis_test_fprintf_c( os, "  enabled?                     %d\n", ( int )bli_info_get_enable_sandbox() );
 	libblis_test_fprintf_c( os, "\n" );
 	libblis_test_fprintf_c( os, "floating-point types           s       d       c       z \n" );
 	libblis_test_fprintf_c( os, "  sizes (bytes)          %7u %7u %7u %7u\n", sizeof(float),
 	                                                                          sizeof(double),
 	                                                                          sizeof(scomplex),
 	                                                                          sizeof(dcomplex) );
+	libblis_test_fprintf_c( os, "\n" );
+	libblis_test_fprintf_c( os, "\n" );
+	libblis_test_fprintf_c( os, "--- BLIS parallelization info ---\n" );
+	libblis_test_fprintf_c( os, "\n" );
+	libblis_test_fprintf_c( os, "multithreading                 %s\n", impl_str );
+	libblis_test_fprintf_c( os, "\n" );
+	libblis_test_fprintf_c( os, "thread auto-factorization        \n" );
+	libblis_test_fprintf_c( os, "  m dim thread ratio           %d\n", ( int )BLIS_THREAD_RATIO_M );
+	libblis_test_fprintf_c( os, "  n dim thread ratio           %d\n", ( int )BLIS_THREAD_RATIO_N );
+	libblis_test_fprintf_c( os, "  jr max threads               %d\n", ( int )BLIS_THREAD_MAX_JR );
+	libblis_test_fprintf_c( os, "  ir max threads               %d\n", ( int )BLIS_THREAD_MAX_IR );
+	libblis_test_fprintf_c( os, "\n" );
+	libblis_test_fprintf_c( os, "ways of parallelism     nt    jc    pc    ic    jr    ir\n" );
+	libblis_test_fprintf_c( os, "  environment        %5s %5s %5s %5s %5s %5s\n",
+	                                                               nt_str, jc_nt_str, pc_nt_str,
+	                                                            ic_nt_str, jr_nt_str, ir_nt_str );
+	libblis_test_fprintf_c( os, "  gemm   (m,n,k=1000)      %5d %5d %5d %5d %5d\n",
+	                                ( int )bli_rntm_jc_ways( &gemm ), ( int )bli_rntm_pc_ways( &gemm ),
+	                                ( int )bli_rntm_ic_ways( &gemm ),
+	                                ( int )bli_rntm_jr_ways( &gemm ), ( int )bli_rntm_ir_ways( &gemm ) );
+	libblis_test_fprintf_c( os, "  herk   (m,k=1000)        %5d %5d %5d %5d %5d\n",
+	                                ( int )bli_rntm_jc_ways( &herk ), ( int )bli_rntm_pc_ways( &herk ),
+	                                ( int )bli_rntm_ic_ways( &herk ),
+	                                ( int )bli_rntm_jr_ways( &herk ), ( int )bli_rntm_ir_ways( &herk ) );
+	libblis_test_fprintf_c( os, "  trmm_l (m,n=1000)        %5d %5d %5d %5d %5d\n",
+	                                ( int )bli_rntm_jc_ways( &trmm_l ), ( int )bli_rntm_pc_ways( &trmm_l ),
+	                                ( int )bli_rntm_ic_ways( &trmm_l ),
+	                                ( int )bli_rntm_jr_ways( &trmm_l ), ( int )bli_rntm_ir_ways( &trmm_l ) );
+	libblis_test_fprintf_c( os, "  trmm_r (m,n=1000)        %5d %5d %5d %5d %5d\n",
+	                                ( int )bli_rntm_jc_ways( &trmm_r ), ( int )bli_rntm_pc_ways( &trmm_r ),
+	                                ( int )bli_rntm_ic_ways( &trmm_r ),
+	                                ( int )bli_rntm_jr_ways( &trmm_r ), ( int )bli_rntm_ir_ways( &trmm_r ) );
+	libblis_test_fprintf_c( os, "  trsm_l (m,n=1000)        %5d %5d %5d %5d %5d\n",
+	                                ( int )bli_rntm_jc_ways( &trsm_l ), ( int )bli_rntm_pc_ways( &trsm_l ),
+	                                ( int )bli_rntm_ic_ways( &trsm_l ),
+	                                ( int )bli_rntm_jr_ways( &trsm_l ), ( int )bli_rntm_ir_ways( &trsm_l ) );
+	libblis_test_fprintf_c( os, "  trsm_r (m,n=1000)        %5d %5d %5d %5d %5d\n",
+	                                ( int )bli_rntm_jc_ways( &trsm_r ), ( int )bli_rntm_pc_ways( &trsm_r ),
+	                                ( int )bli_rntm_ic_ways( &trsm_r ),
+	                                ( int )bli_rntm_jr_ways( &trsm_r ), ( int )bli_rntm_ir_ways( &trsm_r ) );
+	libblis_test_fprintf_c( os, "\n" );
+	libblis_test_fprintf_c( os, "thread partitioning              \n" );
+	//libblis_test_fprintf_c( os, "  jc/ic loops                  %s\n", "slab" );
+	libblis_test_fprintf_c( os, "  jr/ir loops                  %s\n", jrir_str );
 	libblis_test_fprintf_c( os, "\n" );
 
 	libblis_test_fprintf_c( os, "\n" );
@@ -1073,6 +1221,8 @@ void libblis_test_output_params_struct( FILE* os, test_params_t* params )
 	for( i = 1; i < params->n_datatypes; ++i )
 	libblis_test_fprintf_c( os, "        [%d]                  %d (%c)\n", i, params->datatype[i],
 	                                                                    params->datatype_char[i] );
+	libblis_test_fprintf_c( os, "mix domains for gemm?        %u\n", params->mixed_domain );
+	libblis_test_fprintf_c( os, "mix precisions for gemm?     %u\n", params->mixed_precision );
 	libblis_test_fprintf_c( os, "problem size: first to test  %u\n", params->p_first );
 	libblis_test_fprintf_c( os, "problem size: max to test    %u\n", params->p_max );
 	libblis_test_fprintf_c( os, "problem size increment       %u\n", params->p_inc );
@@ -1091,6 +1241,27 @@ void libblis_test_output_params_struct( FILE* os, test_params_t* params )
 	libblis_test_fprintf_c( os, "output to stdout AND files?  %u\n", params->output_files );
 	libblis_test_fprintf_c( os, "\n" );
 	libblis_test_fprintf( os, "\n" );
+
+#ifndef BLIS_ENABLE_GEMM_MD
+	// Notify the user if mixed domain or mixed precision was requested.
+	if ( params->mixed_domain || params->mixed_precision )
+	{
+		libblis_test_printf_error( "mixed domain and/or mixed precision testing requested, but building against BLIS without mixed datatype support.\n" );
+	}
+#endif
+
+	// If mixed domain or mixed precision was requested, we disable all
+	// induced methods except 1m and native execution.
+	if ( params->mixed_domain || params->mixed_precision )
+	{
+		ind_t im;
+
+		for ( im = BLIS_IND_FIRST; im < BLIS_IND_LAST+1; ++im )
+		{
+			if ( im != BLIS_1M && im != BLIS_NAT )
+				params->ind_enable[ im ] = 0;
+		}
+	}
 }
 
 
@@ -1151,9 +1322,21 @@ char* libblis_test_get_string_for_result( double    resid,
 {
 	char* r_val;
 
-	if      ( resid > thresh[dt].failwarn ) r_val = libblis_test_fail_string;
-	else if ( resid > thresh[dt].warnpass ) r_val = libblis_test_warn_string;
-	else                                    r_val = libblis_test_pass_string;
+	// Before checking against the thresholds, make sure the residual is
+	// neither NaN nor Inf. (Note that bli_isnan() and bli_isinf() are
+	// both simply wrappers to the isnan() and isinf() macros defined
+	// defined in math.h.)
+	if ( bli_isnan( resid ) || bli_isinf( resid ) )
+	{
+		r_val = libblis_test_fail_string;
+	}
+	else
+	{
+		// Check the result against the thresholds.
+		if      ( resid > thresh[dt].failwarn ) r_val = libblis_test_fail_string;
+		else if ( resid > thresh[dt].warnpass ) r_val = libblis_test_warn_string;
+		else                                    r_val = libblis_test_pass_string;
+	}
 
 	return r_val;
 }
@@ -1354,23 +1537,26 @@ void carryover( unsigned int* c,
 
 
 
-void libblis_test_op_driver( thread_data_t* tdata,
-                             test_params_t* params,
-                             test_op_t*     op,
-                             iface_t        iface,
-                             char*          op_str,
-                             char*          p_types,
-                             char*          o_types,
-                             thresh_t*      thresh,
-                             void (*f_exp)  (test_params_t*, // params struct
-                                             test_op_t*,     // op struct
-                                             iface_t,        // iface
-                                             num_t,          // datatype (current datatype)
-                                             char*,          // pc_str (current param string)
-                                             char*,          // sc_str (current storage string)
-                                             unsigned int,   // p_cur (current problem size)
-                                             double*,        // perf
-                                             double* ) )     // residual
+void libblis_test_op_driver
+     (
+       thread_data_t* tdata,
+       test_params_t* params,
+       test_op_t*     op,
+       iface_t        iface,
+       char*          op_str,
+       char*          p_types,
+       char*          o_types,
+       thresh_t*      thresh,
+       void (*f_exp)  (test_params_t*, // params struct
+                       test_op_t*,     // op struct
+                       iface_t,        // iface
+                       char*,          // datatype (current datatype)
+                       char*,          // pc_str (current param string)
+                       char*,          // sc_str (current storage string)
+                       unsigned int,   // p_cur (current problem size)
+                       double*,        // perf
+                       double* )       // residual
+     )
 {
 	unsigned int  n_mstorage          = params->n_mstorage;
 	unsigned int  n_vstorage          = params->n_vstorage;
@@ -1379,9 +1565,12 @@ void libblis_test_op_driver( thread_data_t* tdata,
 	unsigned int  p_max               = params->p_max;
 	unsigned int  p_inc               = params->p_inc;
 	unsigned int  mix_all_storage     = params->mix_all_storage;
+	unsigned int  mixed_domain        = params->mixed_domain;
+	unsigned int  mixed_precision     = params->mixed_precision;
 	unsigned int  reaction_to_failure = params->reaction_to_failure;
 
 	num_t         datatype;
+	num_t         dt_check;
 	char          dt_char;
 
 	char*         p_spec_str;
@@ -1392,12 +1581,28 @@ void libblis_test_op_driver( thread_data_t* tdata,
 
 	char          s_spec_str[ MAX_NUM_OPERANDS + 1 ];
 	unsigned int  n_operands;
+	unsigned int  n_operandsp1;
 	char**        chars_for_storage;
 	unsigned int  n_store_combos;
 	char**        sc_str;
 
+	char          d_spec_str[ MAX_NUM_OPERANDS + 1 ];
+	char**        chars_for_spdt;
+	char**        chars_for_dpdt;
+	unsigned int  n_spdt_combos;
+	unsigned int  n_dpdt_combos;
+	unsigned int  n_dt_combos;
+	char**        dc_str;
+
+	char**        chars_for_dt;
+	char**        chars_for_rddt;
+	char**        chars_for_cddt;
+	unsigned int  n_rddt_combos;
+	unsigned int  n_cddt_combos;
+
 	unsigned int  p_cur, pi;
-	unsigned int  dt, indi, pci, sci, i, j, o;
+	unsigned int  indi, pci, sci, dci, i, j, o;
+	unsigned int  is_mixed_dt;
 
 	double        perf, resid;
 	char*         pass_str;
@@ -1411,6 +1616,13 @@ void libblis_test_op_driver( thread_data_t* tdata,
 
 	FILE*         output_stream = NULL;
 
+	// These arrays are malloc()'ed in select branches. Here, we set
+	// them to NULL so they can be unconditionally free()'ed at the
+	// end of the function.
+	chars_for_rddt = NULL;
+	chars_for_cddt = NULL;
+	chars_for_spdt = NULL;
+	chars_for_dpdt = NULL;
 
 	// If output to files was requested, attempt to open a file stream.
 	if ( params->output_files )
@@ -1447,11 +1659,8 @@ void libblis_test_op_driver( thread_data_t* tdata,
 
 	// Compute the total number of parameter combinations to test (which is
 	// simply the product of the string lengths of chars_for_param[i].
-	for ( i = 0, n_param_combos = 1; i < n_params; ++i )
-	{
-		if ( p_spec_str[i] == '?' )
-			n_param_combos *= strlen( chars_for_param[i] );
-	}
+	n_param_combos = libblis_test_count_combos( n_params, p_spec_str,
+	                                            chars_for_param );
 
 	// Allocate an array of parameter combination strings, one for each
 	// parameter combination that needs to be tested.
@@ -1477,12 +1686,11 @@ void libblis_test_op_driver( thread_data_t* tdata,
 	if ( iface == BLIS_TEST_SEQ_UKERNEL )
 		mix_all_storage = DISABLE;
 
-	// Determine the total number of storage schemes.
+	// Enumerate all combinations of storage schemes requested.
 	if ( mix_all_storage )
 	{
 		// Fill storage specification string with wildcard chars.
-		for ( i = 0; i < n_operands; ++i )
-			s_spec_str[i] = '?';
+		for ( i = 0; i < n_operands; ++i ) s_spec_str[i] = '?';
 		s_spec_str[i] = '\0';
 
 		// Allocate an array that stores pointers to the sets of possible
@@ -1499,11 +1707,8 @@ void libblis_test_op_driver( thread_data_t* tdata,
 
 		// Compute the total number of storage combinations to test (which is
 		// simply the product of the string lengths of chars_for_storage[i].
-		for ( i = 0, n_store_combos = 1; i < n_operands; ++i )
-		{
-			if ( s_spec_str[i] == '?' )
-				n_store_combos *= strlen( chars_for_storage[i] );
-		}
+		n_store_combos = libblis_test_count_combos( n_operands, s_spec_str,
+		                                            chars_for_storage );
 
 		// Allocate an array of storage combination strings, one for each
 		// storage combination that needs to be tested.
@@ -1581,6 +1786,301 @@ void libblis_test_op_driver( thread_data_t* tdata,
 		}
 	}
 
+	// Enumerate all combinations of datatype domains requested, but only
+	// for the gemm operation.
+
+	if      ( !mixed_domain &&  mixed_precision && op->opid == BLIS_GEMM )
+	{
+		is_mixed_dt = TRUE;
+
+		// Increment the number of operands by one to account for the
+		// computation precision (or computation datatype, as we will encode
+		// it in the char string).
+		n_operandsp1 = n_operands + 1;
+
+		unsigned int has_rd = libblis_test_dt_str_has_rd_char( params );
+		unsigned int has_cd = libblis_test_dt_str_has_cd_char( params );
+
+		// Fill datatype specification string with wildcard chars.
+		for ( i = 0; i < n_operandsp1; ++i ) d_spec_str[i] = '?';
+		d_spec_str[i] = '\0';
+
+		// Allocate an array that stores pointers to the sets of possible
+		// datatype chars for each operand.
+		chars_for_rddt = ( char** ) malloc( n_operandsp1 * sizeof( char* ) );
+		chars_for_cddt = ( char** ) malloc( n_operandsp1 * sizeof( char* ) );
+
+		// Set the values in chars_for_rddt/cddt to the address of the string
+		// that holds the datatype chars.
+		for ( i = 0; i < n_operandsp1; ++i )
+		{
+			chars_for_rddt[i] = libblis_test_rd_chars;
+			chars_for_cddt[i] = libblis_test_cd_chars;
+		}
+
+		// Set the last set of chars in chars_for_cddt to the real domain
+		// charset. This is because the last char will be the computation
+		// precision.
+		chars_for_cddt[i-1] = libblis_test_rd_chars;
+
+		// Compute the total number of datatype combinations to test (which is
+		// simply the product of the string lengths of chars_for_spdt/dpdt[i]).
+		// NOTE: We skip inspecting/branching off of the d_spec_str chars since
+		// we know they are all '?'.
+		n_rddt_combos = 0; n_cddt_combos = 0;
+
+		if ( has_rd )
+			n_rddt_combos = libblis_test_count_combos( n_operandsp1, d_spec_str,
+			                                           chars_for_rddt );
+
+		if ( has_cd )
+			n_cddt_combos = libblis_test_count_combos( n_operandsp1, d_spec_str,
+			                                           chars_for_cddt );
+
+		// Add real and complex domain combinations.
+		n_dt_combos = n_rddt_combos + n_cddt_combos;
+
+		// Allocate an array of datatype combination strings, one for each
+		// datatype combination that needs to be tested.
+		dc_str = ( char** ) malloc( n_dt_combos * sizeof( char* ) );
+		for ( dci = 0; dci < n_dt_combos; ++dci )
+			dc_str[dci] = ( char* ) malloc( ( n_operandsp1 + 1 ) * sizeof( char ) );
+
+		char** dc_str_p = dc_str;
+
+		// Fill the datatype combination strings in dc_str with the datatype
+		// combinations implied by chars_for_rddt/cddt.
+		if ( has_rd )
+		{
+			libblis_test_fill_param_strings( d_spec_str,
+			                                 chars_for_rddt,
+			                                 n_operandsp1,
+			                                 n_rddt_combos,
+			                                 dc_str_p );
+			dc_str_p += n_rddt_combos;
+		}
+		if ( has_cd )
+		{
+			libblis_test_fill_param_strings( d_spec_str,
+			                                 chars_for_cddt,
+			                                 n_operandsp1,
+			                                 n_cddt_combos,
+			                                 dc_str_p );
+			dc_str_p += n_cddt_combos;
+		}
+
+#if 0
+		printf( "n_rddt_combos = %d\n", n_rddt_combos );
+		printf( "n_cddt_combos = %d\n", n_cddt_combos );
+		printf( "n_dt_combos   = %d\n\n", n_dt_combos );
+
+		for ( dci = 0; dci < n_dt_combos; ++dci )
+			printf( "dc_str[%2d] = %s\n", dci, dc_str[dci] );
+
+		bli_abort();
+#endif
+	}
+	else if (  mixed_domain && !mixed_precision && op->opid == BLIS_GEMM )
+	{
+		is_mixed_dt = TRUE;
+
+		// Increment the number of operands by one to account for the
+		// computation precision (or computation datatype, as we will encode
+		// it in the char string).
+		n_operandsp1 = n_operands + 1;
+
+		unsigned int has_sp = libblis_test_dt_str_has_sp_char( params );
+		unsigned int has_dp = libblis_test_dt_str_has_dp_char( params );
+
+		// Fill datatype specification string with wildcard chars.
+		for ( i = 0; i < n_operands; ++i ) d_spec_str[i] = '?';
+		d_spec_str[i] = '\0';
+
+		// Allocate an array that stores pointers to the sets of possible
+		// datatype chars for each operand (plus the computation precision
+		// char).
+		chars_for_spdt = ( char** ) malloc( n_operands * sizeof( char* ) );
+		chars_for_dpdt = ( char** ) malloc( n_operands * sizeof( char* ) );
+
+		// Set the values in chars_for_spdt/dpdt to the address of the string
+		// that holds the datatype chars.
+		for ( i = 0; i < n_operands; ++i )
+		{
+			chars_for_spdt[i] = libblis_test_sp_chars;
+			chars_for_dpdt[i] = libblis_test_dp_chars;
+		}
+
+		// Compute the total number of datatype combinations to test (which is
+		// simply the product of the string lengths of chars_for_spdt/dpdt[i]).
+		// NOTE: We skip inspecting/branching off of the d_spec_str chars since
+		// we know they are all '?'.
+		n_spdt_combos = 0; n_dpdt_combos = 0;
+
+		if ( has_sp )
+			n_spdt_combos = libblis_test_count_combos( n_operands, d_spec_str,
+			                                           chars_for_spdt );
+
+		if ( has_dp )
+			n_dpdt_combos = libblis_test_count_combos( n_operands, d_spec_str,
+			                                           chars_for_dpdt );
+
+		// Add single- and double-precision combinations.
+		n_dt_combos = n_spdt_combos + n_dpdt_combos;
+
+		// Allocate an array of datatype combination strings, one for each
+		// datatype combination that needs to be tested.
+		dc_str = ( char** ) malloc( n_dt_combos * sizeof( char* ) );
+		for ( dci = 0; dci < n_dt_combos; ++dci )
+			dc_str[dci] = ( char* ) malloc( ( n_operandsp1 + 1 ) * sizeof( char ) );
+
+		char** dc_str_p = dc_str;
+
+		// Fill the datatype combination strings in dc_str with the datatype
+		// combinations implied by chars_for_spdt/dpdt.
+		if ( has_sp )
+		{
+			libblis_test_fill_param_strings( d_spec_str,
+			                                 chars_for_spdt,
+			                                 n_operands,
+			                                 n_spdt_combos,
+			                                 dc_str_p );
+			dc_str_p += n_spdt_combos;
+		}
+		if ( has_dp )
+		{
+			libblis_test_fill_param_strings( d_spec_str,
+			                                 chars_for_dpdt,
+			                                 n_operands,
+			                                 n_dpdt_combos,
+			                                 dc_str_p );
+			dc_str_p += n_dpdt_combos;
+		}
+
+		// Manually set the computation char to the real projection of the
+		// first char of each combination.
+		int prec_i = n_operands;
+		for ( i = 0; i < n_dt_combos; ++i )
+		{
+			dc_str[i][prec_i]   = libblis_test_proj_dtchar_to_precchar( dc_str[i][0] );
+			dc_str[i][prec_i+1] = '\0';
+		}
+
+#if 0
+		printf( "n_spdt_combos = %d\n", n_spdt_combos );
+		printf( "n_dpdt_combos = %d\n", n_dpdt_combos );
+		printf( "n_dt_combos   = %d\n\n", n_dt_combos );
+
+		for ( dci = 0; dci < n_dt_combos; ++dci )
+			printf( "dc_str[%2d] = %s\n", dci, dc_str[dci] );
+
+		bli_abort();
+#endif
+	}
+	else if (  mixed_domain &&  mixed_precision && op->opid == BLIS_GEMM )
+	{
+		is_mixed_dt = TRUE;
+
+		// Increment the number of operands by one to account for the
+		// computation precision (or computation datatype, as we will encode
+		// it in the char string).
+		n_operandsp1 = n_operands + 1;
+
+		// Fill datatype specification string with wildcard chars.
+		for ( i = 0; i < n_operandsp1; ++i ) d_spec_str[i] = '?';
+		d_spec_str[i] = '\0';
+
+		// Allocate an array that stores pointers to the sets of possible
+		// datatype chars for each operand.
+		chars_for_dt = ( char** ) malloc( n_operandsp1 * sizeof( char* ) );
+
+		// Set the values in chars_for_rddt/cddt to the address of the string
+		// that holds the datatype chars.
+		for ( i = 0; i < n_operandsp1; ++i )
+		{
+			chars_for_dt[i] = libblis_test_dt_chars;
+		}
+
+		// Set the last set of chars in chars_for_dt to the real domain
+		// charset. This is because the last char will be the computation
+		// precision, with the computation domain implied by the operands'
+		// storage datatypes.
+		chars_for_dt[i-1] = libblis_test_rd_chars;
+
+		// Compute the total number of datatype combinations to test (which is
+		// simply the product of the string lengths of chars_for_dt[i]).
+		// NOTE: We skip inspecting/branching off of the d_spec_str chars since
+		// we know they are all '?'.
+		n_dt_combos = libblis_test_count_combos( n_operandsp1, d_spec_str,
+		                                         chars_for_dt );
+
+		// Allocate an array of datatype combination strings, one for each
+		// datatype combination that needs to be tested.
+		dc_str = ( char** ) malloc( n_dt_combos * sizeof( char* ) );
+		for ( dci = 0; dci < n_dt_combos; ++dci )
+			dc_str[dci] = ( char* ) malloc( ( n_operandsp1 + 1 ) * sizeof( char ) );
+
+		// Fill the datatype combination strings in dc_str with the datatype
+		// combinations implied by chars_for_rddt/cddt.
+		libblis_test_fill_param_strings( d_spec_str,
+		                                 chars_for_dt,
+		                                 n_operandsp1,
+		                                 n_dt_combos,
+		                                 dc_str );
+
+#if 0
+		printf( "n_dt_combos   = %d\n\n", n_dt_combos );
+
+		for ( dci = 0; dci < n_dt_combos; ++dci )
+			printf( "dc_str[%3d] = %s\n", dci, dc_str[dci] );
+
+		bli_abort();
+#endif
+	}
+	else // ( ( !mixed_domain && !mixed_precision ) || op->opid != BLIS_GEMM )
+	{
+		is_mixed_dt = FALSE;
+
+		// Increment the number of operands by one to account for the
+		// computation precision (or computation datatype, as we will encode
+		// it in the char string).
+		n_operandsp1 = n_operands + 1;
+
+		// Since we are not mixing domains, we only consider n_datatype
+		// datatype combinations, where each combination is actually
+		// homogeneous (e.g. "sss", "ddd", etc., if n_operands == 3).
+		n_dt_combos = n_datatypes;
+
+		// Allocate an array of datatype combination strings, one for each
+		// datatype specified.
+		dc_str = ( char** ) malloc( n_dt_combos * sizeof( char* ) );
+		for ( dci = 0; dci < n_dt_combos; ++dci )
+			dc_str[dci] = ( char* ) malloc( ( n_operandsp1 + 1 ) * sizeof( char ) );
+
+		// Fill each datatype combination string with the same dt char for
+		// each operand in the current operation.
+		for ( dci = 0; dci < n_dt_combos; ++dci )
+		{
+			dt_char = params->datatype_char[dci];
+
+			for ( i = 0; i < n_operands; ++i )
+				dc_str[dci][i] = dt_char;
+
+			// Encode the computation precision as the last char.
+			dc_str[dci][i] = libblis_test_proj_dtchar_to_precchar( dc_str[dci][0] );
+
+			dc_str[dci][i+1] = '\0';
+		}
+
+#if 0
+		printf( "n_dt_combos   = %d\n\n", n_dt_combos );
+
+		for ( dci = 0; dci < n_dt_combos; ++dci )
+			printf( "dc_str[%3d] = %s\n", dci, dc_str[dci] );
+
+		bli_abort();
+#endif
+	}
+
 
 
 	// These statements should only be executed by one thread.
@@ -1609,12 +2109,49 @@ void libblis_test_op_driver( thread_data_t* tdata,
 
 	// Loop over the requested storage schemes.
 	for ( sci = 0; sci < n_store_combos; ++sci )
+	//for ( sci = 0; sci < 5; ( sci == 2 ? sci+=2 : ++sci ) )
+	//for ( sci = 3; sci < 8; ( sci == 3 ? sci+=2 : ++sci ) )
+	//for ( sci = 0; sci < 1; ++sci )
+	//for ( sci = 7; sci < 8; ++sci )
 	{
 		// Loop over the requested datatypes.
-		for ( dt = 0; dt < n_datatypes; ++dt )
+		for ( dci = 0; dci < n_dt_combos; ++dci )
+		//for ( dci = 14; dci < 15; ++dci )
+		//for ( dci = 6; dci < 7; dci += 1 )
+		//for ( dci = 12; dci < 13; ++dci )
+		//for ( dci = 4; dci < 5; ++dci )
+		//for ( dci = 8; dci < 9; ++dci )
+		//for ( dci = 0; dci < 1; ++dci )
 		{
-			datatype = params->datatype[dt];
-			dt_char  = params->datatype_char[dt];
+			// We need a datatype to use for induced method related things
+			// as well as to decide which set of residual thresholds to use.
+			// We must choose the first operand's dt char since that's the
+			// only operand we know is guaranteed to exist.
+			bli_param_map_char_to_blis_dt( dc_str[dci][0], &datatype );
+			dt_check = datatype;
+
+			int has_sp = libblis_test_dt_str_has_sp_char_str( n_operandsp1,
+			                                                  dc_str[dci] );
+			int has_dp = libblis_test_dt_str_has_dp_char_str( n_operandsp1,
+			                                                  dc_str[dci] );
+			int has_samep = (has_sp && !has_dp ) ||
+			                (has_dp && !has_sp );
+
+			// Notice that we use n_operands here instead of
+			// n_operandsp1 since we only want to chars for the
+			// storage datatypes of the matrix operands, not the
+			// computation precision char.
+			int has_cd_only =
+			!libblis_test_dt_str_has_rd_char_str( n_operands,
+			                                      dc_str[dci] );
+
+			if ( has_sp )
+			{
+				// If any of the operands are single precision, ensure that
+				// dt_check is also single precision so that the residual is
+				// compared to datatype-appropriate thresholds.
+				dt_check = bli_dt_proj_to_single_prec( datatype );
+			}
 
 			// Build a commented column label string.
 			libblis_test_build_col_labels_string( params, op, label_str );
@@ -1635,10 +2172,10 @@ void libblis_test_op_driver( thread_data_t* tdata,
 			ind_t ind_first = BLIS_NAT;
 			dim_t ind_last  = BLIS_NAT;
 
-			// If the operation is level-3, and the datatype is complex,
+			// If the operation is level-3, and all operand domains are complex,
 			// then we iterate over all induced methods.
-			if ( bli_opid_is_level3( op->opid ) &&
-			     bli_is_complex( datatype ) ) ind_first = 0;
+			if ( bli_opid_is_level3( op->opid ) && has_cd_only )
+				ind_first = 0;
 
 			// Loop over induced methods (or just BLIS_NAT).
 			for ( indi = ind_first; indi <= ind_last; ++indi )
@@ -1650,7 +2187,21 @@ void libblis_test_op_driver( thread_data_t* tdata,
 				// current method and go to the next method.
 				if ( bli_is_real( datatype ) ) { ; }
 				else if ( bli_ind_oper_is_impl( op->opid, indi ) &&
-				          params->ind_enable[ indi ] == 1 ) { ; }
+				          params->ind_enable[ indi ] == 1 )
+				{
+					// If the current induced method is 1m, make sure that
+					// we only proceed for gemm where all operands are stored
+					// in the complex domain. (This prevents 1m from being
+					// executed on mixed-datatype combinations that contain
+					// real domain datatypes.)
+					if ( indi == BLIS_1M )
+					{
+						if      ( op->opid == BLIS_GEMM && has_cd_only ) { ; }
+						else if ( has_samep && has_cd_only ) { ; }
+						else { continue; }
+					}
+					else { ; }
+				}
 				else { continue; }
 
 				bli_ind_oper_enable_only( op->opid, indi, datatype );
@@ -1680,7 +2231,7 @@ void libblis_test_op_driver( thread_data_t* tdata,
 						f_exp( params,
 						       op,
 						       iface,
-						       datatype,
+						       dc_str[dci],
 						       pc_str[pci],
 						       sc_str[sci],
 						       p_cur,
@@ -1693,17 +2244,18 @@ void libblis_test_op_driver( thread_data_t* tdata,
 						// Query the string corresponding to the residual's
 						// position relative to the thresholds.
 						pass_str = libblis_test_get_string_for_result( resid,
-						                                               datatype,
+						                                               dt_check,
 						                                               thresh );
 
-						// Build a string unique to the operation, datatype,
-						// parameter combination, and storage combination being
-						// tested.
+						// Build a string unique to the operation, datatype combo,
+						// parameter combo, and storage combo being tested.
 						libblis_test_build_function_string( BLIS_FILEDATA_PREFIX_STR,
+						                                    op->opid,
 						                                    indi,
 						                                    ind_str,
 						                                    op_str,
-						                                    dt_char,
+						                                    is_mixed_dt,
+						                                    dc_str[dci],
 						                                    n_param_combos,
 						                                    pc_str[pci],
 						                                    sc_str[sci],
@@ -1782,9 +2334,9 @@ void libblis_test_op_driver( thread_data_t* tdata,
 					}
 				}
 			}
-	
+
 			// Wait for all other threads so that the output stays organized.
-			pthread_barrier_wait( tdata->barrier );
+			bli_pthread_barrier_wait( tdata->barrier );
 
 			// These statements should only be executed by one thread.
 			if ( tdata->id == 0 )
@@ -1812,6 +2364,18 @@ void libblis_test_op_driver( thread_data_t* tdata,
 		free( sc_str[sci] );
 	free( sc_str );
 
+	// Free some auxiliary arrays used by the mixed-domain/mixed-precision
+	// datatype-handling logic.
+	free( chars_for_rddt );
+	free( chars_for_cddt );
+	free( chars_for_spdt );
+	free( chars_for_dpdt );
+
+	// Free the datatype combination strings and then the master pointer.
+	for ( dci = 0; dci < n_dt_combos; ++dci )
+		free( dc_str[dci] );
+	free( dc_str );
+
 
 	// If the file was opened (successfully), close the output stream.
 	if ( output_stream )
@@ -1824,17 +2388,28 @@ void libblis_test_op_driver( thread_data_t* tdata,
 
 
 
-void libblis_test_build_function_string( char*        prefix_str,
-                                         ind_t        method,
-                                         char*        ind_str,
-                                         char*        op_str,
-                                         char         dt_char,
-                                         unsigned int n_param_combos,
-                                         char*        pc_str,
-                                         char*        sc_str,
-                                         char*        funcname_str )
+void libblis_test_build_function_string
+     (
+       char*        prefix_str,
+       opid_t       opid,
+       ind_t        method,
+       char*        ind_str,
+       char*        op_str,
+       unsigned int is_mixed_dt,
+       char*        dc_str,
+       unsigned int n_param_combos,
+       char*        pc_str,
+       char*        sc_str,
+       char*        funcname_str
+     )
 {
-	sprintf( funcname_str, "%s_%c%s", prefix_str, dt_char, op_str );
+	// We only print the full datatype combination string if is_mixed_dt
+	// is set and the operation is gemm. Otherwise, we print only
+	// the first char (since they are all the same).
+	if ( is_mixed_dt == TRUE && opid == BLIS_GEMM )
+		sprintf( funcname_str, "%s_%s%s", prefix_str, dc_str, op_str );
+	else
+		sprintf( funcname_str, "%s_%c%s", prefix_str, dc_str[0], op_str );
 
 	// If the method is non-native (ie: induced), append a string
 	// identifying the induced method.
@@ -2044,6 +2619,7 @@ void libblis_test_mobj_create( test_params_t* params, num_t dt, trans_t trans, c
 
 
 
+#if 0
 cntl_t* libblis_test_pobj_create( bszid_t bmult_id_m, bszid_t bmult_id_n, invdiag_t inv_diag, pack_t pack_schema, packbuf_t pack_buf, obj_t* a, obj_t* p, cntx_t* cntx )
 {
 	bool_t does_inv_diag;
@@ -2055,6 +2631,7 @@ cntl_t* libblis_test_pobj_create( bszid_t bmult_id_m, bszid_t bmult_id_n, invdia
 	// Create a control tree node for the packing operation.
 	cntl_t* cntl = bli_packm_cntl_create_node
 	(
+	  NULL, // we don't need the small block allocator from the runtime.
 	  NULL, // func ptr is not referenced b/c we don't call via l3 _int().
 	  bli_packm_blk_var1,
 	  bmult_id_m,
@@ -2080,7 +2657,7 @@ cntl_t* libblis_test_pobj_create( bszid_t bmult_id_m, bszid_t bmult_id_n, invdia
 	// mem_t entry later on.
 	return cntl;
 }
-
+#endif
 
 
 void libblis_test_vobj_create( test_params_t* params, num_t dt, char storage, dim_t m, obj_t* x )
@@ -2187,21 +2764,10 @@ void libblis_test_ceil_pow2( obj_t* alpha )
 
 void libblis_test_mobj_load_diag( test_params_t* params, obj_t* a )
 {
-	num_t dt = bli_obj_dt( a );
-	dim_t m  = bli_obj_length( a );
-	dim_t n  = bli_obj_width( a );
-
-	obj_t d;
-
 	// We assume that all elements of a were intialized on interval [-1,1].
 
-	bli_obj_create( dt, m, n, 0, 0, &d );
-
-	// Initialize the diagonal of d to 2.0 and then add the diagonal of a.
-	bli_setd( &BLIS_TWO, &d );
-	bli_addd( &d, a );
-
-	bli_obj_free( &d );
+	// Load the diagonal by 2.0.
+	bli_shiftd( &BLIS_TWO, a );
 }
 
 
@@ -2662,3 +3228,106 @@ int libblis_test_l3_is_disabled( test_op_t* op )
 	if ( op->ops->l3_over == DISABLE ) return TRUE;
 	else                               return FALSE;
 }
+
+// ---
+
+int libblis_test_dt_str_has_sp_char( test_params_t* params )
+{
+	return libblis_test_dt_str_has_sp_char_str( params->n_datatypes,
+	                                            params->datatype_char );
+}
+
+int libblis_test_dt_str_has_sp_char_str( int n, char* str )
+{
+	for ( int i = 0; i < n; ++i )
+	{
+		if ( str[i] == 's' ||
+		     str[i] == 'c' ) return TRUE;
+	}
+
+	return FALSE;
+}
+
+int libblis_test_dt_str_has_dp_char( test_params_t* params )
+{
+	return libblis_test_dt_str_has_dp_char_str( params->n_datatypes,
+	                                            params->datatype_char );
+}
+
+int libblis_test_dt_str_has_dp_char_str( int n, char* str )
+{
+	for ( int i = 0; i < n; ++i )
+	{
+		if ( str[i] == 'd' ||
+		     str[i] == 'z' ) return TRUE;
+	}
+
+	return FALSE;
+}
+
+// ---
+
+int libblis_test_dt_str_has_rd_char( test_params_t* params )
+{
+	return libblis_test_dt_str_has_rd_char_str( params->n_datatypes,
+	                                            params->datatype_char );
+}
+
+int libblis_test_dt_str_has_rd_char_str( int n, char* str )
+{
+	for ( int i = 0; i < n; ++i )
+	{
+		if ( str[i] == 's' ||
+		     str[i] == 'd' ) return TRUE;
+	}
+
+	return FALSE;
+}
+
+int libblis_test_dt_str_has_cd_char( test_params_t* params )
+{
+	return libblis_test_dt_str_has_cd_char_str( params->n_datatypes,
+	                                            params->datatype_char );
+}
+
+int libblis_test_dt_str_has_cd_char_str( int n, char* str )
+{
+	for ( int i = 0; i < n; ++i )
+	{
+		if ( str[i] == 'c' ||
+		     str[i] == 'z' ) return TRUE;
+	}
+
+	return FALSE;
+}
+
+// ---
+
+unsigned int libblis_test_count_combos
+     (
+       unsigned int n_operands,
+       char*        spec_str,
+       char**       char_sets
+     )
+{
+	unsigned int n_combos = 1;
+
+	for ( int i = 0; i < n_operands; ++i )
+	{
+		if ( spec_str[i] == '?' )
+			n_combos *= strlen( char_sets[i] );
+	}
+
+	return n_combos;
+}
+
+char libblis_test_proj_dtchar_to_precchar( char dt_char )
+{
+	char r_val = dt_char;
+
+	if      ( r_val == 'c' ) r_val = 's';
+	else if ( r_val == 'z' ) r_val = 'd';
+
+	return r_val;
+}
+

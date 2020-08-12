@@ -6,6 +6,7 @@
 
    Copyright (C) 2014, The University of Texas at Austin
    Copyright (C) 2016, Hewlett Packard Enterprise Development LP
+   Copyright (C) 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -15,9 +16,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -122,13 +123,15 @@ static num_t bli_obj_dt_proj_to_double_prec( obj_t* obj )
 static bool_t bli_obj_is_real( obj_t* obj )
 {
 	return ( bool_t )
-	       ( bli_obj_domain( obj ) == BLIS_BITVAL_REAL );
+	       ( bli_obj_domain( obj ) == BLIS_BITVAL_REAL &&
+	         !bli_obj_is_const( obj ) );
 }
 
 static bool_t bli_obj_is_complex( obj_t* obj )
 {
 	return ( bool_t )
-	       ( bli_obj_domain( obj ) == BLIS_BITVAL_COMPLEX );
+	       ( bli_obj_domain( obj ) == BLIS_BITVAL_COMPLEX &&
+	         !bli_obj_is_const( obj ) );
 }
 
 static num_t bli_obj_dt_proj_to_real( obj_t* obj )
@@ -177,6 +180,45 @@ static prec_t bli_obj_exec_prec( obj_t* obj )
 {
 	return ( prec_t )
 	       ( ( obj->info & BLIS_EXEC_PREC_BIT ) >> BLIS_EXEC_DT_SHIFT );
+}
+
+static num_t bli_obj_comp_dt( obj_t* obj )
+{
+	return ( num_t )
+	       ( ( obj->info & BLIS_COMP_DT_BITS ) >> BLIS_COMP_DT_SHIFT );
+}
+
+static dom_t bli_obj_comp_domain( obj_t* obj )
+{
+	return ( dom_t )
+	       ( ( obj->info & BLIS_COMP_DOMAIN_BIT ) >> BLIS_COMP_DT_SHIFT );
+}
+
+static prec_t bli_obj_comp_prec( obj_t* obj )
+{
+	return ( prec_t )
+	       ( ( obj->info & BLIS_COMP_PREC_BIT ) >> BLIS_COMP_DT_SHIFT );
+}
+
+// NOTE: This function queries info2.
+static num_t bli_obj_scalar_dt( obj_t* obj )
+{
+	return ( num_t )
+	       ( ( obj->info2 & BLIS_SCALAR_DT_BITS ) >> BLIS_SCALAR_DT_SHIFT );
+}
+
+// NOTE: This function queries info2.
+static dom_t bli_obj_scalar_domain( obj_t* obj )
+{
+	return ( dom_t )
+	       ( ( obj->info2 & BLIS_SCALAR_DOMAIN_BIT ) >> BLIS_SCALAR_DT_SHIFT );
+}
+
+// NOTE: This function queries info2.
+static prec_t bli_obj_scalar_prec( obj_t* obj )
+{
+	return ( prec_t )
+	       ( ( obj->info2 & BLIS_SCALAR_PREC_BIT ) >> BLIS_SCALAR_DT_SHIFT );
 }
 
 static trans_t bli_obj_conjtrans_status( obj_t* obj )
@@ -421,37 +463,88 @@ static void bli_obj_set_dt( num_t dt, obj_t* obj )
 static void bli_obj_set_target_dt( num_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_TARGET_DT_BITS ) | ( dt << BLIS_TARGET_DT_SHIFT );
+	            ( obj->info & ~BLIS_TARGET_DT_BITS ) |
+	            ( dt << BLIS_TARGET_DT_SHIFT );
 }
 
 static void bli_obj_set_target_domain( dom_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_TARGET_DOMAIN_BIT ) | ( dt << BLIS_TARGET_DT_SHIFT );
+	            ( obj->info & ~BLIS_TARGET_DOMAIN_BIT ) |
+	            ( dt << BLIS_TARGET_DT_SHIFT );
 }
 
 static void bli_obj_set_target_prec( prec_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_TARGET_PREC_BIT ) | ( dt << BLIS_TARGET_DT_SHIFT );
+	            ( obj->info & ~BLIS_TARGET_PREC_BIT ) |
+	            ( dt << BLIS_TARGET_DT_SHIFT );
 }
 
 static void bli_obj_set_exec_dt( num_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_EXEC_DT_BITS ) | ( dt << BLIS_EXEC_DT_SHIFT );
+	            ( obj->info & ~BLIS_EXEC_DT_BITS ) |
+	            ( dt << BLIS_EXEC_DT_SHIFT );
 }
 
 static void bli_obj_set_exec_domain( dom_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_EXEC_DOMAIN_BIT ) | ( dt << BLIS_EXEC_DT_SHIFT );
+	            ( obj->info & ~BLIS_EXEC_DOMAIN_BIT ) |
+	            ( dt << BLIS_EXEC_DT_SHIFT );
 }
 
 static void bli_obj_set_exec_prec( prec_t dt, obj_t* obj )
 {
 	obj->info = ( objbits_t )
-	            ( obj->info & ~BLIS_EXEC_PREC_BIT ) | ( dt << BLIS_EXEC_DT_SHIFT );
+	            ( obj->info & ~BLIS_EXEC_PREC_BIT ) |
+	            ( dt << BLIS_EXEC_DT_SHIFT );
+}
+
+static void bli_obj_set_comp_dt( num_t dt, obj_t* obj )
+{
+	obj->info = ( objbits_t )
+	            ( obj->info & ~BLIS_COMP_DT_BITS ) |
+	            ( dt << BLIS_COMP_DT_SHIFT );
+}
+
+static void bli_obj_set_comp_domain( dom_t dt, obj_t* obj )
+{
+	obj->info = ( objbits_t )
+	            ( obj->info & ~BLIS_COMP_DOMAIN_BIT ) |
+	            ( dt << BLIS_COMP_DT_SHIFT );
+}
+
+static void bli_obj_set_comp_prec( prec_t dt, obj_t* obj )
+{
+	obj->info = ( objbits_t )
+	            ( obj->info & ~BLIS_COMP_PREC_BIT ) |
+	            ( dt << BLIS_COMP_DT_SHIFT );
+}
+
+// NOTE: This function queries and modifies info2.
+static void bli_obj_set_scalar_dt( num_t dt, obj_t* obj )
+{
+	obj->info2 = ( objbits_t )
+	             ( obj->info2 & ~BLIS_SCALAR_DT_BITS ) |
+	             ( dt << BLIS_SCALAR_DT_SHIFT );
+}
+
+// NOTE: This function queries and modifies info2.
+static void bli_obj_set_scalar_domain( dom_t dt, obj_t* obj )
+{
+	obj->info2 = ( objbits_t )
+	             ( obj->info2 & ~BLIS_SCALAR_DOMAIN_BIT ) |
+	             ( dt << BLIS_SCALAR_DT_SHIFT );
+}
+
+// NOTE: This function queries and modifies info2.
+static void bli_obj_set_scalar_prec( prec_t dt, obj_t* obj )
+{
+	obj->info2 = ( objbits_t )
+	             ( obj->info2 & ~BLIS_SCALAR_PREC_BIT ) |
+	             ( dt << BLIS_SCALAR_DT_SHIFT );
 }
 
 static void bli_obj_set_pack_schema( pack_t schema, obj_t* obj )
@@ -825,10 +918,20 @@ static bool_t bli_obj_is_col_tilted( obj_t* obj )
 
 // Stride/increment modification
 
-static void bli_obj_set_strides( inc_t rs, inc_t cs, obj_t* obj )
+static void bli_obj_set_row_stride( inc_t rs, obj_t* obj )
 {
 	obj->rs = rs;
+}
+
+static void bli_obj_set_col_stride( inc_t cs, obj_t* obj )
+{
 	obj->cs = cs;
+}
+
+static void bli_obj_set_strides( inc_t rs, inc_t cs, obj_t* obj )
+{
+	bli_obj_set_row_stride( rs, obj );
+	bli_obj_set_col_stride( cs, obj );
 }
 
 static void bli_obj_set_imag_stride( inc_t is, obj_t* obj )
@@ -1035,6 +1138,93 @@ static void bli_obj_set_panel_stride( inc_t ps, obj_t* obj )
 	obj->ps = ps;
 }
 
+// stor3_t-related
+
+static stor3_t bli_obj_stor3_from_strides( obj_t* c, obj_t* a, obj_t* b )
+{
+	const inc_t rs_c = bli_obj_row_stride( c );
+	const inc_t cs_c = bli_obj_col_stride( c );
+
+	inc_t rs_a, cs_a;
+	inc_t rs_b, cs_b;
+
+	if ( bli_obj_has_notrans( a ) )
+	{
+		rs_a = bli_obj_row_stride( a );
+		cs_a = bli_obj_col_stride( a );
+	}
+	else
+	{
+		rs_a = bli_obj_col_stride( a );
+		cs_a = bli_obj_row_stride( a );
+	}
+
+	if ( bli_obj_has_notrans( b ) )
+	{
+		rs_b = bli_obj_row_stride( b );
+		cs_b = bli_obj_col_stride( b );
+	}
+	else
+	{
+		rs_b = bli_obj_col_stride( b );
+		cs_b = bli_obj_row_stride( b );
+	}
+
+	return bli_stor3_from_strides( rs_c, cs_c,
+	                               rs_a, cs_a,
+	                               rs_b, cs_b  );
+}
+
+
+// -- Initialization-related macros --
+
+// Finish the initialization started by the matrix-specific static initializer
+// (e.g. BLIS_OBJECT_PREINITIALIZER)
+// NOTE: This is intended only for use in the BLAS compatibility API and typed
+// BLIS API.
+
+static void bli_obj_init_finish( num_t dt, dim_t m, dim_t n, void* p, inc_t rs, inc_t cs, obj_t* obj )
+{
+	bli_obj_set_as_root( obj );
+
+	bli_obj_set_dt( dt, obj );
+	bli_obj_set_target_dt( dt, obj );
+	bli_obj_set_exec_dt( dt, obj );
+	bli_obj_set_comp_dt( dt, obj );
+
+	bli_obj_set_dims( m, n, obj );
+	bli_obj_set_strides( rs, cs, obj );
+
+	siz_t elem_size = sizeof( float );
+	if ( bli_dt_prec_is_double( dt ) ) elem_size *= 2;
+	if ( bli_dt_dom_is_complex( dt ) ) elem_size *= 2;
+	bli_obj_set_elem_size( elem_size, obj );
+
+	bli_obj_set_buffer( p, obj );
+
+	bli_obj_set_scalar_dt( dt, obj );
+	void* restrict s = bli_obj_internal_scalar_buffer( obj );
+
+	if      ( bli_dt_prec_is_single( dt ) ) { (( scomplex* )s)->real = 1.0F;
+	                                          (( scomplex* )s)->imag = 0.0F; }
+	else if ( bli_dt_prec_is_double( dt ) ) { (( dcomplex* )s)->real = 1.0;
+	                                          (( dcomplex* )s)->imag = 0.0; }
+}
+
+// Finish the initialization started by the 1x1-specific static initializer
+// (e.g. BLIS_OBJECT_PREINITIALIZER_1X1)
+// NOTE: This is intended only for use in the BLAS compatibility API and typed
+// BLIS API.
+
+static void bli_obj_init_finish_1x1( num_t dt, void* p, obj_t* obj )
+{
+	bli_obj_set_as_root( obj );
+
+	bli_obj_set_dt( dt, obj );
+
+	bli_obj_set_buffer( p, obj );
+}
+
 // -- Miscellaneous object macros --
 
 // Toggle the region referenced (or "stored").
@@ -1064,38 +1254,6 @@ static void bli_obj_set_defaults( obj_t* obj )
 {
 	obj->info = 0x0;
 	obj->info = obj->info | BLIS_BITVAL_DENSE | BLIS_BITVAL_GENERAL;
-}
-
-// Initializors for global scalar constants.
-// NOTE: These must remain cpp macros since they are initializor
-// expressions, not functions.
-
-#define bli_obj_init_const( buffer0 ) \
-{ \
-	.root      = NULL, \
-\
-	.off       = { 0, 0 }, \
-	.dim       = { 1, 1 }, \
-	.diag_off  = 0, \
-\
-	.info      = 0x0 | BLIS_BITVAL_CONST_TYPE | \
-	                   BLIS_BITVAL_DENSE      | \
-	                   BLIS_BITVAL_GENERAL, \
-	.elem_size = sizeof( constdata_t ), \
-\
-	.buffer    = buffer0, \
-	.rs        = 1, \
-	.cs        = 1, \
-	.is        = 1  \
-}
-
-#define bli_obj_init_constdata( val ) \
-{ \
-	.s =           ( float  )val, \
-	.d =           ( double )val, \
-	.c = { .real = ( float  )val, .imag = 0.0f }, \
-	.z = { .real = ( double )val, .imag = 0.0 }, \
-	.i =           ( gint_t )val, \
 }
 
 // Acquire buffer at object's submatrix offset (offset-aware buffer query).
@@ -1183,9 +1341,13 @@ static void bli_obj_real_part( obj_t* c, obj_t* r )
 		const num_t dt_stor_r = bli_dt_proj_to_real( bli_obj_dt( c )        );
 		const num_t dt_targ_r = bli_dt_proj_to_real( bli_obj_target_dt( c ) );
 		const num_t dt_exec_r = bli_dt_proj_to_real( bli_obj_exec_dt( c )   );
+		const num_t dt_comp_r = bli_dt_proj_to_real( bli_obj_comp_dt( c )   );
 		bli_obj_set_dt(        dt_stor_r, r );
 		bli_obj_set_target_dt( dt_targ_r, r );
 		bli_obj_set_exec_dt(   dt_exec_r, r );
+		bli_obj_set_comp_dt(   dt_comp_r, r );
+
+		// Don't touch the attached scalar datatype.
 
 		// Update the element size.
 		siz_t es_c = bli_obj_elem_size( c );
@@ -1212,9 +1374,13 @@ static void bli_obj_imag_part( obj_t* c, obj_t* i )
 		const num_t dt_stor_r = bli_dt_proj_to_real( bli_obj_dt( c )        );
 		const num_t dt_targ_r = bli_dt_proj_to_real( bli_obj_target_dt( c ) );
 		const num_t dt_exec_r = bli_dt_proj_to_real( bli_obj_exec_dt( c )   );
+		const num_t dt_comp_r = bli_dt_proj_to_real( bli_obj_comp_dt( c )   );
 		bli_obj_set_dt(        dt_stor_r, i );
 		bli_obj_set_target_dt( dt_targ_r, i );
 		bli_obj_set_exec_dt(   dt_exec_r, i );
+		bli_obj_set_comp_dt(   dt_comp_r, i );
+
+		// Don't touch the attached scalar datatype.
 
 		// Update the element size.
 		siz_t es_c = bli_obj_elem_size( c );
@@ -1251,11 +1417,22 @@ static void bli_obj_scalar_set_dt_buffer( obj_t* obj, num_t dt_aux, num_t* dt, v
 	}
 }
 
-// Swap object contents.
+// Swap all object fields (metadata/properties).
 
 static void bli_obj_swap( obj_t* a, obj_t* b )
 {
 	obj_t t = *b; *b = *a; *a = t;
+}
+
+// Swap object pack schemas.
+
+static void bli_obj_swap_pack_schemas( obj_t* a, obj_t* b )
+{
+	const pack_t schema_a = bli_obj_pack_schema( a );
+	const pack_t schema_b = bli_obj_pack_schema( b );
+
+	bli_obj_set_pack_schema( schema_b, a );
+	bli_obj_set_pack_schema( schema_a, b );
 }
 
 // Induce a transposition on an object: swap dimensions, increments, and
@@ -1290,7 +1467,32 @@ static void bli_obj_induce_trans( obj_t* obj )
 	bli_obj_set_panel_dims( n_panel, m_panel, obj );
 
 	// Note that this macro DOES NOT touch the transposition bit! If
-	// the calling code is using this macro to handle an object whose
+	// the calling code is using this function to handle an object whose
+	// transposition bit is set prior to computation, that code needs
+	// to manually clear or toggle the bit, via
+	// bli_obj_set_onlytrans() or bli_obj_toggle_trans(),
+	// respectively.
+}
+
+static void bli_obj_induce_fast_trans( obj_t* obj )
+{
+	// NOTE: This function is only used in situations where the matrices
+	// are guaranteed to not have structure or be packed.
+
+	// Induce transposition among basic fields.
+	dim_t  m        = bli_obj_length( obj );
+	dim_t  n        = bli_obj_width( obj );
+	inc_t  rs       = bli_obj_row_stride( obj );
+	inc_t  cs       = bli_obj_col_stride( obj );
+	dim_t  offm     = bli_obj_row_off( obj );
+	dim_t  offn     = bli_obj_col_off( obj );
+
+	bli_obj_set_dims( n, m, obj );
+	bli_obj_set_strides( cs, rs, obj );
+	bli_obj_set_offs( offn, offm, obj );
+
+	// Note that this macro DOES NOT touch the transposition bit! If
+	// the calling code is using this function to handle an object whose
 	// transposition bit is set prior to computation, that code needs
 	// to manually clear or toggle the bit, via
 	// bli_obj_set_onlytrans() or bli_obj_toggle_trans(),

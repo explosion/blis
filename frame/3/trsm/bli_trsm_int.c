@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -52,6 +52,9 @@ void bli_trsm_int
 	obj_t        c_local;
 	trsm_var_oft f;
 
+	// Return early if the current control tree node is NULL.
+	if ( bli_cntl_is_null( cntl ) ) return;
+
 	// Check parameters.
 	if ( bli_error_checking_is_enabled() )
 		bli_gemm_basic_check( alpha, a, b, beta, c, cntx );
@@ -65,7 +68,7 @@ void bli_trsm_int
 	{
 		if ( bli_thread_am_ochief( thread ) )
 		    bli_scalm( beta, c );
-		bli_thread_obarrier( thread );
+		bli_thread_barrier( thread );
 		return;
 	}
 
@@ -116,7 +119,7 @@ void bli_trsm_int
 	}
 
 	// FGVZ->TMS: Is this barrier still needed?
-	bli_thread_obarrier( thread );
+	bli_thread_barrier( thread );
 
 	// Create the next node in the thrinfo_t structure.
 	bli_thrinfo_grow( rntm, cntl, thread );

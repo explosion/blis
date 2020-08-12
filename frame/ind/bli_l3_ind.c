@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -15,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -35,7 +35,7 @@
 
 #include "blis.h"
 
-static void* bli_l3_ind_oper_fp[BLIS_NUM_IND_METHODS][BLIS_NUM_LEVEL3_OPS] = 
+static void_fp bli_l3_ind_oper_fp[BLIS_NUM_IND_METHODS][BLIS_NUM_LEVEL3_OPS] =
 {
         /*   gemm   hemm   herk   her2k  symm   syrk,  syr2k  trmm3  trmm   trsm  */
 /* 3mh  */ { bli_gemm3mh,  bli_hemm3mh,  bli_herk3mh,  bli_her2k3mh, bli_symm3mh,
@@ -87,7 +87,7 @@ bool_t bli_l3_ind_oper_st[BLIS_NUM_IND_METHODS][BLIS_NUM_LEVEL3_OPS][2] =
 #undef  GENFUNC
 #define GENFUNC( opname, optype ) \
 \
-void*  PASTEMAC(opname,ind_get_avail)( num_t dt ) \
+void_fp PASTEMAC(opname,ind_get_avail)( num_t dt ) \
 { \
 	return bli_ind_oper_get_avail( optype, dt ); \
 }
@@ -114,8 +114,8 @@ GENFUNC( trsm, BLIS_TRSM )
 #if 0
 bool_t bli_l3_ind_oper_is_avail( opid_t oper, ind_t method, num_t dt )
 {
-	void*  func;
-	bool_t stat;
+	void_fp func;
+	bool_t  stat;
 
 	// If the datatype is real, it is never available.
 	if ( !bli_is_complex( dt ) ) return FALSE;
@@ -146,7 +146,7 @@ ind_t bli_l3_ind_oper_find_avail( opid_t oper, num_t dt )
 	// current operation and datatype.
 	for ( im = 0; im < BLIS_NUM_IND_METHODS; ++im )
 	{
-		void*  func = bli_l3_ind_oper_get_func( oper, im );
+		void_fp func = bli_l3_ind_oper_get_func( oper, im );
 		bool_t stat = bli_l3_ind_oper_get_enable( oper, im, dt );
 
 		if ( func != NULL &&
@@ -215,7 +215,7 @@ void bli_l3_ind_oper_set_enable_all( opid_t oper, num_t dt, bool_t status )
 // -----------------------------------------------------------------------------
 
 // A mutex to allow synchronous access to the bli_l3_ind_oper_st array.
-static pthread_mutex_t oper_st_mutex = PTHREAD_MUTEX_INITIALIZER;
+static bli_pthread_mutex_t oper_st_mutex = BLIS_PTHREAD_MUTEX_INITIALIZER;
 
 void bli_l3_ind_oper_set_enable( opid_t oper, ind_t method, num_t dt, bool_t status )
 {
@@ -230,7 +230,7 @@ void bli_l3_ind_oper_set_enable( opid_t oper, ind_t method, num_t dt, bool_t sta
 	idt = bli_ind_map_cdt_to_index( dt );
 
 	// Acquire the mutex protecting bli_l3_ind_oper_st.
-	pthread_mutex_lock( &oper_st_mutex );
+	bli_pthread_mutex_lock( &oper_st_mutex );
 
 	// BEGIN CRITICAL SECTION
 	{
@@ -239,7 +239,7 @@ void bli_l3_ind_oper_set_enable( opid_t oper, ind_t method, num_t dt, bool_t sta
 	// END CRITICAL SECTION
 
 	// Release the mutex protecting bli_l3_ind_oper_st.
-	pthread_mutex_unlock( &oper_st_mutex );
+	bli_pthread_mutex_unlock( &oper_st_mutex );
 }
 
 bool_t bli_l3_ind_oper_get_enable( opid_t oper, ind_t method, num_t dt )
@@ -256,7 +256,7 @@ bool_t bli_l3_ind_oper_get_enable( opid_t oper, ind_t method, num_t dt )
 
 // -----------------------------------------------------------------------------
 
-void* bli_l3_ind_oper_get_func( opid_t oper, ind_t method )
+void_fp bli_l3_ind_oper_get_func( opid_t oper, ind_t method )
 {
 	return bli_l3_ind_oper_fp[ method ][ oper ];
 }

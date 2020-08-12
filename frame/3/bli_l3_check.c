@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -295,13 +295,33 @@ void bli_gemm_basic_check
 	e_val = bli_check_level3_dims( a, b, c );
 	bli_check_error_code( e_val );
 
+#ifdef BLIS_ENABLE_GEMM_MD
+	// Skip checking for consistent datatypes between A, B, and C since
+	// that is totally valid for mixed-datatype gemm.
+
+	// When mixing datatypes, make sure that alpha does not have a non-zero
+	// imaginary component.
+	if ( bli_obj_dt( c ) != bli_obj_dt( a ) ||
+	     bli_obj_dt( c ) != bli_obj_dt( b ) ||
+	     bli_obj_comp_prec( c ) != bli_obj_prec( c ) )
+	if ( !bli_obj_imag_is_zero( alpha ) )
+	{
+		bli_print_msg( "Mixed-datatype gemm does not yet support alpha with a non-zero imaginary component. Please contact BLIS developers for further support.", __FILE__, __LINE__ );
+		bli_abort();
+	}
+
+#else // BLIS_DISABLE_GEMM_MD
+
 	// Check for consistent datatypes.
+	// NOTE: We only perform these tests when mixed datatype support is
+	// disabled.
 
 	e_val = bli_check_consistent_object_datatypes( c, a );
 	bli_check_error_code( e_val );
 
 	e_val = bli_check_consistent_object_datatypes( c, b );
 	bli_check_error_code( e_val );
+#endif
 }
 
 void bli_hemm_basic_check

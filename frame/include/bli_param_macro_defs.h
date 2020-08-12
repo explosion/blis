@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -14,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -131,10 +132,34 @@ static dom_t bli_dt_domain( num_t dt )
 	       ( dt & BLIS_DOMAIN_BIT );
 }
 
+static bool_t bli_dt_dom_is_real( num_t dt )
+{
+	return ( bool_t )
+	       ( ( dt & BLIS_DOMAIN_BIT ) == BLIS_REAL );
+}
+
+static bool_t bli_dt_dom_is_complex( num_t dt )
+{
+	return ( bool_t )
+	       ( ( dt & BLIS_DOMAIN_BIT ) == BLIS_COMPLEX );
+}
+
 static prec_t bli_dt_prec( num_t dt )
 {
 	return ( prec_t )
 	       ( dt & BLIS_PRECISION_BIT );
+}
+
+static bool_t bli_dt_prec_is_single( num_t dt )
+{
+	return ( bool_t )
+	       ( ( dt & BLIS_PRECISION_BIT ) == BLIS_SINGLE_PREC );
+}
+
+static bool_t bli_dt_prec_is_double( num_t dt )
+{
+	return ( bool_t )
+	       ( ( dt & BLIS_PRECISION_BIT ) == BLIS_DOUBLE_PREC );
 }
 
 static num_t bli_dt_proj_to_real( num_t dt )
@@ -638,6 +663,13 @@ static bool_t bli_intersects_diag_n( doff_t diagoff, dim_t m, dim_t n )
 	         !bli_is_strictly_below_diag_n( diagoff, m, n ) );
 }
 
+static bool_t bli_is_outside_diag_n( doff_t diagoff, dim_t m, dim_t n )
+{
+	return ( bool_t )
+	       ( bli_is_strictly_above_diag_n( diagoff, m, n ) ||
+	         bli_is_strictly_below_diag_n( diagoff, m, n ) );
+}
+
 static bool_t bli_is_stored_subpart_n( doff_t diagoff, uplo_t uplo, dim_t m, dim_t n )
 {
 	return ( bool_t )
@@ -757,6 +789,97 @@ static void bli_toggle_dim( mdim_t* mdim )
 }
 
 
+// stor3_t-related
+
+static stor3_t bli_stor3_from_strides( inc_t rs_c, inc_t cs_c,
+                                       inc_t rs_a, inc_t cs_a,
+                                       inc_t rs_b, inc_t cs_b  )
+{
+	// If any matrix is general-stored, return the stor3_t id for the
+	// general-purpose sup microkernel.
+	if ( bli_is_gen_stored( rs_c, cs_c ) ||
+	     bli_is_gen_stored( rs_a, cs_a ) ||
+	     bli_is_gen_stored( rs_b, cs_b ) ) return BLIS_XXX;
+
+	// Otherwise, compute and return the stor3_t id as follows.
+	const bool_t c_is_col = bli_is_col_stored( rs_c, cs_c );
+	const bool_t a_is_col = bli_is_col_stored( rs_a, cs_a );
+	const bool_t b_is_col = bli_is_col_stored( rs_b, cs_b );
+
+	return ( stor3_t )( 4 * c_is_col +
+	                    2 * a_is_col +
+	                    1 * b_is_col );
+}
+
+static stor3_t bli_stor3_trans( stor3_t id )
+{
+#if 1
+	stor3_t map[ BLIS_NUM_3OP_RC_COMBOS ]
+	=
+	{
+	  ( stor3_t )7,  // BLIS_RRR = 0  ->  BLIS_CCC = 7
+	  ( stor3_t )5,  // BLIS_RRC = 1  ->  BLIS_CRC = 5
+	  ( stor3_t )6,  // BLIS_RCR = 2  ->  BLIS_CCR = 6
+	  ( stor3_t )4,  // BLIS_RCC = 3  ->  BLIS_CRR = 4
+	  ( stor3_t )3,  // BLIS_CRR = 4  ->  BLIS_RCC = 3
+	  ( stor3_t )1,  // BLIS_CRC = 5  ->  BLIS_RRC = 1
+	  ( stor3_t )2,  // BLIS_CCR = 6  ->  BLIS_RCR = 2
+	  ( stor3_t )0,  // BLIS_CCC = 7  ->  BLIS_RRR = 0
+	};
+
+	return map[id];
+#else
+	return   ( ( id & 0x4 ) ^ 0x4 )        | // flip c bit
+	       ( ( ( id & 0x1 ) ^ 0x1 ) << 1 ) | // flip b bit and move to a position
+	       ( ( ( id & 0x2 ) ^ 0x2 ) >> 1 );  // flip a bit and move to b position
+#endif
+}
+
+static stor3_t bli_stor3_transa( stor3_t id )
+{
+#if 0
+	stor3_t map[ BLIS_NUM_3OP_RC_COMBOS ]
+	=
+	{
+	  ( stor3_t )1,  // BLIS_RRR = 0  ->  BLIS_RRC = 1
+	  ( stor3_t )0,  // BLIS_RRC = 1  ->  BLIS_RRR = 0
+	  ( stor3_t )3,  // BLIS_RCR = 2  ->  BLIS_RCC = 3
+	  ( stor3_t )2,  // BLIS_RCC = 3  ->  BLIS_RCR = 2
+	  ( stor3_t )5,  // BLIS_CRR = 4  ->  BLIS_CRC = 5
+	  ( stor3_t )4,  // BLIS_CRC = 5  ->  BLIS_CRR = 4
+	  ( stor3_t )7,  // BLIS_CCR = 6  ->  BLIS_CCC = 7
+	  ( stor3_t )6,  // BLIS_CCC = 7  ->  BLIS_CCR = 6
+	};
+
+	return map[id];
+#else
+	return ( stor3_t )( id ^ 0x1 );
+#endif
+}
+
+static stor3_t bli_stor3_transb( stor3_t id )
+{
+#if 0
+	stor3_t map[ BLIS_NUM_3OP_RC_COMBOS ]
+	=
+	{
+	  ( stor3_t )2,  // BLIS_RRR = 0  ->  BLIS_RCR = 2
+	  ( stor3_t )3,  // BLIS_RRC = 1  ->  BLIS_RCC = 3
+	  ( stor3_t )0,  // BLIS_RCR = 2  ->  BLIS_RRR = 0
+	  ( stor3_t )1,  // BLIS_RCC = 3  ->  BLIS_RRC = 1
+	  ( stor3_t )6,  // BLIS_CRR = 4  ->  BLIS_CCR = 6
+	  ( stor3_t )7,  // BLIS_CRC = 5  ->  BLIS_CCC = 7
+	  ( stor3_t )4,  // BLIS_CCR = 6  ->  BLIS_CRR = 4
+	  ( stor3_t )5,  // BLIS_CCC = 7  ->  BLIS_CRC = 5
+	};
+
+	return map[id];
+#else
+	return ( stor3_t )( id ^ 0x2 );
+#endif
+}
+
+
 
 // index-related
 
@@ -784,10 +907,25 @@ static bool_t bli_is_not_edge_b( dim_t i, dim_t n_iter, dim_t n_left )
 	       ( i != 0 || n_left == 0 );
 }
 
-static bool_t bli_is_last_iter( dim_t i, dim_t n_iter, dim_t tid, dim_t nth )
+static bool_t bli_is_last_iter_sl( dim_t i, dim_t end_iter, dim_t tid, dim_t nth )
 {
 	return ( bool_t )
-	       ( i == n_iter - 1 - ( ( n_iter - tid - 1 ) % nth ) );
+	       ( i == end_iter - 1 );
+}
+
+static bool_t bli_is_last_iter_rr( dim_t i, dim_t end_iter, dim_t tid, dim_t nth )
+{
+	return ( bool_t )
+	       ( i == end_iter - 1 - ( ( end_iter - tid - 1 ) % nth ) );
+}
+
+static bool_t bli_is_last_iter( dim_t i, dim_t end_iter, dim_t tid, dim_t nth )
+{
+#ifdef BLIS_ENABLE_JRIR_SLAB
+	return bli_is_last_iter_sl( i, end_iter, tid, nth );
+#else // BLIS_ENABLE_JRIR_RR
+	return bli_is_last_iter_rr( i, end_iter, tid, nth );
+#endif
 }
 
 
@@ -915,30 +1053,19 @@ static guint_t bli_pack_schema_index( pack_t schema )
 // Increment a pointer by an integer fraction:
 //   p0 + (num/dem)
 // where p0 is a pointer to a datatype of size sizeof_p0.
-static void* bli_ptr_inc_by_frac( void* p0, siz_t sizeof_p0, dim_t num, dim_t den )
+static void_fp bli_ptr_inc_by_frac( void_fp p0, siz_t sizeof_p0, dim_t num, dim_t den )
 {
-	return ( void* )
+	return ( void_fp )
 	       ( ( char* )p0 + ( ( num * ( dim_t )sizeof_p0 ) / den ) );
 }
 
-static bool_t bli_is_null( void* p )
-{
-	return ( bool_t )
-	       ( p == NULL );
-}
-
-static bool_t bli_is_nonnull( void* p )
-{
-	return ( bool_t )
-	       ( p != NULL );
-}
 
 
 // Set dimensions, increments, effective uplo/diagoff, etc for ONE matrix
 // argument.
 
 static
-void bli_set_dims_incs_uplo_1m
+void  bli_set_dims_incs_uplo_1m
      (
        doff_t  diagoffa, diag_t diaga,
        uplo_t  uploa,    dim_t  m,          dim_t  n,      inc_t  rs_a, inc_t  cs_a,
@@ -1033,7 +1160,7 @@ void bli_set_dims_incs_uplo_1m
 // argument (without column-wise stride optimization).
 
 static
-void bli_set_dims_incs_uplo_1m_noswap
+void  bli_set_dims_incs_uplo_1m_noswap
      (
        doff_t  diagoffa, diag_t diaga,
        uplo_t  uploa,    dim_t  m,          dim_t  n,      inc_t  rs_a, inc_t  cs_a,
@@ -1119,7 +1246,7 @@ void bli_set_dims_incs_uplo_1m_noswap
 // Set dimensions and increments for TWO matrix arguments.
 
 static
-void bli_set_dims_incs_2m
+void  bli_set_dims_incs_2m
      (
        trans_t transa,
        dim_t  m,      dim_t  n,      inc_t  rs_a, inc_t  cs_a,
@@ -1155,7 +1282,7 @@ void bli_set_dims_incs_2m
 // arguments.
 
 static
-void bli_set_dims_incs_uplo_2m
+void  bli_set_dims_incs_uplo_2m
      (
        doff_t  diagoffa, diag_t diaga, trans_t transa,
        uplo_t  uploa,    dim_t  m,          dim_t  n,      inc_t  rs_a, inc_t  cs_a,
@@ -1263,7 +1390,7 @@ void bli_set_dims_incs_uplo_2m
 // on the diagonal.
 
 static
-void bli_set_dims_incs_1d
+void  bli_set_dims_incs_1d
      (
        doff_t diagoffx,
        dim_t  m,    dim_t  n,      inc_t  rs_x, inc_t  cs_x,
@@ -1287,7 +1414,7 @@ void bli_set_dims_incs_1d
 // Set dimensions, increments, etc for TWO matrix arguments when operating
 // on diagonals.
 static
-void bli_set_dims_incs_2d
+void  bli_set_dims_incs_2d
      (
        doff_t diagoffx, trans_t transx,
        dim_t  m, dim_t  n, inc_t  rs_x, inc_t  cs_x,

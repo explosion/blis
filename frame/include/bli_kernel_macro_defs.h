@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -38,20 +38,42 @@
 
 // -- Define default threading parameters --------------------------------------
 
-#ifndef BLIS_DEFAULT_M_THREAD_RATIO
-#define BLIS_DEFAULT_M_THREAD_RATIO 2
+// -- Conventional (large code path) values --
+
+#ifndef BLIS_THREAD_RATIO_M
+#define BLIS_THREAD_RATIO_M     2
 #endif
 
-#ifndef BLIS_DEFAULT_N_THREAD_RATIO
-#define BLIS_DEFAULT_N_THREAD_RATIO 1
+#ifndef BLIS_THREAD_RATIO_N
+#define BLIS_THREAD_RATIO_N     1
 #endif
 
-#ifndef BLIS_DEFAULT_MR_THREAD_MAX
-#define BLIS_DEFAULT_MR_THREAD_MAX 1
+#ifndef BLIS_THREAD_MAX_IR
+#define BLIS_THREAD_MAX_IR      1
 #endif
 
-#ifndef BLIS_DEFAULT_NR_THREAD_MAX
-#define BLIS_DEFAULT_NR_THREAD_MAX 4
+#ifndef BLIS_THREAD_MAX_JR
+#define BLIS_THREAD_MAX_JR      4
+#endif
+
+#if 0
+// -- Skinny/small possibly-unpacked (sup code path) values --
+
+#ifndef BLIS_THREAD_SUP_RATIO_M
+#define BLIS_THREAD_SUP_RATIO_M   1
+#endif
+
+#ifndef BLIS_THREAD_SUP_RATIO_N
+#define BLIS_THREAD_SUP_RATIO_N   2
+#endif
+
+#ifndef BLIS_THREAD_SUP_MAX_IR
+#define BLIS_THREAD_SUP_MAX_IR    1
+#endif
+
+#ifndef BLIS_THREAD_SUP_MAX_JR
+#define BLIS_THREAD_SUP_MAX_JR    8
+#endif
 #endif
 
 
@@ -165,19 +187,56 @@
 
 // Alignment size used to align local stack buffers within macro-kernel
 // functions.
+#ifndef BLIS_STACK_BUF_ALIGN_SIZE
 #define BLIS_STACK_BUF_ALIGN_SIZE        BLIS_SIMD_ALIGN_SIZE
+#endif
 
 // Alignment size used when allocating memory via BLIS_MALLOC_USER.
 // To disable heap alignment, set this to 1.
+#ifndef BLIS_HEAP_ADDR_ALIGN_SIZE
 #define BLIS_HEAP_ADDR_ALIGN_SIZE        BLIS_SIMD_ALIGN_SIZE
+#endif
 
 // Alignment size used when sizing leading dimensions of memory allocated
 // via BLIS_MALLOC_USER.
+#ifndef BLIS_HEAP_STRIDE_ALIGN_SIZE
 #define BLIS_HEAP_STRIDE_ALIGN_SIZE      BLIS_SIMD_ALIGN_SIZE
+#endif
 
-// Alignment size used when allocating blocks to the internal memory
+// Alignment sizes used when allocating blocks to the internal memory
 // pool, via BLIS_MALLOC_POOL.
-#define BLIS_POOL_ADDR_ALIGN_SIZE        BLIS_PAGE_SIZE
+#ifndef BLIS_POOL_ADDR_ALIGN_SIZE_A
+#define BLIS_POOL_ADDR_ALIGN_SIZE_A      BLIS_PAGE_SIZE
+#endif
+
+#ifndef BLIS_POOL_ADDR_ALIGN_SIZE_B
+#define BLIS_POOL_ADDR_ALIGN_SIZE_B      BLIS_PAGE_SIZE
+#endif
+
+#ifndef BLIS_POOL_ADDR_ALIGN_SIZE_C
+#define BLIS_POOL_ADDR_ALIGN_SIZE_C      BLIS_PAGE_SIZE
+#endif
+
+#ifndef BLIS_POOL_ADDR_ALIGN_SIZE_GEN
+#define BLIS_POOL_ADDR_ALIGN_SIZE_GEN    BLIS_PAGE_SIZE
+#endif
+
+// Offsets from alignment specified by BLIS_POOL_ADDR_ALIGN_SIZE_*.
+#ifndef BLIS_POOL_ADDR_OFFSET_SIZE_A
+#define BLIS_POOL_ADDR_OFFSET_SIZE_A     0
+#endif
+
+#ifndef BLIS_POOL_ADDR_OFFSET_SIZE_B
+#define BLIS_POOL_ADDR_OFFSET_SIZE_B     0
+#endif
+
+#ifndef BLIS_POOL_ADDR_OFFSET_SIZE_C
+#define BLIS_POOL_ADDR_OFFSET_SIZE_C     0
+#endif
+
+#ifndef BLIS_POOL_ADDR_OFFSET_SIZE_GEN
+#define BLIS_POOL_ADDR_OFFSET_SIZE_GEN   0
+#endif
 
 
 

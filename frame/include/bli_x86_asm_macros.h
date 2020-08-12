@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2018, The University of Texas at Austin
+   Copyright (C) 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -14,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -49,7 +50,7 @@
 #define STRINGIFY_(...) #__VA_ARGS__
 #define GET_MACRO_(_1_,_2_,_3_,_4_,NAME,...) NAME
 
-#if (defined(_WIN32) && !defined(__clang__)) || defined(__MIC__)
+#if (defined(_WIN32) && !defined(__clang__) && !defined(__MINGW32__)) || defined(__MIC__)
 
 // Intel-style assembly blocks
 
@@ -643,6 +644,7 @@
 #define XOR(_0, _1) INSTR_(xor, _0, _1)
 #define ADD(_0, _1) INSTR_(add, _0, _1)
 #define SUB(_0, _1) INSTR_(sub, _0, _1)
+#define IMUL(_0, _1) INSTR_(imul, _0, _1)
 #define SAL(...) INSTR_(sal, __VA_ARGS__)
 #define SAR(...) INSTR_(sar, __VA_ARGS__)
 #define SHLX(_0, _1, _2) INSTR_(shlx, _0, _1, _2)
@@ -656,6 +658,7 @@
 #define xor(_0, _1) XOR(_0, _1)
 #define add(_0, _1) ADD(_0, _1)
 #define sub(_0, _1) SUB(_0, _1)
+#define imul(_0, _1) IMUL(_0, _1)
 #define sal(...) SAL(__VA_ARGS__)
 #define sar(...) SAR(__VA_ARGS__)
 #define shlx(_0, _1, _2) SHLX(_0, _1, _2)
@@ -671,12 +674,68 @@
 #define MOVD(_0, _1) INSTR_(movd, _0, _1)
 #define MOVL(_0, _1) INSTR_(movl, _0, _1)
 #define MOVQ(_0, _1) INSTR_(movq, _0, _1)
+#define CMOVA(_0, _1) INSTR_(cmova, _0, _1)
+#define CMOVAE(_0, _1) INSTR_(cmovae, _0, _1)
+#define CMOVB(_0, _1) INSTR_(cmovb, _0, _1)
+#define CMOVBE(_0, _1) INSTR_(cmovbe, _0, _1)
+#define CMOVC(_0, _1) INSTR_(cmovc, _0, _1)
+#define CMOVP(_0, _1) INSTR_(cmovp, _0, _1)
+#define CMOVO(_0, _1) INSTR_(cmovo, _0, _1)
+#define CMOVS(_0, _1) INSTR_(cmovs, _0, _1)
+#define CMOVE(_0, _1) INSTR_(cmove, _0, _1)
+#define CMOVZ(_0, _1) INSTR_(cmovz, _0, _1)
+#define CMOVG(_0, _1) INSTR_(cmovg, _0, _1)
+#define CMOVGE(_0, _1) INSTR_(cmovge, _0, _1)
+#define CMOVL(_0, _1) INSTR_(cmovl, _0, _1)
+#define CMOVLE(_0, _1) INSTR_(cmovle, _0, _1)
+#define CMOVNA(_0, _1) INSTR_(cmovna, _0, _1)
+#define CMOVNAE(_0, _1) INSTR_(cmovnae, _0, _1)
+#define CMOVNB(_0, _1) INSTR_(cmovnb, _0, _1)
+#define CMOVNBE(_0, _1) INSTR_(cmovnbe, _0, _1)
+#define CMOVNC(_0, _1) INSTR_(cmovnc, _0, _1)
+#define CMOVNP(_0, _1) INSTR_(cmovnp, _0, _1)
+#define CMOVNO(_0, _1) INSTR_(cmovno, _0, _1)
+#define CMOVNS(_0, _1) INSTR_(cmovns, _0, _1)
+#define CMOVNE(_0, _1) INSTR_(cmovne, _0, _1)
+#define CMOVNZ(_0, _1) INSTR_(cmovnz, _0, _1)
+#define CMOVNG(_0, _1) INSTR_(cmovng, _0, _1)
+#define CMOVNGE(_0, _1) INSTR_(cmovnge, _0, _1)
+#define CMOVNL(_0, _1) INSTR_(cmovnl, _0, _1)
+#define CMOVNLE(_0, _1) INSTR_(cmovnle, _0, _1)
 
 #define lea(_0, _1) LEA(_0, _1)
 #define mov(_0, _1) MOV(_0, _1)
 #define movd(_0, _1) MOVD(_0, _1)
 #define movl(_0, _1) MOVL(_0, _1)
 #define movq(_0, _1) MOVQ(_0, _1)
+#define cmova(_0, _1) CMOVA(_0, _1)
+#define cmovae(_0, _1) CMOVAE(_0, _1)
+#define cmovb(_0, _1) CMOVB(_0, _1)
+#define cmovbe(_0, _1) CMOVBE(_0, _1)
+#define cmovc(_0, _1) CMOVC(_0, _1)
+#define cmovp(_0, _1) CMOVP(_0, _1)
+#define cmovo(_0, _1) CMOVO(_0, _1)
+#define cmovs(_0, _1) CMOVS(_0, _1)
+#define cmove(_0, _1) CMOVE(_0, _1)
+#define cmovz(_0, _1) CMOVZ(_0, _1)
+#define cmovg(_0, _1) CMOVG(_0, _1)
+#define cmovge(_0, _1) CMOVGE(_0, _1)
+#define cmovl(_0, _1) CMOVL(_0, _1)
+#define cmovle(_0, _1) CMOVLE(_0, _1)
+#define cmovna(_0, _1) CMOVNA(_0, _1)
+#define cmovnae(_0, _1) CMOVNAE(_0, _1)
+#define cmovnb(_0, _1) CMOVNB(_0, _1)
+#define cmovnbe(_0, _1) CMOVNBE(_0, _1)
+#define cmovnc(_0, _1) CMOVNC(_0, _1)
+#define cmovnp(_0, _1) CMOVNP(_0, _1)
+#define cmovno(_0, _1) CMOVNO(_0, _1)
+#define cmovns(_0, _1) CMOVNS(_0, _1)
+#define cmovne(_0, _1) CMOVNE(_0, _1)
+#define cmovnz(_0, _1) CMOVNZ(_0, _1)
+#define cmovng(_0, _1) CMOVNG(_0, _1)
+#define cmovnge(_0, _1) CMOVNGE(_0, _1)
+#define cmovnl(_0, _1) CMOVNL(_0, _1)
+#define cmovnle(_0, _1) CMOVNLE(_0, _1)
 
 // Vector moves
 
@@ -724,13 +783,13 @@
 #define VPBROADCASTQ(_0, _1) INSTR_(vpbroadcastq, _0, _1)
 #define VBROADCASTF128(_0, _1) INSTR_(vbroadcastf128, _0, _1)
 #define VBROADCASTF64X4(_0, _1) INSTR_(vbroadcastf64x4, _0, _1)
-#define VGATHERDPS(_0, _1) INSTR_(vgatherdps, _0, _1)
+#define VGATHERDPS(...) INSTR_(vgatherdps, __VA_ARGS__)
 #define VSCATTERDPS(_0, _1) INSTR_(vscatterdps, _0, _1)
-#define VGATHERDPD(_0, _1) INSTR_(vgatherdpd, _0, _1)
+#define VGATHERDPD(...) INSTR_(vgatherdpd, __VA_ARGS__)
 #define VSCATTERDPD(_0, _1) INSTR_(vscatterdpd, _0, _1)
-#define VGATHERQPS(_0, _1) INSTR_(vgatherqps, _0, _1)
+#define VGATHERQPS(...) INSTR_(vgatherqps, __VA_ARGS__)
 #define VSCATTERQPS(_0, _1) INSTR_(vscatterqps, _0, _1)
-#define VGATHERQPD(_0, _1) INSTR_(vgatherqpd, _0, _1)
+#define VGATHERQPD(...) INSTR_(vgatherqpd, __VA_ARGS__)
 #define VSCATTERQPD(_0, _1) INSTR_(vscatterqpd, _0, _1)
 
 #define vmovddup(_0, _1) VMOVDDUP(_0, _1)
@@ -753,18 +812,40 @@
 #define vmovdqa64(_0, _1) VMOVDQA64(_0, _1)
 #define vbroadcastss(_0, _1) VBROADCASTSS(_0, _1)
 #define vbroadcastsd(_0, _1) VBROADCASTSD(_0, _1)
-#define vpbraodcastd(_0, _1) VPBROADCASTD(_0, _1)
+#define vpbroadcastd(_0, _1) VPBROADCASTD(_0, _1)
 #define vpbroadcastq(_0, _1) VPBROADCASTQ(_0, _1)
 #define vbroadcastf128(_0, _1) VBROADCASTF128(_0, _1)
 #define vbroadcastf64x4(_0, _1) VBROADCASTF64X4(_0, _1)
-#define vgatherdps(_0, _1) VGATHERDPS(_0, _1)
+#define vgatherdps(...) VGATHERDPS(__VA_ARGS__)
 #define vscatterdps(_0, _1) VSCATTERDPS(_0, _1)
-#define vgatherdpd(_0, _1) VGATHERDPD(_0, _1)
+#define vgatherdpd(...) VGATHERDPD(__VA_ARGS__)
 #define vscatterdpd(_0, _1) VSCATTERDPD(_0, _1)
-#define vgatherqps(_0, _1) VGATHERQPS(_0, _1)
+#define vgatherqps(...) VGATHERQPS(__VA_ARGS__)
 #define vscatterqps(_0, _1) VSCATTERQPS(_0, _1)
-#define vgatherqpd(_0, _1) VGATHERQPD(_0, _1)
+#define vgatherqpd(...) VGATHERQPD(__VA_ARGS__)
 #define vscatterqpd(_0, _1) VSCATTERQPD(_0, _1)
+
+// Vector comparisons
+
+#define VPCMPEQB(_0, _1, _2) INSTR_(vpcmpeqb, _0, _1, _2)
+#define VPCMPEQW(_0, _1, _2) INSTR_(vpcmpeqw, _0, _1, _2)
+#define VPCMPEQD(_0, _1, _2) INSTR_(vpcmpeqd, _0, _1, _2)
+
+#define vpcmpeqb(_0, _1, _2) VPCMPEQB(_0, _1, _2)
+#define vpcmpeqw(_0, _1, _2) VPCMPEQW(_0, _1, _2)
+#define vpcmpeqd(_0, _1, _2) VPCMPEQD(_0, _1, _2)
+
+// Vector integer math
+
+#define VPADDB(_0, _1, _2) INSTR_(vpaddb, _0, _1, _2)
+#define VPADDW(_0, _1, _2) INSTR_(vpaddw, _0, _1, _2)
+#define VPADDD(_0, _1, _2) INSTR_(vpaddd, _0, _1, _2)
+#define VPADDQ(_0, _1, _2) INSTR_(vpaddq, _0, _1, _2)
+
+#define vpaddb(_0, _1, _2) VPADDB(_0, _1, _2)
+#define vpaddw(_0, _1, _2) VPADDW(_0, _1, _2)
+#define vpaddd(_0, _1, _2) VPADDD(_0, _1, _2)
+#define vpaddq(_0, _1, _2) VPADDQ(_0, _1, _2)
 
 // Vector math
 
@@ -796,6 +877,8 @@
 
 #define VADDSUBPS(_0, _1, _2) INSTR_(vaddsubps, _0, _1, _2)
 #define VADDSUBPD(_0, _1, _2) INSTR_(vaddsubpd, _0, _1, _2)
+#define VHADDPD(_0, _1, _2) INSTR_(vhaddpd, _0, _1, _2)
+#define VHADDPS(_0, _1, _2) INSTR_(vhaddps, _0, _1, _2)
 #define VUCOMISS(_0, _1) INSTR_(vucomiss, _0, _1)
 #define VUCOMISD(_0, _1) INSTR_(vucomisd, _0, _1)
 #define VCOMISS(_0, _1) INSTR_(vcomiss, _0, _1)
@@ -918,6 +1001,8 @@
 
 #define vaddsubps(_0, _1, _2) VADDSUBPS(_0, _1, _2)
 #define vaddsubpd(_0, _1, _2) VADDSUBPD(_0, _1, _2)
+#define vhaddpd(_0, _1, _2) VHADDPD(_0, _1, _2)
+#define vhaddps(_0, _1, _2) VHADDPS(_0, _1, _2)
 #define vucomiss(_0, _1) VUCOMISS(_0, _1)
 #define vucomisd(_0, _1) VUCOMISD(_0, _1)
 #define vcomiss(_0, _1) VCOMISS(_0, _1)
@@ -1037,6 +1122,28 @@
 #define v4fmaddps(_0, _1, _2) V4FMADDPS(_0, _1, _2)
 #define v4fnmaddss(_0, _1, _2) V4FNMADDSS(_0, _1, _2)
 #define v4fnmaddps(_0, _1, _2) V4FNMADDPS(_0, _1, _2)
+
+// Conversions
+
+#define CVTSS2SD(_0, _1) INSTR_(cvtss2sd, _0, _1)
+#define CVTSD2SS(_0, _1) INSTR_(cvtsd2ss, _0, _1)
+#define CVTPS2PD(_0, _1) INSTR_(cvtps2pd, _0, _1)
+#define CVTPD2PS(_0, _1) INSTR_(cvtpd2ps, _0, _1)
+
+#define cvtss2sd(_0, _1) CVTSS2SD(_0, _1)
+#define cvtsd2ss(_0, _1) CVTSD2SS(_0, _1)
+#define cvtps2pd(_0, _1) CVTPS2PD(_0, _1)
+#define cvtpd2ps(_0, _1) CVTPD2PS(_0, _1)
+
+#define VCVTSS2SD(_0, _1) INSTR_(vcvtss2sd, _0, _1)
+#define VCVTSD2SS(_0, _1) INSTR_(vcvtsd2ss, _0, _1)
+#define VCVTPS2PD(_0, _1) INSTR_(vcvtps2pd, _0, _1)
+#define VCVTPD2PS(_0, _1) INSTR_(vcvtpd2ps, _0, _1)
+
+#define vcvtss2sd(_0, _1) VCVTSS2SD(_0, _1)
+#define vcvtsd2ss(_0, _1) VCVTSD2SS(_0, _1)
+#define vcvtps2pd(_0, _1) VCVTPS2PD(_0, _1)
+#define vcvtpd2ps(_0, _1) VCVTPD2PS(_0, _1)
 
 // Vector shuffles
 

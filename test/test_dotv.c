@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2017, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -15,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -93,10 +93,11 @@ int main( int argc, char** argv )
 	printf( "data_dotv_%s", BLAS );
 #endif
 	printf( "( %2lu, 1:2 ) = [ %4lu %7.2f ];\n",
-	        ( unsigned long )(p - p_begin + 1)/p_inc + 1,
+	        ( unsigned long )(p - p_begin)/p_inc + 1,
 	        ( unsigned long )0, 0.0 );
 
-	for ( p = p_begin; p <= p_end; p += p_inc )
+	//for ( p = p_begin; p <= p_end; p += p_inc )
+	for ( p = p_end; p_begin <= p; p -= p_inc )
 	{
 
 		if ( n_input < 0 ) n = p * ( dim_t )abs(n_input);
@@ -172,7 +173,7 @@ int main( int argc, char** argv )
 		printf( "data_dotv_%s", BLAS );
 #endif
 		printf( "( %2lu, 1:2 ) = [ %4lu %7.2f ];\n",
-		        ( unsigned long )(p - p_begin + 1)/p_inc + 1,
+		        ( unsigned long )(p - p_begin)/p_inc + 1,
 		        ( unsigned long )n, gflops );
 
 		bli_obj_free( &x );

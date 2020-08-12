@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -15,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -75,10 +75,10 @@ void bli_finalize_auto( void )
 void bli_init_apis( void )
 {
 	// Initialize various sub-APIs.
-	bli_error_init();
 	bli_gks_init();
 	bli_ind_init();
 	bli_thread_init();
+	bli_pack_init();
 	bli_memsys_init();
 }
 
@@ -86,10 +86,10 @@ void bli_finalize_apis( void )
 {
 	// Finalize various sub-APIs.
 	bli_memsys_finalize();
+	bli_pack_finalize();
 	bli_thread_finalize();
-	bli_gks_finalize();
 	bli_ind_finalize();
-	bli_error_finalize();
+	bli_gks_finalize();
 }
 
 // -----------------------------------------------------------------------------
@@ -98,16 +98,16 @@ void bli_finalize_apis( void )
 // pthread_once() is guaranteed to execute exactly once among all threads that
 // pass in this control object. Thus, we need one for initialization and a
 // separate one for finalization.
-static pthread_once_t once_init     = PTHREAD_ONCE_INIT;
-static pthread_once_t once_finalize = PTHREAD_ONCE_INIT;
+static bli_pthread_once_t once_init     = BLIS_PTHREAD_ONCE_INIT;
+static bli_pthread_once_t once_finalize = BLIS_PTHREAD_ONCE_INIT;
 
 void bli_init_once( void )
 {
-	pthread_once( &once_init, bli_init_apis );
+	bli_pthread_once( &once_init, bli_init_apis );
 }
 
 void bli_finalize_once( void )
 {
-	pthread_once( &once_finalize, bli_finalize_apis );
+	bli_pthread_once( &once_finalize, bli_finalize_apis );
 }
 

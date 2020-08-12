@@ -14,9 +14,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -36,7 +36,7 @@
 
 // func_t query
 
-static void* bli_func_get_dt
+static void_fp bli_func_get_dt
      (
        num_t   dt,
        func_t* func
@@ -49,7 +49,7 @@ static void* bli_func_get_dt
 
 static void bli_func_set_dt
      (
-       void*   fp,
+       void_fp fp,
        num_t   dt,
        func_t* func
      )
@@ -63,7 +63,7 @@ static void bli_func_copy_dt
        num_t dt_dst, func_t* func_dst
      )
 {
-	void* fp = bli_func_get_dt( dt_src, func_src );
+	void_fp fp = bli_func_get_dt( dt_src, func_src );
 
 	bli_func_set_dt( fp, dt_dst, func_dst );
 }
@@ -72,19 +72,19 @@ static void bli_func_copy_dt
 
 func_t* bli_func_create
      (
-       void* ptr_s,
-       void* ptr_d,
-       void* ptr_c,
-       void* ptr_z
+       void_fp ptr_s,
+       void_fp ptr_d,
+       void_fp ptr_c,
+       void_fp ptr_z
      );
 
 void bli_func_init
      (
        func_t* f,
-       void*   ptr_s,
-       void*   ptr_d,
-       void*   ptr_c,
-       void*   ptr_z
+       void_fp ptr_s,
+       void_fp ptr_d,
+       void_fp ptr_c,
+       void_fp ptr_z
      );
 
 void bli_func_init_null

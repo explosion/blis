@@ -14,9 +14,9 @@
 #   - Redistributions in binary form must reproduce the above copyright
 #     notice, this list of conditions and the following disclaimer in the
 #     documentation and/or other materials provided with the distribution.
-#   - Neither the name of The University of Texas at Austin nor the names
-#     of its contributors may be used to endorse or promote products
-#     derived from this software without specific prior written permission.
+#   - Neither the name(s) of the copyright holder(s) nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
 #
 #  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -136,7 +136,7 @@ CFLAGS         += -Wno-maybe-uninitialized -Wno-parentheses -Wfatal-errors \
                   -I$(INC_PATH) -DHAVE_BLIS_H
 
 # Locate the libblis library to which we will link.
-LIBBLIS_LINK   := $(LIB_PATH)/$(LIBBLIS_L)
+#LIBBLIS_LINK   := $(LIB_PATH)/$(LIBBLIS_L)
 
 # Override the location of the check-blastest.sh script.
 #BLASTEST_CHECK := ./check-blastest.sh

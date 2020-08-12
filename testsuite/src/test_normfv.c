@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -15,9 +15,9 @@
     - Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    - Neither the name of The University of Texas at Austin nor the names
-      of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+    - Neither the name(s) of the copyright holder(s) nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -59,7 +59,7 @@ void libblis_test_normfv_experiment
        test_params_t* params,
        test_op_t*     op,
        iface_t        iface,
-       num_t          datatype,
+       char*          dc_str,
        char*          pc_str,
        char*          sc_str,
        unsigned int   p_cur,
@@ -137,7 +137,7 @@ void libblis_test_normfv_experiment
        test_params_t* params,
        test_op_t*     op,
        iface_t        iface,
-       num_t          datatype,
+       char*          dc_str,
        char*          pc_str,
        char*          sc_str,
        unsigned int   p_cur,
@@ -148,16 +148,23 @@ void libblis_test_normfv_experiment
 	unsigned int n_repeats = params->n_repeats;
 	unsigned int i;
 
-	num_t        dt_real   = bli_dt_proj_to_real( datatype );
-
 	double       time_min  = DBL_MAX;
 	double       time;
+
+	num_t        datatype;
+	num_t        dt_real;
 
 	dim_t        m;
 
 	obj_t        beta, norm;
 	obj_t        x;
 
+
+	// Use the datatype of the first char in the datatype combination string.
+	bli_param_map_char_to_blis_dt( dc_str[0], &datatype );
+
+	// Compute the real projection of the chosen datatype.
+	dt_real = bli_dt_proj_to_real( datatype );
 
 	// Map the dimension specifier to an actual dimension.
 	m = libblis_test_get_dim_from_prob_size( op->dim_spec[0], p_cur );
@@ -249,7 +256,7 @@ void libblis_test_normfv_check
 	//
 	// Under these conditions, we assume that the implementation for
 	//
-	//   norm := normf( x )
+	//   norm := normfv( x )
 	//
 	// is functioning correctly if
 	//
