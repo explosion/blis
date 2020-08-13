@@ -8,7 +8,7 @@
 #
 
 # Processor families.
-x86_64_no_skx:      intel64_no_skx amd64
+x86_64_no_skx:      intel64_no_skx zen excavator steamroller piledriver bulldozer
 x86_64:      intel64 amd64
 intel64:     skx knl haswell sandybridge penryn generic
 amd64:       zen2 zen excavator steamroller piledriver bulldozer generic
