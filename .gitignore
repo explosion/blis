@@ -31,6 +31,7 @@
 
 config.mk
 bli_config.h
+bli_addon.h
 
 # -- monolithic headers --
 
@@ -43,7 +44,12 @@ include/*/*.h
 # -- misc. --
 
 # BLIS testsuite output file
-output.testsuite
+output.testsuite.*
 
 # BLAS test output files
 out.*
+
+# GTAGS database
+GPATH
+GRTAGS
+GTAGS

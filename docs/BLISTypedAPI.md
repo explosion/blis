@@ -1,6 +1,7 @@
 # Contents
 
 * **[Contents](BLISTypedAPI.md#contents)**
+* **[Operation index](BLISTypedAPI.md#operation-index)**
 * **[Introduction](BLISTypedAPI.md#introduction)**
   * [BLIS types](BLISTypedAPI.md#blis-types)
     * [Integer-based types](BLISTypedAPI.md#integer-based-types)
@@ -12,7 +13,6 @@
   * [BLIS header file](BLISTypedAPI.md#blis-header-file)
   * [Initialization and cleanup](BLISTypedAPI.md#initialization-and-cleanup)
 * **[Computational function reference](BLISTypedAPI.md#computational-function-reference)**
-  * [Operation index](BLISTypedAPI.md#operation-index)
   * [Level-1v operations](BLISTypedAPI.md#level-1v-operations)
   * [Level-1d operations](BLISTypedAPI.md#level-1d-operations)
   * [Level-1m operations](BLISTypedAPI.md#level-1m-operations)
@@ -26,7 +26,31 @@
   * [Specific configuration](BLISTypedAPI.md#specific-configuration)
   * [General configuration](BLISTypedAPI.md#general-configuration)
   * [Kernel information](BLISTypedAPI.md#kernel-information)
+  * [Clock functions](BLISTypedAPI.md#clock-functions)
 * **[Example code](BLISTypedAPI.md#example-code)**
+
+
+
+# Operation index
+
+This index provides a quick way to jump directly to the description for each operation discussed later in the [Computational function reference](BLISTypedAPI.md#computational-function-reference) section:
+
+  * **[Level-1v](BLISTypedAPI.md#level-1v-operations)**: Operations on vectors:
+    * [addv](BLISTypedAPI.md#addv), [amaxv](BLISTypedAPI.md#amaxv), [axpyv](BLISTypedAPI.md#axpyv), [axpbyv](BLISTypedAPI.md#axpbyv), [copyv](BLISTypedAPI.md#copyv), [dotv](BLISTypedAPI.md#dotv), [dotxv](BLISTypedAPI.md#dotxv), [invertv](BLISTypedAPI.md#invertv), [scal2v](BLISTypedAPI.md#scal2v), [scalv](BLISTypedAPI.md#scalv), [setv](BLISTypedAPI.md#setv), [subv](BLISTypedAPI.md#subv), [swapv](BLISTypedAPI.md#swapv), [xpbyv](BLISTypedAPI.md#xpbyv)
+  * **[Level-1d](BLISTypedAPI.md#level-1d-operations)**: Element-wise operations on matrix diagonals:
+    * [addd](BLISTypedAPI.md#addd), [axpyd](BLISTypedAPI.md#axpyd), [copyd](BLISTypedAPI.md#copyd), [invertd](BLISTypedAPI.md#invertd), [scald](BLISTypedAPI.md#scald), [scal2d](BLISTypedAPI.md#scal2d), [setd](BLISTypedAPI.md#setd), [setid](BLISTypedAPI.md#setid), [shiftd](BLISTypedAPI.md#shiftd), [subd](BLISTypedAPI.md#subd), [xpbyd](BLISTypedAPI.md#xpbyd)
+  * **[Level-1m](BLISTypedAPI.md#level-1m-operations)**: Element-wise operations on matrices:
+    * [addm](BLISTypedAPI.md#addm), [axpym](BLISTypedAPI.md#axpym), [copym](BLISTypedAPI.md#copym), [scalm](BLISTypedAPI.md#scalm), [scal2m](BLISTypedAPI.md#scal2m), [setm](BLISTypedAPI.md#setm), [subm](BLISTypedAPI.md#subm)
+  * **[Level-1f](BLISTypedAPI.md#level-1f-operations)**: Fused operations on multiple vectors:
+    * [axpy2v](BLISTypedAPI.md#axpy2v), [dotaxpyv](BLISTypedAPI.md#dotaxpyv), [axpyf](BLISTypedAPI.md#axpyf), [dotxf](BLISTypedAPI.md#dotxf), [dotxaxpyf](BLISTypedAPI.md#dotxaxpyf)
+  * **[Level-2](BLISTypedAPI.md#level-2-operations)**: Operations with one matrix and (at least) one vector operand:
+    * [gemv](BLISTypedAPI.md#gemv), [ger](BLISTypedAPI.md#ger), [hemv](BLISTypedAPI.md#hemv), [her](BLISTypedAPI.md#her), [her2](BLISTypedAPI.md#her2), [symv](BLISTypedAPI.md#symv), [syr](BLISTypedAPI.md#syr), [syr2](BLISTypedAPI.md#syr2), [trmv](BLISTypedAPI.md#trmv), [trsv](BLISTypedAPI.md#trsv)
+  * **[Level-3](BLISTypedAPI.md#level-3-operations)**: Operations with matrices that are multiplication-like:
+    * [gemm](BLISTypedAPI.md#gemm), [hemm](BLISTypedAPI.md#hemm), [herk](BLISTypedAPI.md#herk), [her2k](BLISTypedAPI.md#her2k), [symm](BLISTypedAPI.md#symm), [syrk](BLISTypedAPI.md#syrk), [syr2k](BLISTypedAPI.md#syr2k), [trmm](BLISTypedAPI.md#trmm), [trmm3](BLISTypedAPI.md#trmm3), [trsm](BLISTypedAPI.md#trsm)
+  * **[Utility](BLISTypedAPI.md#Utility-operations)**: Miscellaneous operations on matrices and vectors:
+    * [asumv](BLISTypedAPI.md#asumv), [norm1v](BLISTypedAPI.md#norm1v), [normfv](BLISTypedAPI.md#normfv), [normiv](BLISTypedAPI.md#normiv), [norm1m](BLISTypedAPI.md#norm1m), [normfm](BLISTypedAPI.md#normfm), [normim](BLISTypedAPI.md#normim), [mkherm](BLISTypedAPI.md#mkherm), [mksymm](BLISTypedAPI.md#mksymm), [mktrim](BLISTypedAPI.md#mktrim), [fprintv](BLISTypedAPI.md#fprintv), [fprintm](BLISTypedAPI.md#fprintm),[printv](BLISTypedAPI.md#printv), [printm](BLISTypedAPI.md#printm), [randv](BLISTypedAPI.md#randv), [randm](BLISTypedAPI.md#randm), [sumsqv](BLISTypedAPI.md#sumsqv), [getsc](BLISTypedAPI.md#getsc), [getijv](BLISTypedAPI.md#getijv), [getijm](BLISTypedAPI.md#getijm), [setsc](BLISTypedAPI.md#setsc), [setijv](BLISTypedAPI.md#setijv), [setijm](BLISTypedAPI.md#setijm), [eqsc](BLISTypedAPI.md#eqsc), [eqv](BLISTypedAPI.md#eqv), [eqm](BLISTypedAPI.md#eqm)
+
+
 
 # Introduction
 
@@ -35,6 +59,8 @@ This document summarizes one of the primary native APIs in BLIS--the "typed" API
 There are many functions that BLIS implements that are not listed here, either because they are lower-level functions, or they are considered for use primarily by developers and experts.
 
 For curious readers, the typed API was given its name (a) because it exposes the floating-point types in the names of its functions, and (b) to contrast it with the other native API in BLIS, the object API, which is [documented here](BLISObjectAPI.md). (The third API supported by BLIS is the BLAS compatibility layer, which mimics conventional Fortran-77 BLAS.)
+
+In general, this document should be treated more as a reference than a place to learn how to use BLIS in your application. Thus, we highly encourage all readers to first study the [example code](BLISTypedAPI.md#example-code) provided within the BLIS source distribution.
 
 ## BLIS types
 
@@ -186,26 +212,6 @@ Notes for interpreting function descriptions:
   * Any operand marked with `^T` is unconditionally transposed. Similarly, any operand that is marked with `^H` is unconditionally conjugate-transposed.
   * All occurrences of `alpha`, `beta`, and `rho` parameters are scalars.
 
-
----
-
-
-## Operation index
-
-  * **[Level-1v](BLISTypedAPI.md#level-1v-operations)**: Operations on vectors:
-    * [addv](BLISTypedAPI.md#addv), [amaxv](BLISTypedAPI.md#amaxv), [axpyv](BLISTypedAPI.md#axpyv), [axpbyv](BLISTypedAPI.md#axpbyv), [copyv](BLISTypedAPI.md#copyv), [dotv](BLISTypedAPI.md#dotv), [dotxv](BLISTypedAPI.md#dotxv), [invertv](BLISTypedAPI.md#invertv), [scal2v](BLISTypedAPI.md#scal2v), [scalv](BLISTypedAPI.md#scalv), [setv](BLISTypedAPI.md#setv), [subv](BLISTypedAPI.md#subv), [swapv](BLISTypedAPI.md#swapv), [xpbyv](BLISTypedAPI.md#xpbyv)
-  * **[Level-1d](BLISTypedAPI.md#level-1d-operations)**: Element-wise operations on matrix diagonals:
-    * [addd](BLISTypedAPI.md#addd), [axpyd](BLISTypedAPI.md#axpyd), [copyd](BLISTypedAPI.md#copyd), [invertd](BLISTypedAPI.md#invertd), [scald](BLISTypedAPI.md#scald), [scal2d](BLISTypedAPI.md#scal2d), [setd](BLISTypedAPI.md#setd), [setid](BLISTypedAPI.md#setid), [shiftd](BLISObjectAPI.md#shiftd), [subd](BLISTypedAPI.md#subd), [xpbyd](BLISTypedAPI.md#xpbyd)
-  * **[Level-1m](BLISTypedAPI.md#level-1m-operations)**: Element-wise operations on matrices:
-    * [addm](BLISTypedAPI.md#addm), [axpym](BLISTypedAPI.md#axpym), [copym](BLISTypedAPI.md#copym), [scalm](BLISTypedAPI.md#scalm), [scal2m](BLISTypedAPI.md#scal2m), [setm](BLISTypedAPI.md#setm), [subm](BLISTypedAPI.md#subm)
-  * **[Level-1f](BLISTypedAPI.md#level-1f-operations)**: Fused operations on multiple vectors:
-    * [axpy2v](BLISTypedAPI.md#axpy2v), [dotaxpyv](BLISTypedAPI.md#dotaxpyv), [axpyf](BLISTypedAPI.md#axpyf), [dotxf](BLISTypedAPI.md#dotxf), [dotxaxpyf](BLISTypedAPI.md#dotxaxpyf)
-  * **[Level-2](BLISTypedAPI.md#level-2-operations)**: Operations with one matrix and (at least) one vector operand:
-    * [gemv](BLISTypedAPI.md#gemv), [ger](BLISTypedAPI.md#ger), [hemv](BLISTypedAPI.md#hemv), [her](BLISTypedAPI.md#her), [her2](BLISTypedAPI.md#her2), [symv](BLISTypedAPI.md#symv), [syr](BLISTypedAPI.md#syr), [syr2](BLISTypedAPI.md#syr2), [trmv](BLISTypedAPI.md#trmv), [trsv](BLISTypedAPI.md#trsv)
-  * **[Level-3](BLISTypedAPI.md#level-3-operations)**: Operations with matrices that are multiplication-like:
-    * [gemm](BLISTypedAPI.md#gemm), [hemm](BLISTypedAPI.md#hemm), [herk](BLISTypedAPI.md#herk), [her2k](BLISTypedAPI.md#her2k), [symm](BLISTypedAPI.md#symm), [syrk](BLISTypedAPI.md#syrk), [syr2k](BLISTypedAPI.md#syr2k), [trmm](BLISTypedAPI.md#trmm), [trmm3](BLISTypedAPI.md#trmm3), [trsm](BLISTypedAPI.md#trsm)
-  * **[Utility](BLISTypedAPI.md#Utility-operations)**: Miscellaneous operations on matrices and vectors:
-    * [asumv](BLISTypedAPI.md#asumv), [norm1v](BLISTypedAPI.md#norm1v), [normfv](BLISTypedAPI.md#normfv), [normiv](BLISTypedAPI.md#normiv), [norm1m](BLISTypedAPI.md#norm1m), [normfm](BLISTypedAPI.md#normfm), [normim](BLISTypedAPI.md#normim), [mkherm](BLISTypedAPI.md#mkherm), [mksymm](BLISTypedAPI.md#mksymm), [mktrim](BLISTypedAPI.md#mktrim), [fprintv](BLISTypedAPI.md#fprintv), [fprintm](BLISTypedAPI.md#fprintm),[printv](BLISTypedAPI.md#printv), [printm](BLISTypedAPI.md#printm), [randv](BLISTypedAPI.md#randv), [randm](BLISTypedAPI.md#randm), [sumsqv](BLISTypedAPI.md#sumsqv)
 
 ---
 
@@ -1051,6 +1057,7 @@ void bli_?her2
      (
        uplo_t  uploa,
        conj_t  conjx,
+       conj_t  conjy,
        dim_t   m,
        ctype*  alpha,
        ctype*  x, inc_t incx,
@@ -1115,6 +1122,7 @@ void bli_?syr2
      (
        uplo_t  uploa,
        conj_t  conjx,
+       conj_t  conjy,
        dim_t   m,
        ctype*  alpha,
        ctype*  x, inc_t incx,
@@ -1206,6 +1214,30 @@ where C is an _m x n_ matrix, `transa(A)` is an _m x k_ matrix, and `transb(B)` 
 
 ---
 
+#### gemmt
+```c
+void bli_?gemmt
+     (
+       uplo_t  uploc,
+       trans_t transa,
+       trans_t transb,
+       dim_t   m,
+       dim_t   k,
+       ctype*  alpha,
+       ctype*  a, inc_t rsa, inc_t csa,
+       ctype*  b, inc_t rsb, inc_t csb,
+       ctype*  beta,
+       ctype*  c, inc_t rsc, inc_t csc
+     );
+```
+Perform
+```
+  C := beta * C + alpha * transa(A) * transb(B)
+```
+where C is an _m x m_ matrix, `transa(A)` is an _m x k_ matrix, and `transb(B)` is a _k x m_ matrix. This operation is similar to `bli_?gemm()` except that it only updates the lower or upper triangle of `C` as specified by `uploc`.
+
+---
+
 #### hemm
 ```c
 void bli_?hemm
@@ -1264,7 +1296,8 @@ where C is an _m x m_ Hermitian matrix stored in the lower or upper triangle as 
 void bli_?her2k
      (
        uplo_t  uploc,
-       trans_t transab,
+       trans_t transa,
+       trans_t transb,
        dim_t   m,
        dim_t   k,
        ctype*  alpha,
@@ -1276,9 +1309,9 @@ void bli_?her2k
 ```
 Perform
 ```
-  C := beta * C + alpha * transab(A) * transab(B)^H + conj(alpha) * transab(B) * transab(A)^H
+  C := beta * C + alpha * transa(A) * transb(B)^H + conj(alpha) * transb(B) * transa(A)^H
 ```
-where C is an _m x m_ Hermitian matrix stored in the lower or upper triangle as specified by `uploc` and `transab(A)` and `transab(B)` are _m x k_ matrices.
+where C is an _m x m_ Hermitian matrix stored in the lower or upper triangle as specified by `uploc` and `transa(A)` and `transb(B)` are _m x k_ matrices.
 
 **Note:** The floating-point type of `beta` is always the real projection of the floating-point types of `A` and `C`.
 
@@ -1340,7 +1373,8 @@ where C is an _m x m_ symmetric matrix stored in the lower or upper triangle as 
 void bli_?syr2k
      (
        uplo_t  uploc,
-       trans_t transab,
+       trans_t transa,
+       trans_t transb,
        dim_t   m,
        dim_t   k,
        ctype*  alpha,
@@ -1352,9 +1386,9 @@ void bli_?syr2k
 ```
 Perform
 ```
-  C := beta * C + alpha * transab(A) * transab(B)^T + alpha * transab(B) * transab(A)^T
+  C := beta * C + alpha * transa(A) * transb(B)^T + alpha * transb(B) * transa(A)^T
 ```
-where C is an _m x m_ symmetric matrix stored in the lower or upper triangle as specified by `uploa` and `transab(A)` and `transab(B)` are _m x k_ matrices.
+where C is an _m x m_ symmetric matrix stored in the lower or upper triangle as specified by `uploa` and `transa(A)` and `transb(B)` are _m x k_ matrices.
 
 ---
 
@@ -1661,6 +1695,149 @@ where, on entry, `scale` and `sumsq` contain `scale_old` and `sumsq_old`, respec
 
 ---
 
+#### getsc
+```c
+void bli_getsc
+     (
+       ctype*  chi,
+       double* zeta_r,
+       double* zeta_i
+     )
+```
+Copy the real and imaginary values from the scalar object `chi` to `zeta_r` and `zeta_i`. If `chi` is stored as a real type, then `zeta_i` is set to zero. (If `chi` is stored in single precision, the corresponding elements are typecast/promoted during the copy.)
+
+---
+
+#### getijv
+```c
+err_t bli_?getijv
+     (
+       dim_t   i,
+       ctype*  x, incx,
+       double* ar,
+       double* ai
+     )
+```
+Copy the real and imaginary values at the `i`th element of vector `x` to `ar` and `ai`. For real domain invocations, only `ar` is overwritten and `ai` is left unchanged. (If `x` contains elements stored in single precision, the corresponding elements are typecast/promoted during the copy.)
+Note that the object-based analogue of [getijv](BLISObjectAPI.md#getijv) does bounds checking of the vector element offset `i` against the vector length while the typed functions specified above do not (since the vector length is not given).
+
+---
+
+#### getijm
+```c
+err_t bli_?getijm
+     (
+       dim_t   i,
+       dim_t   j,
+       ctype*  b, inc_t rs_b, inc_t cs_b,
+       double* ar,
+       double* ai
+     )
+```
+Copy the real and imaginary values at the (`i`,`j`) element of object `b` to `ar` and `ai`. For real domain invocations, only `ar` is overwritten and `ai` is left unchanged. (If `b` contains elements stored in single precision, the corresponding elements are typecast/promoted during the copy.)
+Note that the object-based analogue of [getijm](BLISObjectAPI.md#getijm) does bounds checking of the matrix element offsets (`i`,`j`) against the matrix dimensions while the typed functions specified above do not (since the matrix dimensions are not given).
+
+---
+
+#### setsc
+```c
+void bli_setsc
+     (
+       double* zeta_r,
+       double* zeta_i,
+       ctype*  chi
+     );
+```
+Copy real and imaginary values `zeta_r` and `zeta_i` to the scalar object `chi`. If `chi` is stored as a real type, then `zeta_i` is ignored. (If `chi` is stored in single precision, the contents are typecast/demoted during the copy.)
+
+---
+
+#### setijv
+```c
+err_t bli_?setijv
+     (
+       double  ar,
+       double  ai,
+       dim_t   i,
+       ctype*  x, incx
+     );
+```
+Copy real and imaginary values `ar` and `ai` to the `i`th element of vector object `x`. For real domain invocations, only `ar` is copied and `ai` is ignored. (If `x` contains elements stored in single precision, the corresponding elements are typecast/demoted during the copy.)
+Note that the object-based analogue of [setijv](BLISObjectAPI.md#setijv) does bounds checking of the vector element offset `i` against the vector length while the typed functions specified above do not (since the vector length is not given).
+
+---
+
+#### setijm
+```c
+err_t bli_?setijm
+     (
+       double  ar,
+       double  ai,
+       dim_t   i,
+       dim_t   j,
+       ctype*  b, inc_t rs_b, inc_t cs_b
+     );
+```
+Copy real and imaginary values `ar` and `ai` to the (`i`,`j`) element of object `b`. For real domain invocations, only `ar` is copied and `ai` is ignored. (If `b` contains elements stored in single precision, the corresponding elements are typecast/demoted during the copy.)
+Note that the object-based analogue of [setijm](BLISObjectAPI.md#setijm) does bounds checking of the matrix element offsets (`i`,`j`) against the matrix dimensions while the typed functions specified above do not (since the matrix dimensions are not given).
+
+---
+
+#### eqsc
+```c
+void bli_?eqsc
+     (
+       conj_t conjchi,
+       ctype* chi,
+       ctype* psi,
+       bool*  is_eq
+     );
+```
+Perform an element-wise comparison between scalars `chi` and `psi` and store the boolean result in the `bool` pointed to by `is_eq`.
+If `conjchi` indicates a conjugation, `chi` will be implicitly conjugated for purposes of the comparision.
+
+---
+
+#### eqv
+```c
+void bli_?eqv
+     (
+       conj_t  conjx,
+       dim_t   n,
+       ctype*  x, inc_t incx,
+       ctype*  y, inc_t incy,
+       bool*   is_eq
+     );
+```
+Perform an element-wise comparison between length _n_ vectors `x` and `y` and store the boolean result in the `bool` pointed to by `is_eq`.
+If `conjx` indicates a conjugation, `x` will be implicitly conjugated for purposes of the comparision.
+
+---
+
+#### eqm
+```c
+void bli_?eqm
+     (
+       doff_t  diagoffa,
+       diag_t  diaga,
+       uplo_t  uploa,
+       trans_t transa,
+       dim_t   m,
+       dim_t   n,
+       ctype*  a, inc_t rs_a, inc_t cs_a,
+       ctype*  b, inc_t rs_b, inc_t cs_b,
+       bool*   is_eq
+     )
+```
+Perform an element-wise comparison between matrices `A` and `B` and store the boolean result in the `bool` pointed to by `is_eq`.
+Here, `B` is an _m x n_ matrix, `A` is stored as a dense matrix, or lower- or upper-triangular/trapezoidal matrix with arbitrary diagonal offset and unit or non-unit diagonal.
+If `diaga` indicates a unit diagonal, the diagonals of both matrices will be ignored for purposes of the comparision.
+If `uploa` indicates lower or upper storage, only that part of matrix `A` will be referenced in the comparison.
+If `transa` indicates a conjugation and/or transposition, then `A` will be conjugated and/or transposed for purposes of the comparison.
+
+
+
+
 
 ## Level-3 microkernels
 
@@ -1838,15 +2015,8 @@ char* bli_info_get_trsm_u_ukr_impl_string( ind_t method, num_t dt )
 ```
 
 Possible implementation (ie: the `ind_t method` argument) types are:
- * `BLIS_3MH`: Implementation based on the 3m method applied at the highest level, outside the 5th loop around the microkernel.
- * `BLIS_3M1`: Implementation based on the 3m method applied within the 1st loop around the microkernel.
- * `BLIS_4MH`: Implementation based on the 4m method applied at the highest level, outside the 5th loop around the microkernel.
- * `BLIS_4M1B`: Implementation based on the 4m method applied within the 1st loop around the microkernel. Computation is ordered such that the 1st loop is fissured into two loops, the first of which multiplies the real part of the current micropanel of packed matrix B (against all real and imaginary parts of packed matrix A), and the second of which multiplies the imaginary part of the current micropanel of packed matrix B.
- * `BLIS_4M1A`: Implementation based on the 4m method applied within the 1st loop around the microkernel. Computation is ordered such that real and imaginary components of the current micropanels are completely used before proceeding to the next virtual microkernel invocation.
  * `BLIS_1M`: Implementation based on the 1m method. (This is the default induced method when real domain kernels are present but complex kernels are missing.)
  * `BLIS_NAT`: Implementation based on "native" execution (ie: NOT an induced method).
-
-**NOTE**: `BLIS_3M3` and `BLIS_3M2` have been deprecated from the `typedef enum` of `ind_t`, and `BLIS_4M1B` is also effectively no longer available, though the `typedef enum` value still exists.
 
 Possible microkernel types (ie: the return values for `bli_info_get_*_ukr_impl_string()`) are:
  * `BLIS_REFERENCE_UKERNEL` (`"refrnce"`): This value is returned when the queried microkernel is provided by the reference implementation.
@@ -1871,7 +2041,55 @@ char* bli_info_get_trmm3_impl_string( num_t dt );
 char* bli_info_get_trsm_impl_string( num_t dt );
 ```
 
+
+## Clock functions
+
+---
+
+#### clock
+```c
+double bli_clock
+     (
+       void
+     );
+```
+Return the amount of time that has elapsed since some fixed time in the past. The return values of `bli_clock()` typically feature nanosecond precision, though this is not guaranteed.
+
+**Note:** On Linux, `bli_clock()` is implemented in terms of `clock_gettime()` using the `clockid_t` value of `CLOCK_MONOTONIC`. On OS X, `bli_clock` is implemented in terms of `mach_absolute_time()`. And on Windows, `bli_clock` is implemented in terms of `QueryPerformanceFrequency()`. Please see [frame/base/bli_clock.c](https://github.com/flame/blis/blob/master/frame/base/bli_clock.c) for more details.
+**Note:** This function is returns meaningless values when BLIS is configured with `--disable-system`.
+
+---
+
+#### clock_min_diff
+```c
+double bli_clock_min_diff
+     (
+       double time_prev_min,
+       double time_start
+     );
+```
+This function computes an intermediate value, `time_diff`, equal to `bli_clock() - time_start`, and then tentatively prepares to return the minimum value of `time_diff` and `time_min`. If that minimum value is extremely small (close to zero), the function returns `time_min` instead.
+
+This function is meant to be used in conjuction with `bli_clock()` for
+performance timing within applications--specifically in loops where only
+the fastest timing is of interest. For example:
+```c
+double t_save = DBL_MAX;
+for( i = 0; i < 3; ++i )
+{
+   double t = bli_clock();
+   bli_gemm( ... );
+   t_save = bli_clock_min_diff( t_save, t );
+}
+double gflops = ( 2.0 * m * k * n ) / ( t_save * 1.0e9 );
+```
+This code calls `bli_gemm()` three times and computes the performance, in GFLOPS, of the fastest of the three executions.
+
+---
+
+
+
 # Example code
 
-BLIS provides lots of example code in the [examples/tapi](https://github.com/flame/blis/tree/master/examples/tapi) directory of the BLIS source distribution. The example code in this directory is set up like a tutorial, and so we recommend starting from the beginning. Topics include printing vectors and matrices and calling a representative subset of the computational level-1v, -1m, -2, -3, and utility operations documented above.
+BLIS provides lots of example code in the [examples/tapi](https://github.com/flame/blis/tree/master/examples/tapi) directory of the BLIS source distribution. The example code in this directory is set up like a tutorial, and so we recommend starting from the beginning. Topics include printing vectors and matrices and calling a representative subset of the computational level-1v, -1m, -2, -3, and utility operations documented above. Please read the `README` contained within the `examples/tapi` directory for further details.
 

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
-#  BLIS    
+#  BLIS
 #  An object-based framework for developing high-performance BLAS-like
 #  libraries.
 #
 #  Copyright (C) 2014, The University of Texas at Austin
-#  Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
+#  Copyright (C) 2020-2022, Advanced Micro Devices, Inc.
 #
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are
@@ -144,6 +144,12 @@ print_usage()
 	echo "                 library. If the shared library build is disabled, the"
 	echo "                 static library build must remain enabled."
 	echo " "
+	echo "   --enable-rpath, --disable-rpath"
+	echo " "
+	echo "                 Enable (disabled by default) setting an install_name for"
+    echo "                 dynamic libraries on macOS which starts with @rpath rather"
+    echo "                 than the absolute install path."
+	echo " "
 	echo "   -e SYMBOLS, --export-shared[=SYMBOLS]"
 	echo " "
 	echo "                 Specify the subset of library symbols that are exported"
@@ -167,6 +173,18 @@ print_usage()
 	echo "                 MODEL={openmp,pthreads,no}. If MODEL=no or "
 	echo "                 --disable-threading is specified, threading will be"
 	echo "                 disabled. The default is 'no'."
+	echo " "
+	echo "   --enable-system, --disable-system"
+	echo " "
+	echo "                 Enable conventional operating system support, such as"
+	echo "                 pthreads for thread-safety. The default state is enabled."
+	echo "                 However, in rare circumstances you may wish to configure"
+	echo "                 BLIS for use with a minimal or nonexistent operating"
+	echo "                 system (e.g. hardware simulators). In these situations,"
+	echo "                 --disable-system may be used to jettison all compile-time"
+	echo "                 and link-time dependencies outside of the standard C"
+	echo "                 library. When disabled, this option also forces the use"
+	echo "                 of --disable-threading."
 	echo " "
 	echo "   --disable-pba-pools, --enable-pba-pools"
 	echo "   --disable-sba-pools, --enable-sba-pools"
@@ -252,6 +270,30 @@ print_usage()
 	echo "                 \"small\" depends on thresholds that may vary by sub-"
 	echo "                 configuration."
 	echo " "
+	echo "   --enable-amd-frame-tweaks, --disable-amd-frame-tweaks"
+	echo " "
+	echo "                 Enable building with certain framework files that have"
+	echo "                 been customized by AMD for Zen-based microarchitectures."
+	echo "                 The default counterparts of these files must be portable,"
+	echo "                 and so these customized files may provide some (typically"
+	echo "                 modest) performance improvement for some select operations"
+	echo "                 and/or APIs, though there may a few (tiny dimension) cases"
+	echo "                 where the improvement is more pronounced. Note that the"
+	echo "                 target configuration must be Zen-based (or 'amd64') for"
+	echo "                 this option to have any effect. (Also note that this"
+	echo "                 option is NOT to be confused with enabling AMD *kernels*,"
+	echo "                 which are determined by the BLIS subconfiguration used at"
+	echo "                 runtime.) By default, these customized files are disabled."
+	echo " "
+	echo "   -a NAME --enable-addon=NAME"
+	echo " "
+	echo "                 Enable the code provided by an addon. An addon consists"
+	echo "                 of a separate directory of code that provides additional"
+	echo "                 APIs, implementations, and/or operations that would"
+	echo "                 otherwise not be present within a build of BLIS. This"
+	echo "                 option may be used multiple times to specify the inclusion"
+	echo "                 of multiple addons. By default, no addons are enabled."
+	echo " "
 	echo "   -s NAME --enable-sandbox=NAME"
 	echo " "
 	echo "                 Enable a separate sandbox implementation of gemm. This"
@@ -286,6 +328,20 @@ print_usage()
 	echo "                 which may be ignored in select situations if the"
 	echo "                 implementation has a good reason to do so."
 	echo " "
+	echo "   --disable-trsm-preinversion, --enable-trsm-preinversion"
+	echo " "
+	echo "                 Disable (enabled by default) pre-inversion of triangular"
+	echo "                 matrix diagonals when performing trsm. When pre-inversion"
+	echo "                 is enabled, diagonal elements are inverted outside of the"
+	echo "                 microkernel (e.g. during packing) so that the microkernel"
+	echo "                 can use multiply instructions. When disabled, division"
+	echo "                 instructions are used within the microkernel. Executing"
+	echo "                 these division instructions within the microkernel will"
+	echo "                 incur a performance penalty, but numerical robustness will"
+	echo "                 improve for certain cases involving denormal numbers that"
+	echo "                 would otherwise result in overflow in the pre-inverted"
+	echo "                 values."
+	echo " "
 	echo "   --force-version=STRING"
 	echo " "
 	echo "                 Force configure to use an arbitrary version string"
@@ -300,6 +356,15 @@ print_usage()
 	echo "                 a sanity check to make sure these lists are constituted"
 	echo "                 as expected."
 	echo " "
+	echo "   --complex-return=gnu|intel"
+	echo " "
+	echo "                 Specify the way in which complex numbers are returned"
+	echo "                 from Fortran functions, either \"gnu\" (return in"
+	echo "                 registers) or \"intel\" (return via hidden argument)."
+	echo "                 If not specified and the environment variable FC is set,"
+	echo "                 attempt to determine the return type from the compiler."
+	echo "                 Otherwise, the default is \"gnu\"."
+	echo " "
 	echo "   -q, --quiet   Suppress informational output. By default, configure"
 	echo "                 is verbose. (NOTE: -q is not yet implemented)"
 	echo " "
@@ -309,15 +374,19 @@ print_usage()
 	echo " "
 	echo "   CC            Specifies the C compiler to use."
 	echo "   CXX           Specifies the C++ compiler to use (sandbox only)."
-	echo "   RANLIB        Specifies the ranlib executable to use."
-	echo "   AR            Specifies the archiver to use."
+	echo "   FC            Specifies the Fortran compiler to use (only to determine --complex-return)."
+	echo "   AR            Specifies the static library archiver to use."
+	echo "   RANLIB        Specifies the ranlib (library indexer) executable to use."
+	echo "   PYTHON        Specifies the python interpreter to use."
 	echo "   CFLAGS        Specifies additional compiler flags to use (prepended)."
 	echo "   LDFLAGS       Specifies additional linker flags to use (prepended)."
 	echo "   LIBPTHREAD    Pthreads library to use."
-	echo "   PYTHON        Specifies the python interpreter to use."
 	echo " "
-	echo "   Environment variables may also be specified as command line"
-	echo "   options, e.g.:"
+	echo "   Environment variables are traditionally set prior to running configure:"
+	echo " "
+	echo "     CC=gcc ./configure [options] haswell"
+	echo " "
+	echo "   However, they may also be specified as command line options, e.g.:"
 	echo " "
 	echo "     ./configure [options] CC=gcc haswell"
 	echo " "
@@ -367,10 +436,10 @@ assign_key_value()
 #	# found in a blacklist.
 #
 #	# Note: $2 can actually be a list of items.
-#	dlist=\$"$1"
-#	ditem=\$"$2"
+#	ditem=\$"$1"
+#	dlist=\$"$2"
 #
-#	# Acquire the contents of $list and $item and store them in list_c
+#	# Acquire the contents of $dlist and $ditem and store them in list_c
 #	# and item_c, respectively.
 #	list_c=$(eval "expr \"$dlist\" ")
 #	item_c=$(eval "expr \"$ditem\" ")
@@ -387,7 +456,7 @@ assign_key_value()
 #	done
 #
 #	# Update the argument.
-#	eval "$1=\"${list_c}\""
+#	eval "$2=\"${list_c}\""
 #}
 
 pass_config_kernel_registries()
@@ -650,13 +719,21 @@ read_registry_file()
 				if [ "${mem}" != "${mems_mem}" ]; then
 
 					#clist="${config_registry[$config]}"
-					clist=$(query_array "config_registry" ${config})
+					clisttmp=$(query_array "config_registry" ${config})
 
 					# Replace the current config with its constituent config set,
 					# canonicalize whitespace, and then remove duplicate config
 					# set names, if they exist. Finally, update the config registry
 					# with the new config list.
-					newclist=$(echo -e "${clist}" | sed -e "s/${mem}/${mems_mem}/g")
+					# NOTE: WE must use substitute_words() rather than a simple sed
+					# expression because we need to avoid matching partial strings.
+					# For example, if clist above contains "foo bar barsk" and we use
+					# sed to substitute "bee boo" as the members of "bar", the
+					# result would (incorrectly) be "foo bee boo bee boosk",
+					# which would then get reduced, via rm_duplicate_words(), to
+					# "foo bee boo boosk".
+					#newclist=$(echo -e "${clist}" | sed -e "s/${mem}/${mems_mem}/g")
+					newclist=$(substitute_words "${mem}" "${mems_mem}" "${clisttmp}")
 					newclist=$(canonicalize_ws "${newclist}")
 					newclist=$(rm_duplicate_words "${newclist}")
 
@@ -739,7 +816,15 @@ read_registry_file()
 					# canonicalize whitespace, and then remove duplicate kernel
 					# set names, if they exist. Finally, update the kernel registry
 					# with the new kernel list.
-					newklist=$(echo -e "${klisttmp}" | sed -e "s/${ker}/${kers_ker}/g")
+					# NOTE: WE must use substitute_words() rather than a simple sed
+					# expression because we need to avoid matching partial strings.
+					# For example, if klist above contains "foo bar barsk" and we use
+					# sed to substitute "bee boo" as the members of "bar", the
+					# result would (incorrectly) be "foo bee boo bee boosk",
+					# which would then get reduced, via rm_duplicate_words(), to
+					# "foo bee boo boosk".
+					#newklist=$(echo -e "${klisttmp}" | sed -e "s/${ker}/${kers_ker}/g")
+					newklist=$(substitute_words "${ker}" "${kers_ker}" "${klisttmp}")
 					newklist=$(canonicalize_ws "${newklist}")
 					newklist=$(rm_duplicate_words "${newklist}")
 
@@ -759,6 +844,26 @@ read_registry_file()
 			done
 		done
 	done
+}
+
+substitute_words()
+{
+	local word new_words list newlist
+
+	word="$1"
+	new_words="$2"
+	list="$3"
+
+	for str in ${list}; do
+
+		if [ "${str}" == "${word}" ]; then
+			newlist="${newlist} ${new_words}"
+		else
+			newlist="${newlist} ${str}"
+		fi
+	done
+
+	echo "${newlist}"
 }
 
 build_kconfig_registry()
@@ -795,7 +900,7 @@ build_kconfig_registry()
 			assign_key_value "kconfig_registry" "${kernel}" "${newvalue}"
 
 		done
-		
+
 	done
 }
 
@@ -895,6 +1000,18 @@ canonicalize_ws()
 	echo "${str}"
 }
 
+rm_duplicate_words_simple()
+{
+	local str revstr revres res
+
+	str="$1"
+
+	# Remote duplicates, keeping the first occurrence.
+	res=$(echo "${str}" | awk '{for (i=1;i<=NF;i++) if (!a[$i]++) printf("%s%s",$i,FS)}{printf("\n")}')
+
+	echo "${res}"
+}
+
 rm_duplicate_words()
 {
 	local str revstr revres res
@@ -950,47 +1067,36 @@ get_cxx_search_list()
 	echo "${list}"
 }
 
-select_tool()
+get_fc_search_list()
 {
-	local search_list CC_env the_cc cc
+	local list
 
-	# This is the list of compilers/tools to search for, and the order in
-	# which to search for them.
-	search_list=$1
+	list="gfortran ifort"
 
-	# The environment variable associated with the compiler/tool type we
-	# are searching (e.g. CC, CXX, PYTHON).
-	CC_env=$2
+	echo "${list}"
+}
 
-	# If CC_env contains something, add it to the beginning of our default
-	# search list.
-	if [ -n "${CC_env}" ]; then
-		search_list="${CC_env} ${search_list}"
-	fi
+get_ar_search_list()
+{
+	local list
 
-	# Initialize our selected compiler/tool to empty.
-	the_cc=""
+	list="ar"
 
-	# Try each compiler/tool in the list and select the first one we find that
-	# works.
-	for cc in ${search_list}; do
+	echo "${list}"
+}
 
-		# See if the current compiler/tool works and/or is present.
-		${cc} --version > /dev/null 2>&1
+get_ranlib_search_list()
+{
+	local list
 
-		if [ "$?" == 0 ]; then
-			the_cc=${cc}
-			break
-		fi
-	done
+	list="ranlib"
 
-	# Return the selected compiler/tool.
-	echo "${the_cc}"
+	echo "${list}"
 }
 
 auto_detect()
 {
-	local cc cflags config_defines detected_config rval
+	local cc cflags config_defines detected_config rval cmd
 
 	# Use the same compiler that was found earlier.
 	cc="${found_cc}"
@@ -1007,68 +1113,100 @@ auto_detect()
 		cflags=
 	fi
 
-	# Locate our source files.
-	bli_arch_c="bli_arch.c"
-	bli_cpuid_c="bli_cpuid.c"
-	main_c="config_detect.c"
+	# Accumulate a list of source files we'll need to compile along with
+	# the top-level (root) directory in which they are located.
+	c_src_pairs=""
+	c_src_pairs="${c_src_pairs} frame:bli_arch.c"
+	c_src_pairs="${c_src_pairs} frame:bli_cpuid.c"
+	c_src_pairs="${c_src_pairs} frame:bli_env.c"
+	c_src_pairs="${c_src_pairs} build:config_detect.c"
 
-	bli_arch_c_filepath=$(find ${dist_path}/frame -name "${bli_arch_c}")
-	bli_cpuid_c_filepath=$(find ${dist_path}/frame -name "${bli_cpuid_c}")
-	main_c_filepath=$(find ${dist_path}/build -name "${main_c}")
+	# Accumulate a list of full filepaths to the source files listed above.
+	c_src_filepaths=""
+	for pair in ${c_src_pairs}; do
 
-	# Locate headers needed directly by the above files.
-	bli_arch_h="bli_arch.h"
-	bli_cpuid_h="bli_cpuid.h"
-	bli_typed_h="bli_type_defs.h"
+		filename=${pair#*:}
+		rootdir=${pair%:*}
 
-	bli_arch_h_filepath=$(find ${dist_path}/frame -name "${bli_arch_h}")
-	bli_cpuid_h_filepath=$(find ${dist_path}/frame -name "${bli_cpuid_h}")
-	bli_typed_h_filepath=$(find ${dist_path}/frame -name "${bli_typed_h}")
+		filepath=$(find ${dist_path}/${rootdir} -name "${filename}")
+		c_src_filepaths="${c_src_filepaths} ${filepath}"
+	done
 
-	bli_arch_h_path=${bli_arch_h_filepath%/${bli_arch_h}}
-	bli_cpuid_h_path=${bli_cpuid_h_filepath%/${bli_cpuid_h}}
-	bli_typed_h_path=${bli_typed_h_filepath%/${bli_typed_h}}
+	# Accumulate a list of header files we'll need to locate along with
+	# the top-level (root) directory in which they are located.
+	c_hdr_pairs=""
+	c_hdr_pairs="${c_hdr_pairs} frame:bli_system.h"
+	c_hdr_pairs="${c_hdr_pairs} frame:bli_type_defs.h"
+	c_hdr_pairs="${c_hdr_pairs} frame:bli_arch.h"
+	c_hdr_pairs="${c_hdr_pairs} frame:bli_cpuid.h"
+	c_hdr_pairs="${c_hdr_pairs} frame:bli_env.h"
+	# NOTE: These headers are needed by bli_type_defs.h.
+	c_hdr_pairs="${c_hdr_pairs} frame:bli_malloc.h"
+	c_hdr_pairs="${c_hdr_pairs} frame:bli_pthread.h"
 
-	# Locate other headers needed by bli_type_defs.h.
-	bli_pthread_h="bli_pthread.h"
-	bli_pthread_h_filepath=$(find ${dist_path}/frame -name "${bli_pthread_h}")
-	bli_pthread_h_path=${bli_pthread_h_filepath%/${bli_pthread_h}}
-	bli_malloc_h="bli_malloc.h"
-	bli_malloc_h_filepath=$(find ${dist_path}/frame -name "${bli_malloc_h}")
-	bli_malloc_h_path=${bli_malloc_h_filepath%/${bli_malloc_h}}
+	# Accumulate a list of full paths to the header files listed above.
+	# While we are at it, we include the "-I" compiler option to indicate
+	# adding the path to the list of directories to search when encountering
+	# #include directives.
+	c_hdr_paths=""
+	for pair in ${c_hdr_pairs}; do
+
+		filename=${pair#*:}
+		rootdir=${pair%:*}
+
+		filepath=$(find ${dist_path}/${rootdir} -name "${filename}")
+		path=${filepath%/*}
+		c_hdr_paths="${c_hdr_paths} -I${path}"
+	done
 
 	# Define the executable name.
 	autodetect_x="auto-detect.x"
 
 	# Create #defines for all of the BLIS_CONFIG_ macros in bli_cpuid.c.
+	bli_cpuid_c_filepath=$(find ${dist_path}/frame -name "bli_cpuid.c")
 	config_defines=$(grep BLIS_CONFIG_ ${bli_cpuid_c_filepath} \
 	                 | sed -e 's/#ifdef /-D/g')
 
-	# Set the linker flags. We need pthreads because it is needed for
-	# parts of bli_arch.c unrelated to bli_arch_string(), which is called
-	# by the main() function in ${main_c}.
-	if [[ $is_win == no || "$cc_vendor" != "clang" ]]; then
+	# Set the linker flags. We typically need pthreads (or BLIS's homerolled
+	# equiavlent) because it is needed for parts of bli_arch.c unrelated to
+	# bli_arch_string(), which is called by the main() function in ${main_c}.
+	if [[ "$is_win" == "no" || "$cc_vendor" != "clang" ]]; then
 		ldflags="${LIBPTHREAD--lpthread}"
+	fi
+
+	# However, if --disable-system was given, we override the choice made above
+	# and do not use any pthread link flags.
+	if [[ "$enable_system" == "no" ]]; then
+		ldflags=
 	fi
 
 	# Compile the auto-detect program using source code inside the
 	# framework.
 	# NOTE: -D_GNU_SOURCE is needed to enable POSIX extensions to
 	# pthreads (i.e., barriers).
-	${cc} ${config_defines} \
+
+	cmd="${cc} ${config_defines} \
 	      -DBLIS_CONFIGURETIME_CPUID \
-	      -I${bli_cpuid_h_path} \
-	      -I${bli_arch_h_path} \
-	      -I${bli_typed_h_path} \
-	      -I${bli_pthread_h_path} \
-	      -I${bli_malloc_h_path} \
+	      ${c_hdr_paths} \
 	      -std=c99 -D_GNU_SOURCE \
 	      ${cflags} \
-	      ${bli_arch_c_filepath} \
-	      ${bli_cpuid_c_filepath} \
+	      ${c_src_filepaths} \
 	      ${ldflags} \
-	      ${main_c_filepath} \
-	   -o ${autodetect_x}
+	      -o ${autodetect_x}"
+
+	if [ "${debug_auto_detect}" == "no" ]; then
+
+		# Execute the compilation command.
+		eval ${cmd}
+
+	else
+
+		# Debugging stuff. Instead of executing ${cmd}, join the lines together
+		# with tr and trim excess whitespace via awk.
+		cmd=$(echo "${cmd}" | tr '\n' ' ' | awk '{$1=$1;print}')
+		echo "${cmd}"
+		return
+	fi
 
 	# Run the auto-detect program.
 	detected_config=$(./${autodetect_x})
@@ -1323,12 +1461,99 @@ get_compiler_version()
 	# isolate the version number.
 	# The last part ({ read first rest ; echo $first ; }) is a workaround
 	# to OS X's egrep only returning the first match.
-	cc_vendor=$(echo "${vendor_string}" | egrep -o 'icc|gcc|clang|emcc|pnacl|IBM' | { read first rest ; echo $first ; })
+	cc_vendor=$(echo "${vendor_string}" | egrep -o 'icc|gcc|clang|emcc|pnacl|IBM|oneAPI|crosstool-NG|GCC' | { read first rest ; echo $first ; })
+
+	# AOCC version strings contain both "clang" and "AOCC" substrings, and
+	# so we have perform a follow-up check to make sure cc_vendor gets set
+	# correctly.
+	aocc_grep=$(echo "${vendor_string}" | grep 'AOCC')
+	if [ -n "${aocc_grep}" ]; then
+		cc_vendor="aocc"
+	fi
+
+	# Detect armclang, which doesn't have a nice, unambiguous, one-word tag
+	armclang_grep=$(echo "${vendor_string}" | grep 'Arm C/C++/Fortran Compiler')
+	if [ -n "${armclang_grep}" ]; then
+		cc_vendor="armclang"
+	fi
+
+	# Begin parsing cc_vendor for the version string.
+
+	if [ "${cc_vendor}" = "GCC" ]; then
+	     # Conda gcc sometimes has GCC (all caps) in the version string
+		cc_vendor="gcc"
+	fi
+	if [ "${cc_vendor}" = "crosstool-NG" ]; then
+	     # Treat compilers built by crosstool-NG (for eg: conda) as gcc.
+		cc_vendor="gcc"
+	fi
 	if [ "${cc_vendor}" = "icc" -o \
 	     "${cc_vendor}" = "gcc" ]; then
+
 		cc_version=$(${cc} -dumpversion)
+
+	elif [ "${cc_vendor}" = "armclang" ]; then
+
+		# Treat armclang as regular clang.
+		cc_vendor="clang"
+		cc_version=$(echo "${vendor_string}" \
+		             | egrep -o 'based on LLVM [0-9]+\.[0-9]+\.?[0-9]*' \
+		             | egrep -o               '[0-9]+\.[0-9]+\.?[0-9]*')
+
+	elif [ "${cc_vendor}" = "clang" ]; then
+
+		cc_version=$(echo "${vendor_string}" \
+		             | egrep -o '(clang|LLVM) version [0-9]+\.[0-9]+\.?[0-9]*' \
+		             | egrep -o                      '[0-9]+\.[0-9]+\.?[0-9]*')
+
+	elif [ "${cc_vendor}" = "aocc" ]; then
+
+		aocc_ver21=$(echo "${vendor_string}" | grep 'AOCC.LLVM.2')
+
+		# Versions 2.0 and 2.1 had different version string formats from
+		# 2.2 and later, so we have to handle them separately.
+		# Examples:
+		# AOCC.LLVM.2.0.0.B191.2019_07_19 clang version 8.0.0 (CLANG: Jenkins AOCC_2_0_0-Build#191) (based on LLVM AOCC.LLVM.2.0.0.B191.2019_07_19)
+		# AOCC.LLVM.2.1.0.B1030.2019_11_12 clang version 9.0.0 (CLANG: Build#1030) (based on LLVM AOCC.LLVM.2.1.0.B1030.2019_11_12)
+		# AMD clang version 10.0.0 (CLANG: AOCC_2.2.0-Build#93 2020_06_25) (based on LLVM Mirror.Version.10.0.0)
+		# AMD clang version 11.0.0 (CLANG: AOCC_2.3.0-Build#85 2020_11_10) (based on LLVM Mirror.Version.11.0.0)
+		# AMD clang version 12.0.0 (CLANG: AOCC_3.0.0-Build#2 2020_11_05) (based on LLVM Mirror.Version.12.0.0)
+
+		if [ -n "${aocc_ver21}" ]; then
+
+			# Grep for the AOCC.LLVM.x.y.z substring first, and then isolate the
+			# version number. Also, the string may contain multiple instances of
+			# the version number, so only use the first occurrence.
+			cc_version=$(echo "${vendor_string}" \
+			             | egrep -o 'AOCC.LLVM.[0-9]+\.[0-9]+\.?[0-9]*' \
+			             | egrep -o           '[0-9]+\.[0-9]+\.?[0-9]*' \
+		                 | { read first rest ; echo $first ; })
+		else
+
+			# Grep for the AOCC_x.y.z substring first, and then isolate the
+			# version number. As of this writing, these version strings don't
+			# include multiple instances of the version, but we nonetheless
+			# take only the first occurrence as a future-oriented safety
+			# measure.
+			cc_version=$(echo "${vendor_string}" \
+			             | egrep -o 'AOCC_[0-9]+\.[0-9]+\.?[0-9]*' \
+			             | egrep -o      '[0-9]+\.[0-9]+\.?[0-9]*' \
+		                 | { read first rest ; echo $first ; })
+		fi
+
+	elif [ "${cc_vendor}" = "oneAPI" ]; then
+
+		# Treat Intel oneAPI's clang as clang, not icc.
+		cc_vendor="clang"
+		cc_version=$(echo "${vendor_string}" \
+		             | egrep -o '[0-9]+\.[0-9]+\.[0-9]+\.?[0-9]*' \
+		             | { read first rest ; echo ${first} ; })
+
 	else
-		cc_version=$(echo "${vendor_string}" | egrep -o '[0-9]+\.[0-9]+\.?[0-9]*' | { read first rest ; echo ${first} ; })
+
+		cc_version=$(echo "${vendor_string}" \
+		             | egrep -o '[0-9]+\.[0-9]+\.?[0-9]*' \
+		             | { read first rest ; echo ${first} ; })
 	fi
 
 	# Parse the version number into its major, minor, and revision
@@ -1379,6 +1604,8 @@ check_compiler()
 	#   penryn: any
 	#
 	#   zen: gcc 6.0+[1], clang 4.0+
+	#   zen2: gcc 6.0+[1], clang 4.0+
+	#   zen3: gcc 6.0+[1], clang 4.0+
 	#   excavator: gcc 4.9+, clang 3.5+
 	#   steamroller: any
 	#   piledriver: any
@@ -1387,6 +1614,8 @@ check_compiler()
 	#   cortexa57: any
 	#   cortexa15: any
 	#   cortexa9: any
+	#
+	#   armsve: clang11+, gcc10+
 	#
 	#   generic: any
 	#
@@ -1402,6 +1631,8 @@ check_compiler()
 	#
 
 	echo "${script_name}: checking for blacklisted configurations due to ${cc} ${cc_version}."
+
+	# Fixme: check on a64fx, neoverse, and others
 
 	# gcc
 	if [ "x${cc_vendor}" = "xgcc" ]; then
@@ -1432,6 +1663,9 @@ check_compiler()
 			blacklistcc_add "skx"
 			# gcc 5.x may support POWER9 but it is unverified.
 			blacklistcc_add "power9"
+		fi
+		if [ ${cc_major} -lt 10 ]; then
+			blacklistcc_add "armsve"
 		fi
 	fi
 
@@ -1495,6 +1729,9 @@ check_compiler()
 				#blacklistcc_add "zen"
 				: # explicit no-op since bash can't handle empty loop bodies.
 			fi
+			if [ ${cc_major} -lt 11 ]; then
+				blacklistcc_add "armsve"
+			fi
 		fi
 	fi
 }
@@ -1552,12 +1789,30 @@ check_compiler_version_ranges()
 	#   Newer versions of gcc support Zen2 via the '-march=znver2' option [6].
 	#
 	#   [5] https://gcc.gnu.org/onlinedocs/gcc-8.3.0/gcc/x86-Options.html#x86-Options
-	#   [6] https://gcc.gnu.org/onlinedocs/gcc-9.1.0/gcc/x86-Options.html#x86-Options
+	#   [6] https://gcc.gnu.org/onlinedocs/gcc-9.4.0/gcc/x86-Options.html#x86-Options
+	#
+	# range: gcc < 10.1 (ie: 9.4 or older)
+	# variable: gcc_older_than_10_1_0
+	# comments:
+	#   These older versions of gcc do not explicitly support the Zen3
+	#   microarchitecture; the newest microarchitectural value understood by
+	#   these versions is '-march=znver2' (if !gcc_older_than_9_1_0) [7].
+	#   Newer versions of gcc support Zen3 via the '-march=znver3' option [8].
+	#
+	#   [7] https://gcc.gnu.org/onlinedocs/gcc-9.4.0/gcc/x86-Options.html#x86-Options
+	#   [8] https://gcc.gnu.org/onlinedocs/gcc-10.3.0/gcc/x86-Options.html#x86-Options
 	#
 
 	gcc_older_than_4_9_0='no'
 	gcc_older_than_6_1_0='no'
 	gcc_older_than_9_1_0='no'
+	gcc_older_than_10_1_0='no'
+
+	clang_older_than_9_0_0='no'
+	clang_older_than_12_0_0='no'
+
+	aocc_older_than_2_0_0='no'
+	aocc_older_than_3_0_0='no'
 
 	echo "${script_name}: checking ${cc} ${cc_version} against known consequential version ranges."
 
@@ -1583,6 +1838,12 @@ check_compiler_version_ranges()
 			echo "${script_name}: note: found ${cc} version older than 9.1."
 			gcc_older_than_9_1_0='yes'
 		fi
+
+		# Check for gcc < 10.1.0 (ie: 9.4 or older).
+		if [ ${cc_major} -lt 10 ]; then
+			echo "${script_name}: note: found ${cc} version older than 10.1."
+			gcc_older_than_10_1_0='yes'
+		fi
 	fi
 
 	# icc
@@ -1592,7 +1853,34 @@ check_compiler_version_ranges()
 
 	# clang
 	if [ "x${cc_vendor}" = "xclang" ]; then
-		:
+
+		# Check for clang < 9.0.0.
+		if [ ${cc_major} -lt 9 ]; then
+			echo "${script_name}: note: found ${cc} version older than 9.0."
+			clang_older_than_9_0_0='yes'
+		fi
+
+		# Check for clang < 12.0.0.
+		if [ ${cc_major} -lt 12 ]; then
+			echo "${script_name}: note: found ${cc} version older than 12.0."
+			clang_older_than_12_0_0='yes'
+		fi
+	fi
+
+	# aocc
+	if [ "x${cc_vendor}" = "xaocc" ]; then
+
+		# Check for aocc < 2.0.0.
+		if [ ${cc_major} -lt 2 ]; then
+			echo "${script_name}: note: found ${cc} version older than 2.0."
+			aocc_older_than_2_0_0='yes'
+		fi
+
+		# Check for aocc < 3.0.0.
+		if [ ${cc_major} -lt 3 ]; then
+			echo "${script_name}: note: found ${cc} version older than 3.0."
+			aocc_older_than_3_0_0='yes'
+		fi
 	fi
 }
 
@@ -1773,6 +2061,223 @@ set_default_version()
 	fi
 }
 
+select_tool_w_env()
+{
+	local search_list env_var env_str tool_str found_var
+	local _the_tool
+
+	# Example calling sequence:
+	#
+	#  select_tool_w_env "${cc_search_list}" "${CC}" "CC" "C compiler" "yes" found_cc
+	#
+
+	search_list="$1" # the tool's default search list.
+	env_var="$2"     # the value of the environment variable for this tool.
+	env_str="$3"     # a string naming the source of env_var.
+	tool_str="$4"    # a human-readable string identifying the tool.
+	is_required="$5" # is it fatal if env_var doesn't exist/work? (yes or no)
+	found_var="$6"   # the variable into which to save the selected tool.
+
+	# If the environment variable contains something, verify that it exists. If
+	# it is unset or empty, we proceed with the default search list.
+	if [ -n "${env_var}" ]; then
+
+		echo "${script_name}: user specified a ${tool_str} via ${env_str} (${env_var})."
+
+		# See if the binary specified by env_var exists.
+		_the_tool=$(select_tool "${env_var}" "${env_str}")
+
+		# Copy the result into the variable specified by found_var.
+		eval "${found_var}=\"${_the_tool}\""
+
+		# If the tool specified by env_var doesn't exist, throw a tantrum.
+		if [ -z "${_the_tool}" ]; then
+
+			echo "${script_name}: *** Could not find the ${tool_str} specified via ${env_str} ('${env_var}')."
+
+			# Whether the tantrum is fatal depends on the is_required argument.
+			if [ "${is_required}" == "yes" ]; then
+				echo "${script_name}: *** A working ${tool_str} is required. Please set ${env_str}"
+				echo "${script_name}: *** to a ${tool_str} that exists (or unset ${env_str})."
+				exit 1
+			else
+				echo "${script_name}: *** Note that a ${tool_str} will not be available."
+
+				# Set the found_var variable to *something* so that the output
+				# makefile fragment contains a record that the tool wasn't found.
+				eval "${found_var}=\"${env_str}\"-not-found"
+			fi
+		else
+			# The user-specified tool was found.
+			echo "${script_name}: ${_the_tool} exists and appears to work."
+			echo "${script_name}: using '${_the_tool}' as ${tool_str}."
+		fi
+
+	else
+
+		echo "${script_name}: ${tool_str} search list is: ${search_list}."
+
+		# Search for a working tool from the search list.
+		_the_tool=$(select_tool "${search_list}" "${env_str}")
+
+		# Copy the result into the variable specified by found_var.
+		eval "${found_var}=\"${_the_tool}\""
+
+		# If we didn't find a working tool from the search list, throw a tantrum.
+		if [ -z "${_the_tool}" ]; then
+
+			echo "${script_name}: *** Could not find a ${tool_str} from the search list."
+
+			# Whether the tantrum is fatal depends on the is_required argument.
+			if [ "${is_required}" == "yes" ]; then
+				echo "${script_name}: *** A working ${tool_str} is required. Cannot continue."
+				exit 1
+			else
+				echo "${script_name}: *** Note that a ${tool_str} will not be available."
+
+				# Set the found_var variable to *something* so that the output
+				# makefile fragment contains a record that the tool wasn't found.
+				eval "${found_var}=\"${env_str}-not-found\""
+			fi
+		else
+			# A tool from the search list was found.
+			echo "${script_name}: found '${_the_tool}'."
+			echo "${script_name}: using '${_the_tool}' as ${tool_str}."
+		fi
+	fi
+}
+
+select_tool()
+{
+	local search_list env_str
+	local the_tool tool the_flags rval
+
+	# This is the list of tools to search for, and the order in which
+	# to search for them.
+	search_list="$1"
+
+	# This is the name of the environment variable associated with the tool. For
+	# example, if search_list is a list of C compilers, env_str will be "CC".
+	env_str="$2"
+
+	# Initialize our selected tool to empty.
+	the_tool=""
+
+	# Try each tool in the list and select the first one we find that works.
+	for tool in ${search_list}; do
+
+		# Map each tool (via its canonical environment variable form) to the set
+		# of options we should use to check that it is working and available.
+		the_flags=$(get_tool_checkflags "${env_str}")
+
+		# Check that the tool works with at least one of the flags in the_flags
+		# the_flags (or, if the_flags is empty, check that the tool exists).
+		rval=$(check_tool "${tool}" "${the_flags}")
+
+		# If check_tool() returns 0, we're done.
+		if [ "${rval}" == "0" ]; then
+			the_tool=${tool}
+			break
+		fi
+	done
+
+	# Return the selected tool.
+	echo "${the_tool}"
+}
+
+get_tool_checkflags()
+{
+	local env_str
+	local allflags flaglist
+
+	# The tool for which we will determine the flag/option to pass in
+	# when testing that the tool works. Notice that it's not actually
+	# the tool but rather its equivalent environment variable.
+	env_str="${1}"
+
+	# The default list of flags to use in most circumstances.
+	allflags="--version -V -h"
+
+	if [ "${os_name}" = "Linux" ]; then
+
+		# If we are on Linux, it is very likely that all the tools will respond
+		# to at least one of the usual flags.
+		flaglist="${allflags}"
+
+	else
+
+		# If we are on Darwin/OSX/BSD or something else, we sometimes skip flag
+		# checks. (Note that when the list of flags to check is empty, we end
+		# up testing for the existence of the tool instead.)
+		if   [ "${env_str}" = "AR" -o \
+		       "${env_str}" = "RANLIB" ]; then
+
+			# AR, RANLIB may not respond to the normal flags on Darwin/OSX/BSD,
+			# so all we can really do is check for their existence.
+			flaglist=""
+		else
+			# Even on Darwin/OSX/BSD, we expect that CC, CXX, FC, PYTHON will
+			# respond to the typical flag checklist.
+			flaglist="${allflags}"
+		fi
+	fi
+
+	echo "${flaglist}"
+}
+
+check_tool()
+{
+	local tool the_flags
+	local rval opt toolpath
+
+	# This is the name, or filepath, of the tool to check for.
+	tool="$1"
+
+	# Some command line options to try to determine that the tool works.
+	the_flags="$2"
+
+	# Start with the assuming that the tool doesn't work/exist.
+	rval=1
+
+	if [ -n "${the_flags}" ]; then
+
+		# If the list of flags to check non-empty, we will iterate through the
+		# list in search of a flag that works. Failure to find one that works
+		# means the tool doesn't work (or, if the user specified the tool via
+		# its environment variable, failure might mean that the tool doesn't
+		# even exist).
+
+		# Try each flag in the list of flags.
+		for opt in ${the_flags}; do
+
+			# See if the tool responds to the current flag.
+			${tool} ${opt} > /dev/null 2>&1
+
+			# If the tool responded to the flag with a nominal error code of
+			# 0, we found one that works and set rval accoringly.
+			if [ "$?" == 0 ]; then
+				rval=0
+				break
+			fi
+		done
+	else
+
+		# If the list of flags to check is empty, we interpret this as a
+		# request to instead check for the existence of the tool.
+
+		# Use 'which' to determine if the tool exists.
+		toolpath="$(which ${tool} 2> /dev/null)"
+
+		# If the tool doesn't exist, we set rval accordingly.
+		if [ -n "${toolpath}" ]; then
+			rval=0
+		fi
+	fi
+
+	# Return the error code.
+	echo "${rval}"
+}
+
 
 
 #
@@ -1827,6 +2332,13 @@ main()
 	bli_config_h_in_path="${build_dirpath}/${bli_config_h_in}"
 	bli_config_h_out_path="${cur_dirpath}/${bli_config_h_out}"
 
+	# The names/paths for the template bli_addon.h.in and its instantiated
+	# counterpart.
+	bli_addon_h_in='bli_addon.h.in'
+	bli_addon_h_out='bli_addon.h'
+	bli_addon_h_in_path="${build_dirpath}/${bli_addon_h_in}"
+	bli_addon_h_out_path="${cur_dirpath}/${bli_addon_h_out}"
+
 	# Path to 'mirror-tree.sh' script.
 	mirror_tree_sh="${build_dirpath}/mirror-tree.sh"
 
@@ -1849,6 +2361,10 @@ main()
 	# The root directory of the BLIS framework.
 	frame_dir='frame'
 	frame_dirpath="${dist_path}/${frame_dir}"
+
+	# The names of the addons.
+	addon_dir='addon'
+	addon_dirpath="${dist_path}/${addon_dir}"
 
 	# The name of the sandbox directory.
 	sandbox_dir='sandbox'
@@ -1922,6 +2438,9 @@ main()
 	debug_type=''
 	debug_flag=''
 
+	# The system flag.
+	enable_system='yes'
+
 	# The threading flag.
 	threading_model='off'
 
@@ -1937,6 +2456,7 @@ main()
 	enable_arg_max_hack='no'
 	enable_static='yes'
 	enable_shared='yes'
+    enable_rpath='no'
 	export_shared='public'
 	enable_pba_pools='yes'
 	enable_sba_pools='yes'
@@ -1948,8 +2468,15 @@ main()
 	enable_mixed_dt='yes'
 	enable_mixed_dt_extra_mem='yes'
 	enable_sup_handling='yes'
+	enable_amd_frame_tweaks='no'
 	enable_memkind='' # The default memkind value is determined later on.
+	enable_trsm_preinversion='yes'
 	force_version='no'
+	complex_return='default'
+
+	# The addon flag and names.
+	addon_flag=''
+	addon_list=''
 
 	# The sandbox flag and name.
 	sandbox_flag=''
@@ -1980,6 +2507,13 @@ main()
 	# source distribution directory.
 	dummy_file='_blis_dir_detect.tmp'
 
+	# -- Debugging --
+
+	# A global flag to help debug the compilation command for the executable
+	# that configure builds on-the-fly to perform hardware auto-detection.
+	debug_auto_detect="no"
+
+
 
 	# -- Command line option/argument parsing ----------------------------------
 
@@ -1988,7 +2522,7 @@ main()
 
 		# Process our command line options.
 		unset OPTIND
-		while getopts ":hp:d:e:s:t:r:qci:b:-:" opt; do
+		while getopts ":hp:d:e:a:s:t:r:qci:b:-:" opt; do
 			case $opt in
 				-)
 					case "$OPTARG" in
@@ -2053,8 +2587,20 @@ main()
 						disable-shared)
 							enable_shared='no'
 							;;
+						enable-rpath)
+							enable_rpath='yes'
+							;;
+						disable-rpath)
+							enable_rpath='no'
+							;;
 						export-shared=*)
 							export_shared=${OPTARG#*=}
+							;;
+						enable-system)
+							enable_system='yes'
+							;;
+						disable-system)
+							enable_system='no'
 							;;
 						enable-threading=*)
 							threading_model=${OPTARG#*=}
@@ -2083,12 +2629,21 @@ main()
 						disable-mem-tracing)
 							enable_mem_tracing='no'
 							;;
+						enable-addon=*)
+							addon_flag=1
+							addon_name=${OPTARG#*=}
+							# Append the addon name to the list.
+							addon_list="${addon_list} ${addon_name}"
+							;;
+						disable-addon)
+							addon_flag=''
+							;;
 						enable-sandbox=*)
 							sandbox_flag=1
 							sandbox=${OPTARG#*=}
 							;;
 						disable-sandbox)
-							sandbox_flag=0
+							sandbox_flag=''
 							;;
 						int-size=*)
 							int_type_size=${OPTARG#*=}
@@ -2126,17 +2681,32 @@ main()
 						disable-sup-handling)
 							enable_sup_handling='no'
 							;;
+						enable-amd-frame-tweaks)
+							enable_amd_frame_tweaks='yes'
+							;;
+						disable-amd-frame-tweaks)
+							enable_amd_frame_tweaks='no'
+							;;
 						with-memkind)
 							enable_memkind='yes'
 							;;
 						without-memkind)
 							enable_memkind='no'
 							;;
+						enable-trsm-preinversion)
+							enable_trsm_preinversion='yes'
+							;;
+						disable-trsm-preinversion)
+							enable_trsm_preinversion='no'
+							;;
 						force-version=*)
 							force_version=${OPTARG#*=}
 							;;
 						show-config-list)
 							show_config_list=1
+							;;
+						complex-return=*)
+							complex_return=${OPTARG#*=}
 							;;
 						*)
 							print_usage
@@ -2155,6 +2725,12 @@ main()
 					;;
 				e)
 					export_shared=$OPTARG
+					;;
+				a)
+					addon_flag=1
+					addon_name=$OPTARG
+					# Append the addon name to the list.
+					addon_list="${addon_list} ${addon_name}"
 					;;
 				s)
 					sandbox_flag=1
@@ -2223,24 +2799,13 @@ main()
 
 	# -- Find a python interpreter ---------------------------------------------
 
-	# Acquire the python search order. This may vary based on the os found
-	# above.
+	# Acquire the default python search order.
 	python_search_list=$(get_python_search_list)
 
-	echo "${script_name}: python interpeter search list is: ${python_search_list}."
-
-	# Find a working python interpreter.
-	found_python=$(select_tool "${python_search_list}" "${PYTHON}")
-
-	# If we didn't find any working python interpreters, we print an error
-	# message.
-	if [ -z "${found_python}" ]; then
-		echo "${script_name}: *** Could not find working python interperter! Cannot continue."
-		exit 1
-	fi
-
-	echo "${script_name}: using '${found_python}' python interpreter."
-
+	# Select a python interpreter from the default list, or from PYTHON if it
+	# refers to a valid binary.
+	select_tool_w_env "${python_search_list}" "${PYTHON}" "PYTHON" \
+	                  "python interpreter" "yes" found_python
 
 	# -- Check the python version ----------------------------------------------
 
@@ -2251,43 +2816,18 @@ main()
 
 	# -- Find a C compiler -----------------------------------------------------
 
-	# Acquire the compiler search order. This will vary based on the os found
-	# above.
+	# Acquire the default compiler search order. This will vary based on os_name.
 	cc_search_list=$(get_cc_search_list)
 
-	echo "${script_name}: C compiler search list is: ${cc_search_list}."
+	# Select a C compiler from the default list, or from CC if it refers to a
+	# valid binary.
+	select_tool_w_env "${cc_search_list}" "${CC}" "CC" \
+	                  "C compiler" "yes" found_cc
 
-	# Find a working C compiler.
-	found_cc=$(select_tool "${cc_search_list}" "${CC}")
-
-	# If we didn't find any working C compilers, we print an error message.
-	if [ -z "${found_cc}" ]; then
-		echo "${script_name}: *** Could not find working C compiler! Cannot continue."
-		exit 1
+	# Also check the compiler to see if we are (cross-)compiling for Windows
+	if ${found_cc} -dM -E - < /dev/null 2> /dev/null | grep -q _WIN32; then
+		is_win=yes
 	fi
-
-	echo "${script_name}: using '${found_cc}' C compiler."
-
-
-	# -- Find a C++ compiler ---------------------------------------------------
-
-	# Acquire the compiler search order. This will vary based on the os
-	# found above.
-	cxx_search_list=$(get_cxx_search_list)
-
-	echo "${script_name}: C++ compiler search list is: ${cxx_search_list}."
-
-	# Find a working C++ compiler. NOTE: We can reuse the select_tool()
-	# function since it is written in a way that is general-purpose.
-	found_cxx=$(select_tool "${cxx_search_list}" "${CXX}")
-
-	# If we didn't find any working C++ compilers, we print an error message.
-	if [ -z "${found_cxx}" ]; then
-		echo "${script_name}: Could not find working C++ compiler! C++ will not be available in sandbox."
-		found_cxx="c++notfound"
-	fi
-
-	echo "${script_name}: using '${found_cxx}' C++ compiler (for sandbox only)."
 
 
 	# -- Check the compiler version --------------------------------------------
@@ -2318,6 +2858,57 @@ main()
 		echo "${script_name}: configuration blacklist:"
 		echo "${script_name}:   ${config_blist}"
 	fi
+
+
+	# -- Find a C++ compiler ---------------------------------------------------
+
+	# Acquire the default C++ compiler search order. This will vary based on
+	# os_name.
+	cxx_search_list=$(get_cxx_search_list)
+
+	# Select a C compiler from the default list, or from CC if it refers to a
+	# valid binary.
+	select_tool_w_env "${cxx_search_list}" "${CXX}" "CXX" \
+	                  "C++ compiler" "no" found_cxx
+
+
+	# -- Find a Fortran compiler -----------------------------------------------
+
+	# Acquire the default Fortran compiler search order.
+	fc_search_list=$(get_fc_search_list)
+
+	# Select a Fortran compiler from the default list, or from FC if it refers
+	# to a valid binary.
+	# NOTE: A Fortran compiler is not necessary for building BLIS. The only
+	# reason we might want to query it is to detect the style of returning
+	# complex values from functions. The 'gnu' style returns complex values
+	# from functions normally, via the C language return statement, while the
+	# 'intel' style returns them in a "hidden" parameter (inserted by the
+	# compiler) that precedes all other function parameters.
+	select_tool_w_env "${fc_search_list}" "${FC}" "FC" \
+	                  "Fortran compiler" "no" found_fc
+
+
+	# -- Find a static library archiver ----------------------------------------
+
+	# Acquire the default archiver search order.
+	ar_search_list=$(get_ar_search_list)
+
+	# Select an archiver from the default list, or from AR if it refers
+	# to a valid binary.
+	select_tool_w_env "${ar_search_list}" "${AR}" "AR" \
+	                  "library archiver" "yes" found_ar
+
+
+	# -- Find an archive indexer -----------------------------------------------
+
+	# Acquire the default archive indexer search order.
+	ranlib_search_list=$(get_ranlib_search_list)
+
+	# Select an archive indexer from the default list, or from RANLIB if it
+	# refers to a valid binary.
+	select_tool_w_env "${ranlib_search_list}" "${RANLIB}" "RANLIB" \
+	                  "archive indexer" "yes" found_ranlib
 
 
 	# -- Read the configuration registry ---------------------------------------
@@ -2423,7 +3014,15 @@ main()
 		# Call the auto_detect() function and save the returned string in
 		# config_name.
 		config_name=$(auto_detect)
-		#config_name="generic"
+
+		# Debugging stuff. When confirming the behavior of auto_detect(),
+		# it is useful to output ${config_name}, which in theory could be
+		# set temoprarily to something other than the config_name, such as
+		# the compilation command.
+		if [ "${debug_auto_detect}" = "yes" ]; then
+			echo "auto-detect program compilation command: ${config_name}"
+			exit 1
+		fi
 
 		echo "${script_name}: hardware detection driver returned '${config_name}'."
 
@@ -2527,11 +3126,11 @@ main()
 
 			reducedclist="${kernel}"
 
-		# Otherwise, use the first name.
+		# Otherwise, use the last name.
 		else
 
-			first_config=${configs%% *}
-			reducedclist="${first_config}"
+			last_config=${configs##* }
+			reducedclist="${last_config}"
 		fi
 
 		# Create a new "kernel:subconfig" pair and add it to the kconfig_map
@@ -2803,6 +3402,19 @@ main()
 		exit 1
 	fi
 
+	# Check if we are building with or without operating system support.
+	if [ "x${enable_system}" = "xyes" ]; then
+		echo "${script_name}: enabling operating system support."
+		enable_system_01=1
+	else
+		echo "${script_name}: disabling operating system support."
+		echo "${script_name}: WARNING: all threading will be disabled!"
+		enable_system_01=0
+
+		# Force threading to be disabled.
+		threading_model='off'
+	fi
+
 	# Check the threading model flag and standardize its value, if needed.
 	# NOTE: 'omp' is deprecated but still supported; 'openmp' is preferred.
 	enable_openmp='no'
@@ -2946,6 +3558,13 @@ main()
 		echo "${script_name}: small matrix handling is disabled."
 		enable_sup_handling_01=0
 	fi
+	if [ "x${enable_trsm_preinversion}" = "xyes" ]; then
+		echo "${script_name}: trsm diagonal element pre-inversion is enabled."
+		enable_trsm_preinversion_01=1
+	else
+		echo "${script_name}: trsm diagonal element pre-inversion is disabled."
+		enable_trsm_preinversion_01=0
+	fi
 
 	# Report integer sizes.
 	if [ "x${int_type_size}" = "x32" ]; then
@@ -2968,6 +3587,57 @@ main()
 	if [ "x${blas_int_type_size}" = "x64" -a "x${int_type_size}" = "x32" ]; then
 		echo "${script_name}: *** To avoid the possibility of truncation, we do not allow use of 64-bit integers in the BLAS API with 32-bit integers in BLIS. Please use a different configuration of integers."
 		exit 1
+	fi
+
+	# Check whether we should use AMD-customized versions of certain framework
+	# files.
+	if [ "x${enable_amd_frame_tweaks}" = "xyes" ]; then
+
+		echo "${script_name}: AMD-specific framework files will be considered."
+		echo "${script_name}:   checking eligibility of target configuration."
+
+		# Make sure we are targeting either one of the zen subconfigs or the
+		# amd64 umbrella family.
+		uconf=$(echo ${config_name} | grep -c 'zen\|amd64')
+
+		if [[ $uconf == 0 ]]; then
+			echo "${script_name}:   target configuration '${config_name}' is not eligible."
+			echo "${script_name}:   disabling AMD-specific framework files."
+			enable_amd_frame_tweaks='no'
+		else
+			echo "${script_name}:   target configuration '${config_name}' is eligible."
+			echo "${script_name}:   enabling AMD-specific framework files."
+		fi
+	else
+		echo "${script_name}: AMD-specific framework files will not be considered."
+	fi
+
+	# Check if addons were given.
+	if [ -n "${addon_flag}" ]; then
+
+		# Remove duplicates in the addon list, if they exist.
+		addon_list=$(rm_duplicate_words_simple "${addon_list}")
+
+		echo "${script_name}: configuring with addons:"
+
+		for addon in ${addon_list}; do
+
+			echo "${script_name}:   ${addon_dir}/${addon}"
+
+			addon_fullpath="${addon_dirpath}/${addon}"
+
+			if [ ! -d "${addon_fullpath}" ]; then
+				echo "${script_name}: requested addon sub-directory does not exist! Cannot continue."
+				echo "${script_name}: *** Please verify addon existence and name."
+				exit 1
+			fi
+		done
+
+		enable_addons_01=1
+	else
+		echo "${script_name}: configuring with no addons."
+
+		enable_addons_01=0
 	fi
 
 	# Check if a sandbox was given.
@@ -2993,26 +3663,70 @@ main()
 		enable_sandbox_01=0
 	fi
 
+	# Check the method used for returning complex numbers.
+	if [ "x${complex_return}" = "xdefault" ]; then
+
+		# If we prevoiusly found a Fortran compiler, let's query it to see what
+		# kind of complex return type it uses (gnu or intel). The 'gnu' style
+		# returns complex values from functions normally, via the C language
+		# return statement, while the 'intel' style returns them in a "hidden"
+		# parameter (inserted by the compiler) that precedes all other function
+		# parameters.
+		if [ -n "${found_fc}" ]; then
+
+			# Query the full vendor version string output. This includes the
+			# version number along with (potentially) a bunch of other textual
+			# clutter.
+			# NOTE: This maybe should use merged stdout/stderr rather than only
+			# stdout. But it works for now.
+			vendor_string="$(${FC} --version 2>/dev/null)"
+
+			# Query the compiler "vendor" (ie: the compiler's simple name).
+			# The last part ({ read first rest ; echo $first ; }) is a workaround
+			# to OS X's egrep only returning the first match.
+			fc_vendor=$(echo "${vendor_string}" | egrep -o 'ifort|GNU' | { read first rest ; echo $first ; })
+
+			if [ "x${fc_vendor}" = "xifort" ]; then
+				complex_return='intel'
+			elif [ "x${fc_vendor}" = "xGNU" ]; then
+				complex_return='gnu'
+			else
+				echo "${script_name}: unable to determine Fortran compiler vendor!"
+				complex_return='gnu'
+			fi
+		else
+			complex_return='gnu'
+		fi
+	fi
+
+	if [ "x${complex_return}" = "xgnu"  ]; then
+		complex_return_intel01='0'
+	elif [ "x${complex_return}" = "xintel" ]; then
+		complex_return_intel01='1'
+	else
+		echo "${script_name}: unknown complex return type \"${complex_return}\"! Cannot continue."
+		echo "${script_name}: *** Acceptable values are \"gnu\" and \"intel\"."
+		exit 1
+	fi
+
+	echo "${script_name}: configuring complex return type as \"${complex_return}\"."
 
 	# Variables that may contain forward slashes, such as paths, need extra
 	# escaping when used in sed commands. We insert those extra escape
 	# characters here so that the sed commands below do the right thing.
-	os_name_esc=$(echo     "${os_name}"     | sed 's/\//\\\//g')
-	prefix_esc=$(echo      "${prefix}"      | sed 's/\//\\\//g')
-	exec_prefix_esc=$(echo "${exec_prefix}" | sed 's/\//\\\//g')
-	libdir_esc=$(echo      "${libdir}"      | sed 's/\//\\\//g')
-	includedir_esc=$(echo  "${includedir}"  | sed 's/\//\\\//g')
-	sharedir_esc=$(echo    "${sharedir}"    | sed 's/\//\\\//g')
-	dist_path_esc=$(echo   "${dist_path}"   | sed 's/\//\\\//g')
-	cc_esc=$(echo          "${found_cc}"    | sed 's/\//\\\//g')
-	cxx_esc=$(echo         "${found_cxx}"   | sed 's/\//\\\//g')
-	#sandbox_relpath_esc=$(echo "${sandbox_relpath}" | sed 's/\//\\\//g')
+	os_name_esc=$(echo     "${os_name}"      | sed 's/\//\\\//g')
+	prefix_esc=$(echo      "${prefix}"       | sed 's/\//\\\//g')
+	exec_prefix_esc=$(echo "${exec_prefix}"  | sed 's/\//\\\//g')
+	libdir_esc=$(echo      "${libdir}"       | sed 's/\//\\\//g')
+	includedir_esc=$(echo  "${includedir}"   | sed 's/\//\\\//g')
+	sharedir_esc=$(echo    "${sharedir}"     | sed 's/\//\\\//g')
+	dist_path_esc=$(echo   "${dist_path}"    | sed 's/\//\\\//g')
+	cc_esc=$(echo          "${found_cc}"     | sed 's/\//\\\//g')
+	cxx_esc=$(echo         "${found_cxx}"    | sed 's/\//\\\//g')
+	ar_esc=$(echo          "${found_ar}"     | sed 's/\//\\\//g')
+	ranlib_esc=$(echo      "${found_ranlib}" | sed 's/\//\\\//g')
+	python_esc=$(echo      "${found_python}" | sed 's/\//\\\//g')
 
-	# For RANLIB, if the variable is not set, we use a default value of
-	# 'ranlib'.
-	ranlib_esc=$(echo "${RANLIB:-ranlib}" | sed 's/\//\\\//g')
-	# For AR, if the variable is not set, we use a default value of 'ar'.
-	ar_esc=$(echo "${AR:-ar}" | sed 's/\//\\\//g')
 	libpthread_esc=$(echo "${LIBPTHREAD--lpthread}" | sed 's/\//\\\//g')
 	cflags_preset_esc=$(echo "${cflags_preset}" | sed 's/\//\\\//g')
 	ldflags_preset_esc=$(echo "${ldflags_preset}" | sed 's/\//\\\//g')
@@ -3020,7 +3734,13 @@ main()
 	# For Windows builds, clear the libpthread_esc variable so that
 	# no pthreads library is substituted into config.mk. (Windows builds
 	# employ an implementation of pthreads that is internal to BLIS.)
-	if [[ $is_win == yes && "$cc_vendor" == "clang" ]]; then
+	if [[ "$is_win" == "yes" && "$cc_vendor" == "clang" ]]; then
+		libpthread_esc=
+	fi
+
+	# We also clear the libpthread_esc variable for systemless builds
+	# (--disable-system).
+	if [[ "$enable_system" == "no" ]]; then
 		libpthread_esc=
 	fi
 
@@ -3034,7 +3754,7 @@ main()
 	# Create a #define for the configuration family (config_name).
 	uconf=$(echo ${config_name} | tr '[:lower:]' '[:upper:]')
 	config_name_define="#define BLIS_FAMILY_${uconf}\n"
-
+	
 	# Create a list of #defines, one for each configuration in config_list.
 	config_list_defines=""
 	for conf in ${config_list}; do
@@ -3057,6 +3777,15 @@ main()
 		# Create a #define and add it to the running list.
 		kernel_define="BLIS_KERNELS_${uconf}"
 		kernel_list_defines="${kernel_list_defines}#define ${kernel_define}\n"
+	done
+
+	# Create a list of #includes, one for each addon in addon_list.
+	addon_list_includes=""
+	for addon in ${addon_list}; do
+
+		# Create a #define and add it to the running list.
+		addon_header="\"${addon}.h\""
+		addon_list_includes="${addon_list_includes}#include ${addon_header}\n"
 	done
 
 
@@ -3086,7 +3815,7 @@ main()
 	fi
 
 
-	# -- Instantiate config.mk, bli_config.h files from templates --------------
+	# -- Instantiate config.mk file from template ------------------------------
 
 	# Begin substituting information into the config_mk_in file, outputting
 	# to config_mk_out.
@@ -3106,14 +3835,21 @@ main()
 		| sed -e "s/@gcc_older_than_4_9_0@/${gcc_older_than_4_9_0}/g" \
 		| sed -e "s/@gcc_older_than_6_1_0@/${gcc_older_than_6_1_0}/g" \
 		| sed -e "s/@gcc_older_than_9_1_0@/${gcc_older_than_9_1_0}/g" \
+		| sed -e "s/@gcc_older_than_10_1_0@/${gcc_older_than_10_1_0}/g" \
+		| sed -e "s/@clang_older_than_9_0_0@/${clang_older_than_9_0_0}/g" \
+		| sed -e "s/@clang_older_than_12_0_0@/${clang_older_than_12_0_0}/g" \
+		| sed -e "s/@aocc_older_than_2_0_0@/${aocc_older_than_2_0_0}/g" \
+		| sed -e "s/@aocc_older_than_3_0_0@/${aocc_older_than_3_0_0}/g" \
 		| sed -e "s/@CC@/${cc_esc}/g" \
 		| sed -e "s/@CXX@/${cxx_esc}/g" \
-		| sed -e "s/@RANLIB@/${ranlib_esc}/g" \
 		| sed -e "s/@AR@/${ar_esc}/g" \
+		| sed -e "s/@RANLIB@/${ranlib_esc}/g" \
+		| sed -e "s/@PYTHON@/${python_esc}/g" \
 		| sed -e "s/@libpthread@/${libpthread_esc}/g" \
 		| sed -e "s/@cflags_preset@/${cflags_preset_esc}/g" \
 		| sed -e "s/@ldflags_preset@/${ldflags_preset_esc}/g" \
 		| sed -e "s/@debug_type@/${debug_type}/g" \
+		| sed -e "s/@enable_system@/${enable_system}/g" \
 		| sed -e "s/@threading_model@/${threading_model}/g" \
 		| sed -e "s/@prefix@/${prefix_esc}/g" \
 		| sed -e "s/@exec_prefix@/${exec_prefix_esc}/g" \
@@ -3125,14 +3861,18 @@ main()
 		| sed -e "s/@enable_arg_max_hack@/${enable_arg_max_hack}/g" \
 		| sed -e "s/@enable_static@/${enable_static}/g" \
 		| sed -e "s/@enable_shared@/${enable_shared}/g" \
+		| sed -e "s/@enable_rpath@/${enable_rpath}/g" \
 		| sed -e "s/@export_shared@/${export_shared}/g" \
 		| sed -e "s/@enable_blas@/${enable_blas}/g" \
 		| sed -e "s/@enable_cblas@/${enable_cblas}/g" \
+		| sed -e "s/@enable_amd_frame_tweaks@/${enable_amd_frame_tweaks}/g" \
 		| sed -e "s/@enable_memkind@/${enable_memkind}/g" \
 		| sed -e "s/@pragma_omp_simd@/${pragma_omp_simd}/g" \
+		| sed -e "s/@addon_list@/${addon_list}/g" \
 		| sed -e "s/@sandbox@/${sandbox}/g" \
 		> "${config_mk_out_path}"
-		
+
+	# -- Instantiate bli_config.h file from template ---------------------------
 
 	# Begin substituting information into the bli_config_h_in file, outputting
 	# to bli_config_h_out. NOTE: We use perl instead of sed because the version
@@ -3144,6 +3884,7 @@ main()
 		| perl -pe "s/\@config_name_define\@/${config_name_define}/g" \
 		| perl -pe "s/\@config_list_defines\@/${config_list_defines}/g" \
 		| perl -pe "s/\@kernel_list_defines\@/${kernel_list_defines}/g" \
+		| sed   -e "s/@enable_system@/${enable_system_01}/g" \
 		| sed   -e "s/@enable_openmp@/${enable_openmp_01}/g" \
 		| sed   -e "s/@enable_pthreads@/${enable_pthreads_01}/g" \
 		| sed   -e "s/@enable_jrir_slab@/${enable_jrir_slab_01}/g" \
@@ -3159,11 +3900,24 @@ main()
 		| sed   -e "s/@enable_mixed_dt_extra_mem@/${enable_mixed_dt_extra_mem_01}/g" \
 		| sed   -e "s/@enable_sup_handling@/${enable_sup_handling_01}/g" \
 		| sed   -e "s/@enable_memkind@/${enable_memkind_01}/g" \
+		| sed   -e "s/@enable_trsm_preinversion@/${enable_trsm_preinversion_01}/g" \
 		| sed   -e "s/@enable_pragma_omp_simd@/${enable_pragma_omp_simd_01}/g" \
 		| sed   -e "s/@enable_sandbox@/${enable_sandbox_01}/g" \
 		| sed   -e "s/@enable_shared@/${enable_shared_01}/g" \
+		| sed   -e "s/@complex_return_intel@/${complex_return_intel01}/g" \
 		> "${bli_config_h_out_path}"
 
+	# -- Instantiate bli_addon.h file from template ----------------------------
+
+	# Begin substituting information into the bli_addon_h_in file, outputting
+	# to bli_addon_h_out. NOTE: We use perl instead of sed because the version
+	# of sed used on OS X is old and does not handle the '\n' character
+	# intuitively, which was used when constructing ${addon_list_includes}.
+	echo "${script_name}: creating ${bli_addon_h_out_path} from ${bli_addon_h_in_path}"
+	cat "${bli_addon_h_in_path}" \
+		| perl -pe "s/\@addon_list_includes\@/${addon_list_includes}/g" \
+		| sed   -e "s/@enable_addons@/${enable_addons_01}/g" \
+		> "${bli_addon_h_out_path}"
 
 	# -- Create top-level object directories -----------------------------------
 
@@ -3176,7 +3930,6 @@ main()
 
 	obj_config_dirpath="${base_obj_dirpath}/${config_dir}"
 
-	#echo "${script_name}: creating ${obj_config_dirpath}"
 	mkdir -p ${obj_config_dirpath}
 	for conf in ${config_list}; do
 		echo "${script_name}: creating ${obj_config_dirpath}/${conf}"
@@ -3186,7 +3939,6 @@ main()
 
 	obj_kernels_dirpath="${base_obj_dirpath}/${kernels_dir}"
 
-	#echo "${script_name}: creating ${obj_kernels_dirpath}"
 	mkdir -p ${obj_kernels_dirpath}
 	for kern in ${kernel_list}; do
 		echo "${script_name}: creating ${obj_kernels_dirpath}/${kern}"
@@ -3196,7 +3948,6 @@ main()
 
 	obj_refkern_dirpath="${base_obj_dirpath}/${refkern_dir}"
 
-	#echo "${script_name}: creating ${obj_refkern_dirpath}"
 	mkdir -p ${obj_refkern_dirpath}
 	for conf in ${config_list}; do
 		echo "${script_name}: creating ${obj_refkern_dirpath}/${conf}"
@@ -3208,6 +3959,17 @@ main()
 
 	echo "${script_name}: creating ${obj_frame_dirpath}"
 	mkdir -p ${obj_frame_dirpath}
+
+
+	if [ -n "${addon_flag}" ]; then
+
+		obj_addon_dirpath="${base_obj_dirpath}/${addon_dir}"
+
+		for addon in ${addon_list}; do
+			echo "${script_name}: creating ${obj_addon_dirpath}/${addon}"
+			mkdir -p ${obj_addon_dirpath}/${addon}
+		done
+	fi
 
 
 	if [ -n "${sandbox_flag}" ]; then
@@ -3236,6 +3998,7 @@ main()
 
 	echo "${script_name}: creating ${base_lib_dirpath}"
 	mkdir -p ${base_lib_dirpath}
+
 
 	# Create include directory (if it does not already exist).
 	base_include_dirpath="${include_dirpath}/${config_name}"
@@ -3290,6 +4053,16 @@ main()
 	# Mirror framework source tree to its object sub-directory.
 	echo "${script_name}: mirroring ${frame_dirpath} to ${obj_frame_dirpath}"
 	${mirror_tree_sh} ${frame_dirpath} ${obj_frame_dirpath}
+
+	# Mirror the chosen addon source tree to its object sub-directory.
+	if [ -n "${addon_flag}" ]; then
+
+		for addon in ${addon_list}; do
+
+			echo "${script_name}: mirroring ${addon_dirpath}/${addon} to ${obj_addon_dirpath}/${addon}"
+			${mirror_tree_sh} "${addon_dirpath}/${addon}" "${obj_addon_dirpath}/${addon}"
+		done
+	fi
 
 	# Mirror the chosen sandbox source tree to its object sub-directory.
 	if [ -n "${sandbox_flag}" ]; then
@@ -3377,6 +4150,25 @@ main()
 			 ${gen_make_frags_dirpath}/suffix_list \
 			 ${gen_make_frags_dirpath}/ignore_list
 
+	# Generate makefile fragments in the addon sub-directory.
+	if [ -n "${addon_flag}" ]; then
+
+		for addon in ${addon_list}; do
+
+			echo "${script_name}: creating makefile fragments in ${obj_addon_dirpath}/${addon}"
+			${gen_make_frags_sh} \
+					 -h -r -v0 \
+					 -o ${script_name} \
+					 -p 'ADDON' \
+					 ${addon_dirpath}/${addon} \
+					 ${obj_addon_dirpath}/${addon} \
+					 ${gen_make_frags_dirpath}/fragment.mk \
+					 ${gen_make_frags_dirpath}/suffix_list \
+					 ${gen_make_frags_dirpath}/ignore_list
+		done
+	fi
+
+
 	# Generate makefile fragments in the sandbox sub-directory.
 	if [ -n "${sandbox_flag}" ]; then
 
@@ -3412,6 +4204,23 @@ main()
 			ln -sf "${dist_path}/Makefile"
 		else
 			echo "${script_name}: Non-symbolic link file or directory 'Makefile' blocks creation of symlink."
+			echo "${script_name}: *** Please remove this entity and re-run configure."
+			exit 1
+		fi
+
+		# If 'blis.pc.in' symlink does not already exist in the current
+		# directory, create a symbolic link to it. If one does exist, we
+		# use -f to force creation of a new link.
+		if [ ! -e "./blis.pc.in" ]; then
+
+			echo "${script_name}: creating symbolic link to blis.pc.in."
+			ln -s "${dist_path}/blis.pc.in"
+
+		elif [ -h "./blis.pc.in" ]; then
+			echo "${script_name}: symbolic link to blis.pc.in already exists; forcing creation of new link."
+			ln -sf "${dist_path}/blis.pc.in"
+		else
+			echo "${script_name}: Non-symbolic link file or directory 'blis.pc.in' blocks creation of symlink."
 			echo "${script_name}: *** Please remove this entity and re-run configure."
 			exit 1
 		fi

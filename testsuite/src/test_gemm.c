@@ -254,15 +254,17 @@ void libblis_test_gemm_experiment
 		bli_setsc(  0.9,  1.0, &beta );
 	}
 
+	#if 0
+	//bli_setm( &BLIS_ONE, &a );
+	bli_setsc(  1.0,  0.0, &alpha );
+	bli_setsc(  1.0,  0.0, &beta );
+	#endif
+
 	// Randomize A, B, and C, and save C.
 	libblis_test_mobj_randomize( params, TRUE, &a );
 	libblis_test_mobj_randomize( params, TRUE, &b );
 	libblis_test_mobj_randomize( params, TRUE, &c );
 	bli_copym( &c, &c_save );
-
-//bli_setm( &BLIS_ONE, &a );
-//bli_setsc(  1.0,  0.0, &alpha );
-//bli_setsc(  0.0,  0.0, &beta );
 
 	// Apply the parameters.
 	bli_obj_set_conjtrans( transa, &a );
@@ -445,19 +447,23 @@ void libblis_test_gemm_impl
 #if 0
 //bli_printm( "alpha", alpha, "%5.2f", "" );
 //bli_printm( "beta", beta, "%5.2f", "" );
+if ( bli_obj_dt( c ) == BLIS_DCOMPLEX )
+{
 bli_printm( "a", a, "%5.2f", "" );
 bli_printm( "b", b, "%5.2f", "" );
 bli_printm( "c", c, "%5.2f", "" );
+}
 #endif
 //if ( bli_obj_length( b ) == 16 &&
 //     bli_obj_stor3_from_strides( c, a, b ) == BLIS_CRR )
 //bli_printm( "c before", c, "%6.3f", "" );
 		bli_gemm( alpha, a, b, beta, c );
+		//bls_gemm( alpha, a, b, beta, c );
 #if 0
-if ( bli_obj_length( c ) == 12 &&
-     bli_obj_stor3_from_strides( c, a, b ) == BLIS_RRR )
+if ( bli_obj_dt( c ) == BLIS_DCOMPLEX )
 bli_printm( "c after", c, "%6.3f", "" );
 #endif
+//bli_printm( "c after", c, "%5.2f", "" );
 		break;
 
 		default:
@@ -659,14 +665,14 @@ double libblis_test_gemm_flops
        obj_t* c
      )
 {
-	bool_t a_is_real    = bli_obj_is_real( a );
-	bool_t a_is_complex = bli_obj_is_complex( a );
+	bool   a_is_real    = bli_obj_is_real( a );
+	bool   a_is_complex = bli_obj_is_complex( a );
 
-	bool_t b_is_real    = bli_obj_is_real( b );
-	bool_t b_is_complex = bli_obj_is_complex( b );
+	bool   b_is_real    = bli_obj_is_real( b );
+	bool   b_is_complex = bli_obj_is_complex( b );
 
-	bool_t c_is_real    = bli_obj_is_real( c );
-	bool_t c_is_complex = bli_obj_is_complex( c );
+	bool   c_is_real    = bli_obj_is_real( c );
+	bool   c_is_complex = bli_obj_is_complex( c );
 
 	double m            = ( double )bli_obj_length( c );
 	double n            = ( double )bli_obj_width( c );

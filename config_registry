@@ -8,15 +8,14 @@
 #
 
 # Processor families.
-x86_64_no_skx:      intel64_no_skx zen excavator steamroller piledriver bulldozer
-x86_64:      intel64 amd64
-intel64:     skx knl haswell sandybridge penryn generic
-amd64:       zen2 zen excavator steamroller piledriver bulldozer generic
-intel64_no_skx:     haswell sandybridge penryn generic
-# NOTE: ARM families will remain disabled until runtime hardware detection
-# logic is added to BLIS.
-#arm64:       cortexa57 generic
-#arm32:       cortexa15 cortexa9 generic
+x86_64_no_skx:  intel64_no_skx amd64 amd64_legacy
+x86_64:         intel64 amd64 amd64_legacy
+intel64:        skx knl haswell sandybridge penryn generic
+intel64_no_skx: knl haswell sandybridge penryn generic
+amd64_legacy:   excavator steamroller piledriver bulldozer generic
+amd64:          zen3 zen2 zen generic
+arm64:          armsve firestorm thunderx2 cortexa57 cortexa53 generic
+arm32:          cortexa15 cortexa9 generic
 
 # Intel architectures.
 skx:         skx/skx/haswell/zen
@@ -26,6 +25,7 @@ sandybridge: sandybridge
 penryn:      penryn
 
 # AMD architectures.
+zen3:        zen3/zen3/zen2/zen/haswell
 zen2:        zen2/zen2/zen/haswell
 zen:         zen/zen/haswell
 excavator:   excavator/piledriver
@@ -34,6 +34,9 @@ piledriver:  piledriver
 bulldozer:   bulldozer
 
 # ARM architectures.
+armsve:      armsve/armsve
+a64fx:       a64fx/armsve
+firestorm:   firestorm/armv8a
 thunderx2:   thunderx2/armv8a
 cortexa57:   cortexa57/armv8a
 cortexa53:   cortexa53/armv8a
@@ -41,6 +44,7 @@ cortexa15:   cortexa15/armv7a
 cortexa9:    cortexa9/armv7a
 
 # IBM architectures.
+power10:     power10
 power9:      power9
 bgq:         bgq
 

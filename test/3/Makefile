@@ -46,6 +46,7 @@
 #
 
 .PHONY: all \
+        check-env check-env-mk check-lib \
         clean cleanx
 
 
@@ -135,14 +136,14 @@ PS_MAX   := 2400
 PS_INC   := 48
 
 # Single-socket (multithreaded)
-P1_BEGIN := 96
-P1_MAX   := 4800
-P1_INC   := 96
+P1_BEGIN := 120
+P1_MAX   := 6000
+P1_INC   := 120
 
 # Dual-socket (multithreaded)
-P2_BEGIN := 144
-P2_MAX   := 7200
-P2_INC   := 144
+P2_BEGIN := 160
+P2_MAX   := 8000
+P2_INC   := 160
 
 
 #
@@ -186,20 +187,10 @@ BLA_DEF  := -DBLAS
 EIG_DEF  := -DEIGEN
 
 # Complex implementation type
-D3MHW    := -DIND=BLIS_3MH
-D3M1     := -DIND=BLIS_3M1
-D4MHW    := -DIND=BLIS_4MH
-D4M1B    := -DIND=BLIS_4M1B
-D4M1A    := -DIND=BLIS_4M1A
 D1M      := -DIND=BLIS_1M
 DNAT     := -DIND=BLIS_NAT
 
 # Implementation string
-#STR_3MHW := -DSTR=\"3mhw\"
-#STR_3M1  := -DSTR=\"3m1\"
-#STR_4MHW := -DSTR=\"4mhw\"
-#STR_4M1B := -DSTR=\"4m1b\"
-#STR_4M1A := -DSTR=\"4m1a\"
 #STR_1M   := -DSTR=\"1m\"
 STR_NAT  := -DSTR=\"asm_blis\"
 STR_OBL  := -DSTR=\"openblas\"
@@ -230,9 +221,9 @@ vendor:     vendor-st vendor-1s vendor-2s
 mkl:        vendor
 armpl:      vendor
 
-all-st:     blis-st openblas-st mkl-st
-all-1s:     blis-1s openblas-1s mkl-1s
-all-2s:     blis-2s openblas-2s mkl-2s
+all-st:     blis-st openblas-st mkl-st eigen-st
+all-1s:     blis-1s openblas-1s mkl-1s eigen-1s
+all-2s:     blis-2s openblas-2s mkl-2s eigen-2s
 
 blis-st:    blis-nat-st
 blis-1s:    blis-nat-1s
@@ -285,21 +276,21 @@ VENDOR_2S_OBJS   := $(call get-2s-objs,vendor)
 VENDOR_2S_BINS   := $(patsubst %.o,%.x,$(VENDOR_2S_OBJS))
 
 # Define some targets associated with the above object/binary files.
-blis-nat-st: $(BLIS_NAT_ST_BINS)
-blis-nat-1s: $(BLIS_NAT_1S_BINS)
-blis-nat-2s: $(BLIS_NAT_2S_BINS)
+blis-nat-st: check-env $(BLIS_NAT_ST_BINS)
+blis-nat-1s: check-env $(BLIS_NAT_1S_BINS)
+blis-nat-2s: check-env $(BLIS_NAT_2S_BINS)
 
-openblas-st: $(OPENBLAS_ST_BINS)
-openblas-1s: $(OPENBLAS_1S_BINS)
-openblas-2s: $(OPENBLAS_2S_BINS)
+openblas-st: check-env $(OPENBLAS_ST_BINS)
+openblas-1s: check-env $(OPENBLAS_1S_BINS)
+openblas-2s: check-env $(OPENBLAS_2S_BINS)
 
-eigen-st: $(EIGEN_ST_BINS)
-eigen-1s: $(EIGEN_1S_BINS)
-eigen-2s: $(EIGEN_2S_BINS)
+eigen-st: check-env $(EIGEN_ST_BINS)
+eigen-1s: check-env $(EIGEN_1S_BINS)
+eigen-2s: check-env $(EIGEN_2S_BINS)
 
-vendor-st: $(VENDOR_ST_BINS)
-vendor-1s: $(VENDOR_1S_BINS)
-vendor-2s: $(VENDOR_2S_BINS)
+vendor-st: check-env $(VENDOR_ST_BINS)
+vendor-1s: check-env $(VENDOR_1S_BINS)
+vendor-2s: check-env $(VENDOR_2S_BINS)
 
 mkl-st: vendor-st
 mkl-1s: vendor-1s
@@ -317,7 +308,7 @@ armpl-2s: vendor-2s
 .INTERMEDIATE: $(VENDOR_ST_OBJS)   $(VENDOR_1S_OBJS)   $(VENDOR_2S_OBJS)
 
 
-# --Object file rules --
+# -- Object file rules --
 
 #$(TEST_OBJ_PATH)/%.o: $(TEST_SRC_PATH)/%.c
 #	$(CC) $(CFLAGS) -c $< -o $@
@@ -451,6 +442,21 @@ test_%_$(P1_MAX)_vendor_1s.x:   test_%_$(P1_MAX)_vendor_1s.o   $(LIBBLIS_LINK)
 
 test_%_$(P2_MAX)_vendor_2s.x:   test_%_$(P2_MAX)_vendor_2s.o   $(LIBBLIS_LINK)
 	$(CC) $(strip $<   $(VENDORP_LIB)   $(LIBBLIS_LINK) $(LDFLAGS) -o $@)
+
+
+# -- Environment check rules --
+
+check-env: check-lib
+
+check-env-mk:
+ifeq ($(CONFIG_MK_PRESENT),no)
+	$(error Cannot proceed: config.mk not detected! Run configure first)
+endif
+
+check-lib: check-env-mk
+ifeq ($(wildcard $(LIBBLIS_LINK)),)
+	$(error Cannot proceed: BLIS library not yet built! Run make first)
+endif
 
 
 # -- Clean rules --

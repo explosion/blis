@@ -108,17 +108,7 @@ int main( int argc, char** argv )
 	inc_t    rs_a, cs_a;
 	inc_t    rs_b, cs_b;
 
-	if      ( sc == BLIS_RRR ) { rs_c = cs_c = -1; rs_a = cs_a = -1; rs_b = cs_b = -1; }
-	else if ( sc == BLIS_RRC ) { rs_c = cs_c = -1; rs_a = cs_a = -1; rs_b = cs_b =  0; }
-	else if ( sc == BLIS_RCR ) { rs_c = cs_c = -1; rs_a = cs_a =  0; rs_b = cs_b = -1; }
-	else if ( sc == BLIS_RCC ) { rs_c = cs_c = -1; rs_a = cs_a =  0; rs_b = cs_b =  0; }
-	else if ( sc == BLIS_CRR ) { rs_c = cs_c =  0; rs_a = cs_a = -1; rs_b = cs_b = -1; }
-	else if ( sc == BLIS_CRC ) { rs_c = cs_c =  0; rs_a = cs_a = -1; rs_b = cs_b =  0; }
-	else if ( sc == BLIS_CCR ) { rs_c = cs_c =  0; rs_a = cs_a =  0; rs_b = cs_b = -1; }
-	else if ( sc == BLIS_CCC ) { rs_c = cs_c =  0; rs_a = cs_a =  0; rs_b = cs_b =  0; }
-	else                       { bli_abort(); }
-
-	f77_int cbla_storage;
+	f77_int  cbla_storage;
 
 	if      ( sc == BLIS_RRR ) cbla_storage = CblasRowMajor;
 	else if ( sc == BLIS_CCC ) cbla_storage = CblasColMajor;
@@ -165,6 +155,10 @@ int main( int argc, char** argv )
 	        ( unsigned long )0,
 	        ( unsigned long )0, 0.0 );
 
+	// Flush the initialization-inducing statement above so there is
+	// at least one line of output even if the implementation crashes.
+	fflush( stdout );
+
 
 	//for ( p = p_begin; p <= p_max; p += p_inc )
 	for ( p = p_max; p_begin <= p; p -= p_inc )
@@ -181,6 +175,66 @@ int main( int argc, char** argv )
 		if ( k_input < 0 ) k = p / ( dim_t )abs(k_input);
 		else               k =     ( dim_t )    k_input;
 
+#ifdef LDIM_SMALL
+
+		// Setting the row and column strides of a matrix to '0' is a shorthand
+		// request for column storage; using '-1' is shorthand for row storage.
+		//else if ( sc == BLIS_RRC ) { rs_c = cs_c = -1; rs_a = cs_a = -1; rs_b = cs_b =  0; }
+		//else if ( sc == BLIS_RCR ) { rs_c = cs_c = -1; rs_a = cs_a =  0; rs_b = cs_b = -1; }
+		//else if ( sc == BLIS_RCC ) { rs_c = cs_c = -1; rs_a = cs_a =  0; rs_b = cs_b =  0; }
+		//else if ( sc == BLIS_CRR ) { rs_c = cs_c =  0; rs_a = cs_a = -1; rs_b = cs_b = -1; }
+		//else if ( sc == BLIS_CRC ) { rs_c = cs_c =  0; rs_a = cs_a = -1; rs_b = cs_b =  0; }
+		//else if ( sc == BLIS_CCR ) { rs_c = cs_c =  0; rs_a = cs_a =  0; rs_b = cs_b = -1; }
+
+		if      ( sc == BLIS_RRR ) { rs_c = -1;      rs_a = -1;      rs_b = -1;
+		                             cs_c = -1;      cs_a = -1;      cs_b = -1;      }
+		else if ( sc == BLIS_RRC ) { rs_c = -1;      rs_a = -1;      rs_b =  0;
+		                             cs_c = -1;      cs_a = -1;      cs_b =  0;      }
+		else if ( sc == BLIS_RCR ) { rs_c = -1;      rs_a =  0;      rs_b = -1;
+		                             cs_c = -1;      cs_a =  0;      cs_b = -1;      }
+		else if ( sc == BLIS_RCC ) { rs_c = -1;      rs_a =  0;      rs_b =  0;
+		                             cs_c = -1;      cs_a =  0;      cs_b =  0;      }
+		else if ( sc == BLIS_CRR ) { rs_c =  0;      rs_a = -1;      rs_b = -1;
+		                             cs_c =  0;      cs_a = -1;      cs_b = -1;      }
+		else if ( sc == BLIS_CRC ) { rs_c =  0;      rs_a = -1;      rs_b =  0;
+		                             cs_c =  0;      cs_a = -1;      cs_b =  0;      }
+		else if ( sc == BLIS_CCR ) { rs_c =  0;      rs_a =  0;      rs_b = -1;
+		                             cs_c =  0;      cs_a =  0;      cs_b = -1;      }
+		else if ( sc == BLIS_CCC ) { rs_c =  0;      rs_a =  0;      rs_b =  0;
+		                             cs_c =  0;      cs_a =  0;      cs_b =  0;      }
+		else                       { bli_abort(); }
+
+#else // LDIM_LARGE
+
+		#if 0
+		const dim_t m_large = m;
+		const dim_t n_large = n;
+		const dim_t k_large = k;
+		#else
+		const dim_t m_large = p_max;
+		const dim_t n_large = p_max;
+		const dim_t k_large = p_max;
+		#endif
+
+		if      ( sc == BLIS_RRR ) { rs_c = n_large; rs_a = k_large; rs_b = n_large;
+		                             cs_c = 1;       cs_a = 1;       cs_b = 1;       }
+		else if ( sc == BLIS_RRC ) { rs_c = n_large; rs_a = k_large; rs_b = 1;
+		                             cs_c = 1;       cs_a = 1;       cs_b = k_large; }
+		else if ( sc == BLIS_RCR ) { rs_c = n_large; rs_a = 1;       rs_b = n_large;
+		                             cs_c = 1;       cs_a = m_large; cs_b = 1;       }
+		else if ( sc == BLIS_RCC ) { rs_c = n_large; rs_a = 1;       rs_b = 1;
+		                             cs_c = 1;       cs_a = m_large; cs_b = k_large; }
+		else if ( sc == BLIS_CRR ) { rs_c = 1;       rs_a = k_large; rs_b = n_large;
+		                             cs_c = m_large; cs_a = 1;       cs_b = 1;       }
+		else if ( sc == BLIS_CRC ) { rs_c = 1;       rs_a = k_large; rs_b = 1;
+		                             cs_c = m_large; cs_a = 1;       cs_b = k_large; }
+		else if ( sc == BLIS_CCR ) { rs_c = 1;       rs_a = 1;       rs_b = n_large;
+		                             cs_c = m_large; cs_a = m_large; cs_b = 1;       }
+		else if ( sc == BLIS_CCC ) { rs_c = 1;       rs_a = 1;       rs_b = 1;
+		                             cs_c = m_large; cs_a = m_large; cs_b = k_large; }
+		else                       { bli_abort(); }
+#endif
+
 		bli_obj_create( dt, 1, 1, 0, 0, &alpha );
 		bli_obj_create( dt, 1, 1, 0, 0, &beta );
 
@@ -190,12 +244,12 @@ int main( int argc, char** argv )
 		if ( bli_does_notrans( transa ) )
 			bli_obj_create( dt, m, k, rs_a, cs_a, &a );
 		else
-			bli_obj_create( dt, k, m, rs_a, cs_a, &a );
+			bli_obj_create( dt, k, m, cs_a, rs_a, &a );
 
 		if ( bli_does_notrans( transb ) )
 			bli_obj_create( dt, k, n, rs_b, cs_b, &b );
 		else
-			bli_obj_create( dt, n, k, rs_b, cs_b, &b );
+			bli_obj_create( dt, n, k, cs_b, rs_b, &b );
 
 		bli_randm( &a );
 		bli_randm( &b );
@@ -230,6 +284,35 @@ int main( int argc, char** argv )
 		Stride<Dynamic,1> stride_c( os_c, 1 );
 
 		#if defined(IS_FLOAT)
+			#ifdef A_STOR_R
+			typedef Matrix<float, Dynamic, Dynamic, RowMajor> MatrixXs_A;
+			#else
+			typedef Matrix<float, Dynamic, Dynamic, ColMajor> MatrixXs_A;
+			#endif
+			#ifdef B_STOR_R
+			typedef Matrix<float, Dynamic, Dynamic, RowMajor> MatrixXs_B;
+			#else
+			typedef Matrix<float, Dynamic, Dynamic, ColMajor> MatrixXs_B;
+			#endif
+			#ifdef C_STOR_R
+			typedef Matrix<float, Dynamic, Dynamic, RowMajor> MatrixXs_C;
+			#else
+			typedef Matrix<float, Dynamic, Dynamic, ColMajor> MatrixXs_C;
+			#endif
+
+			#ifdef A_NOTRANS  // A is not transposed
+			Map<MatrixXs_A,  0, Stride<Dynamic,1> > A( ( float* )ap, m, k, stride_a );
+			#else // A is transposed
+			Map<MatrixXs_A,  0, Stride<Dynamic,1> > A( ( float* )ap, k, m, stride_a );
+			#endif
+
+			#ifdef B_NOTRANS // B is not transposed
+			Map<MatrixXs_B,  0, Stride<Dynamic,1> > B( ( float* )bp, k, n, stride_b );
+			#else // B is transposed
+			Map<MatrixXs_B,  0, Stride<Dynamic,1> > B( ( float* )bp, n, k, stride_b );
+			#endif
+
+			Map<MatrixXs_C,  0, Stride<Dynamic,1> > C( ( float* )cp, m, n, stride_c );
 		#elif defined (IS_DOUBLE)
 			#ifdef A_STOR_R
 			typedef Matrix<double, Dynamic, Dynamic, RowMajor> MatrixXd_A;

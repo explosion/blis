@@ -128,11 +128,6 @@ sdcz    # Datatype(s) to test:
 300     # Problem size: maximum to test
 100     # Problem size: increment between experiments
         # Complex level-3 implementations to test
-1       #   3mh  ('1' = enable; '0' = disable)
-1       #   3m1  ('1' = enable; '0' = disable)
-1       #   4mh  ('1' = enable; '0' = disable)
-1       #   4m1b ('1' = enable; '0' = disable)
-1       #   4m1a ('1' = enable; '0' = disable)
 1       #   1m   ('1' = enable; '0' = disable)
 1       #   native ('1' = enable; '0' = disable)
 1       # Simulate application-level threading:
@@ -155,7 +150,7 @@ _**Vector storage scheme.**_ Similar to the matrix storage scheme string, this s
 
 _**Test all combinations of storage schemes?**_ Enabling this option causes all combinations of storage schemes to be tested. For example, if the option is disabled, a matrix storage scheme string of `cr` would cause the `gemm` test module to test execution where all matrix operands are column-stored, and then where all matrix operands are row-stored. Enabling this option with the same matrix storage string (`cr`) would cause the test suite to test `gemm` under all eight scenarios where the three `gemm` matrix operands are either column-stored or row-stored.
 
-_**Perform all tests with alignment?**_ Disabling this option causes the leading dimension (row or column stride) of test matrices to **not** be aligned according to `BLIS_HEAP_STRIDE_ALIGN_SIZE`, which defaults to `BLIS_SIMD_ALIGN_SIZE`, which defaults to `BLIS_SIMD_SIZE`, which defaults to 64 (bytes). (If any of these values is set to a non-default value, it would be in `bli_family_<arch>.h` where `<arch>` is the configuration family.) Sometimes it's useful to disable leading dimension alignment in order to test certain aspects of BLIS that need to handle computing with unaligned user data, such as level-1v and level-1f kernels.
+_**Perform all tests with alignment?**_ Disabling this option causes the leading dimension (row or column stride) of test matrices to **not** be aligned according to `BLIS_HEAP_STRIDE_ALIGN_SIZE`, which defaults to `BLIS_SIMD_ALIGN_SIZE`, which defaults to `BLIS_SIMD_MAX_SIZE`, which defaults to 64 (bytes). (If any of these values is set to a non-default value, it would be in `bli_family_<arch>.h` where `<arch>` is the configuration family.) Sometimes it's useful to disable leading dimension alignment in order to test certain aspects of BLIS that need to handle computing with unaligned user data, such as level-1v and level-1f kernels.
 
 _**Randomize vectors and matrices.**_ The default randomization method uses real values on the interval [-1,1]. However, we offer an alternate randomization using powers of two in a narrow precision range, which is more likely to result in test residuals exactly equal to zero. This method is somewhat niche/experimental and most people should use random values on the [-1,1] interval.
 
@@ -169,7 +164,7 @@ _**Test gemm with mixed-precision operands?**_ This boolean determines whether `
 
 _**Problem size.**_ These values determine the first problem size to test, the maximum problem size to test, and the increment between problem sizes. Note that the maximum problem size only bounds the range of problem sizes; it is not guaranteed to be tested. Example: If the initial problem size is 128, the maximum is 1000, and the increment is 64, then the last problem size to be tested will be 960.
 
-_**Complex level-3 implementations to test.**_ With the exception of the switch marked `native`, these switches control whether experimental complex domain implementations are tested (when applicable). These implementations employ induced methods complex matrix multiplication and apply to some (though not all) of the level-3 operations. If you don't know what these are, you can ignore them. The `native` switch corresponds to native execution of complex domain level-3 operations, which we test by default. We also test the `1m` method, since it is the induced method of choice when complex microkernels are not available. Note that all of these induced method tests (including `native`) are automatically disabled if the `c` and `z` datatypes are disabled.
+_**Complex level-3 implementations to test.**_ This section lists which complex domain implementations of level-3 operations are tested. If you don't know what these are, you can ignore them. The `native` switch corresponds to native execution of complex domain level-3 operations, which we test by default. We also test the `1m` method, since it is the induced method of choice when optimized complex microkernels are not available. Note that all of these induced method tests (including `native`) are automatically disabled if the `c` and `z` datatypes are disabled.
 
 _**Simulate application-level threading.**_ This setting specifies the number of threads the testsuite will spawn, and is meant to allow the user to exercise BLIS as a multithreaded application might if it were to make multiple concurrent calls to BLIS operations. (Note that the threading controlled by this option is orthogonal to, and has no effect on, whatever multithreading may be employed _within_ BLIS, as specified by the environment variables described in the [Multithreading](Multithreading.md) documentation.) When this option is set to 1, the testsuite is run with only one thread. When set to n > 1 threads, the spawned threads will parallelize (in round-robin fashion) the total set of tests specified by the testsuite input files, executing them in roughly the same order as that of a sequential execution.
 

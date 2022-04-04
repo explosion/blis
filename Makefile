@@ -1,10 +1,11 @@
 #
 #
-#  BLIS    
+#  BLIS
 #  An object-based framework for developing high-performance BLAS-like
 #  libraries.
 #
 #  Copyright (C) 2014, The University of Texas at Austin
+#  Copyright (C) 2022, Advanced Micro Devices, Inc.
 #
 #  Redistribution and use in source and binary forms, with or without
 #  modification, are permitted provided that the following conditions are
@@ -36,7 +37,7 @@
 # Makefile
 #
 # Field G. Van Zee
-# 
+#
 # Top-level makefile for libflame linear algebra library.
 #
 #
@@ -114,6 +115,7 @@ BASE_OBJ_CONFIG_PATH   := $(BASE_OBJ_PATH)/$(CONFIG_DIR)
 BASE_OBJ_FRAME_PATH    := $(BASE_OBJ_PATH)/$(FRAME_DIR)
 BASE_OBJ_REFKERN_PATH  := $(BASE_OBJ_PATH)/$(REFKERN_DIR)
 BASE_OBJ_KERNELS_PATH  := $(BASE_OBJ_PATH)/$(KERNELS_DIR)
+BASE_OBJ_ADDON_PATH    := $(BASE_OBJ_PATH)/$(ADDON_DIR)
 BASE_OBJ_SANDBOX_PATH  := $(BASE_OBJ_PATH)/$(SANDBOX_DIR)
 
 # --- Define install target names for static libraries ---
@@ -166,6 +168,7 @@ MK_INCL_DIR_INST          := $(INSTALL_INCDIR)/blis
 # Set the path to the subdirectory of the share installation directory.
 MK_SHARE_DIR_INST         := $(INSTALL_SHAREDIR)/blis
 
+PC_SHARE_DIR_INST         := $(INSTALL_SHAREDIR)/pkgconfig
 
 
 #
@@ -209,15 +212,42 @@ MK_REFKERN_OBJS     := $(foreach arch, $(CONFIG_LIST), \
 # Generate object file paths for all of the portable framework source code.
 MK_FRAME_OBJS       := $(call gen-obj-paths-from-src,$(FRAME_SRC_SUFS),$(MK_FRAME_SRC),$(FRAME_PATH),$(BASE_OBJ_FRAME_PATH))
 
+# Generate object file paths for the addon source code. If one or more addons
+# were not enabled a configure-time, this variable will we empty.
+MK_ADDON_OBJS       := $(call gen-obj-paths-from-src,$(ADDON_SRC_SUFS),$(MK_ADDON_SRC),$(ADDON_PATH),$(BASE_OBJ_ADDON_PATH))
+
 # Generate object file paths for the sandbox source code. If a sandbox was not
 # enabled a configure-time, this variable will we empty.
 MK_SANDBOX_OBJS     := $(call gen-obj-paths-from-src,$(SANDBOX_SRC_SUFS),$(MK_SANDBOX_SRC),$(SANDBOX_PATH),$(BASE_OBJ_SANDBOX_PATH))
+
+# AMD has chosen to introduce AOCL-specific optimizations to certain BLIS
+# framework files that are otherwise intended to remain generic. Upstream
+# developers of vanilla BLIS have agreed to integrate some of these
+# optimizations, but in a way that keeps the AOCL-specific code segregated
+# in separate files containing the suffix '_amd'. For example, the BLAS
+# compatibility layer in vanilla BLIS contains a generic file named
+# 'bla_gemm.c'. AMD's version of this file is named 'bla_gemm_amd.c'.
+# Only one or the other is ever built and included in libblis. Currently,
+# these files are chosen automatically based on the target configuration.
+ifeq ($(ENABLE_AMD_FRAME_TWEAKS),yes)
+# Build is being done for AMD platforms; remove the objects which DO NOT have
+# an "_amd" suffix.
+MK_FRAME_AMD_OBJS  := $(filter $(BASE_OBJ_FRAME_PATH)/%amd.o, $(MK_FRAME_OBJS))
+FILES_TO_REMOVE := $(subst _amd.o,.o, $(MK_FRAME_AMD_OBJS))
+MK_FRAME_OBJS := $(filter-out $(FILES_TO_REMOVE), $(MK_FRAME_OBJS))
+else
+# Build is being done for non-AMD platforms; remove the objects which DO have
+# an "_amd" suffix.
+MK_FRAME_AMD_OBJS  := $(filter $(BASE_OBJ_FRAME_PATH)/%amd.o, $(MK_FRAME_OBJS))
+MK_FRAME_OBJS := $(filter-out $(MK_FRAME_AMD_OBJS), $(MK_FRAME_OBJS))
+endif
 
 # Combine all of the object files into some readily-accessible variables.
 MK_BLIS_OBJS        := $(MK_CONFIG_OBJS) \
                        $(MK_KERNELS_OBJS) \
                        $(MK_REFKERN_OBJS) \
                        $(MK_FRAME_OBJS) \
+                       $(MK_ADDON_OBJS) \
                        $(MK_SANDBOX_OBJS)
 
 # Optionally filter out the BLAS and CBLAS compatibility layer object files.
@@ -249,6 +279,12 @@ ifeq ($(MK_ENABLE_CBLAS),yes)
 HEADERS_TO_INSTALL += $(CBLAS_H_FLAT)
 endif
 
+# If requested, include AMD's C++ template header files in the list of headers
+# to install.
+ifeq ($(INSTALL_HH),yes)
+HEADERS_TO_INSTALL += $(wildcard $(VEND_CPP_PATH)/*.hh)
+endif
+
 
 
 #
@@ -259,6 +295,8 @@ endif
 FRAGS_TO_INSTALL := $(CONFIG_MK_FILE) \
                     $(COMMON_MK_FILE)
 
+PC_IN_FILE  := blis.pc.in
+PC_OUT_FILE := blis.pc
 
 
 #
@@ -452,7 +490,7 @@ endif
 
 flat-header: check-env $(BLIS_H_FLAT)
 
-$(BLIS_H_FLAT): $(FRAME_H99_FILES)
+$(BLIS_H_FLAT): $(ALL_H99_FILES)
 ifeq ($(ENABLE_VERBOSE),yes)
 	$(FLATTEN_H) -c -v1 $(BLIS_H_SRC_PATH) $@ "./$(INCLUDE_DIR)" "$(ALL_H99_DIRPATHS)"
 else
@@ -542,6 +580,28 @@ endef
 
 # first argument: a configuration name from the union of config_list and
 # config_name, used to look up the CFLAGS to use during compilation.
+define make-c99-addon-rule
+$(BASE_OBJ_ADDON_PATH)/%.o: $(ADDON_PATH)/%.$(2) $(BLIS_H_FLAT) $(ADDON_H99_FILES) $(MAKE_DEFS_MK_PATHS)
+ifeq ($(ENABLE_VERBOSE),yes)
+	$(CC) $(call get-addon-c99flags-for,$(1)) -c $$< -o $$@
+else
+	@echo "Compiling $$@" $(call get-addon-c99text-for,$(1))
+	@$(CC) $(call get-addon-c99flags-for,$(1)) -c $$< -o $$@
+endif
+endef
+
+define make-cxx-addon-rule
+$(BASE_OBJ_ADDON_PATH)/%.o: $(ADDON_PATH)/%.$(2) $(BLIS_H_FLAT) $(ADDON_HXX_FILES) $(MAKE_DEFS_MK_PATHS)
+ifeq ($(ENABLE_VERBOSE),yes)
+	$(CXX) $(call get-addon-cxxflags-for,$(1)) -c $$< -o $$@
+else
+	@echo "Compiling $$@" $(call get-addon-cxxtext-for,$(1))
+	@$(CXX) $(call get-addon-cxxflags-for,$(1)) -c $$< -o $$@
+endif
+endef
+
+# first argument: a configuration name from the union of config_list and
+# config_name, used to look up the CFLAGS to use during compilation.
 define make-c99-sandbox-rule
 $(BASE_OBJ_SANDBOX_PATH)/%.o: $(SANDBOX_PATH)/%.$(2) $(BLIS_H_FLAT) $(SANDBOX_H99_FILES) $(MAKE_DEFS_MK_PATHS)
 ifeq ($(ENABLE_VERBOSE),yes)
@@ -591,6 +651,16 @@ $(foreach conf, $(CONFIG_LIST), $(eval $(call make-refkern-rule,$(conf))))
 # specified by the KCONFIG_MAP.
 $(foreach suf, $(KERNELS_SRC_SUFS), \
 $(foreach kset, $(KERNEL_LIST), $(eval $(call make-kernels-rule,$(kset),$(call get-config-for-kset,$(kset)),$(suf)))))
+
+# Instantiate the build rule for C addon files. Use the CFLAGS for the
+# configuration family.
+$(foreach suf, $(ADDON_C99_SUFS), \
+$(foreach conf, $(CONFIG_NAME), $(eval $(call make-c99-addon-rule,$(conf),$(suf)))))
+
+# Instantiate the build rule for C++ addon files. Use the CFLAGS for the
+# configuration family.
+$(foreach suf, $(ADDON_CXX_SUFS), \
+$(foreach conf, $(CONFIG_NAME), $(eval $(call make-cxx-addon-rule,$(conf),$(suf)))))
 
 # Instantiate the build rule for C sandbox files. Use the CFLAGS for the
 # configuration family.
@@ -645,7 +715,7 @@ ifeq ($(ARG_MAX_HACK),yes)
 	$(LINKER) $(SOFLAGS) -o $(LIBBLIS_SO_OUTPUT_NAME) @$@.in $(LDFLAGS)
 	$(RM_F) $@.in
 else
-	$(LINKER) $(SOFLAGS) -o $(LIBBLIS_SO_OUTPUT_NAME) $? $(LDFLAGS)
+	$(LINKER) $(SOFLAGS) -o $(LIBBLIS_SO_OUTPUT_NAME) $^ $(LDFLAGS)
 endif
 else # ifeq ($(ENABLE_VERBOSE),no)
 ifeq ($(ARG_MAX_HACK),yes)
@@ -655,7 +725,7 @@ ifeq ($(ARG_MAX_HACK),yes)
 	@$(RM_F) $@.in
 else
 	@echo "Dynamically linking $@"
-	@$(LINKER) $(SOFLAGS) -o $(LIBBLIS_SO_OUTPUT_NAME) $? $(LDFLAGS)
+	@$(LINKER) $(SOFLAGS) -o $(LIBBLIS_SO_OUTPUT_NAME) $^ $(LDFLAGS)
 endif
 endif
 
@@ -679,7 +749,7 @@ endif
 
 # --- BLAS test suite rules ---
 
-testblas: blastest-run 
+testblas: blastest-run
 
 blastest-f2c: check-env $(BLASTEST_F2C_LIB)
 
@@ -688,7 +758,7 @@ blastest-bin: check-env blastest-f2c $(BLASTEST_DRV_BIN_PATHS)
 blastest-run: $(BLASTEST_DRV_BINS_R)
 
 # f2c object file rule.
-$(BASE_OBJ_BLASTEST_PATH)/%.o: $(BLASTEST_F2C_SRC_PATH)/%.c
+$(BASE_OBJ_BLASTEST_PATH)/%.o: $(BLASTEST_F2C_SRC_PATH)/%.c $(BLIS_H_FLAT)
 ifeq ($(ENABLE_VERBOSE),yes)
 	$(CC) $(call get-user-cflags-for,$(CONFIG_NAME)) $(BLAT_CFLAGS) -c $< -o $@
 else
@@ -697,7 +767,7 @@ else
 endif
 
 # driver object file rule.
-$(BASE_OBJ_BLASTEST_PATH)/%.o: $(BLASTEST_DRV_SRC_PATH)/%.c
+$(BASE_OBJ_BLASTEST_PATH)/%.o: $(BLASTEST_DRV_SRC_PATH)/%.c $(BLIS_H_FLAT)
 ifeq ($(ENABLE_VERBOSE),yes)
 	$(CC) $(call get-user-cflags-for,$(CONFIG_NAME)) $(BLAT_CFLAGS) -c $< -o $@
 else
@@ -716,19 +786,13 @@ else
 	@$(RANLIB) $@
 endif
 
-# first argument: the base name of the BLAS test driver.
-define make-blat-rule
-$(BASE_OBJ_BLASTEST_PATH)/$(1).x: $(BASE_OBJ_BLASTEST_PATH)/$(1).o $(BLASTEST_F2C_LIB) $(LIBBLIS_LINK)
+$(BASE_OBJ_BLASTEST_PATH)/%.x: $(BASE_OBJ_BLASTEST_PATH)/%.o $(BLASTEST_F2C_LIB) $(LIBBLIS_LINK)
 ifeq ($(ENABLE_VERBOSE),yes)
-	$(LINKER) $(BASE_OBJ_BLASTEST_PATH)/$(1).o $(BLASTEST_F2C_LIB) $(LIBBLIS_LINK) $(LDFLAGS) -o $$@
+	$(LINKER) $< $(BLASTEST_F2C_LIB) $(LIBBLIS_LINK) $(LDFLAGS) -o $@
 else
-	@echo "Linking $$(@F) against '$(notdir $(BLASTEST_F2C_LIB)) $(LIBBLIS_LINK) $(LDFLAGS)'"
-	@$(LINKER) $(BASE_OBJ_BLASTEST_PATH)/$(1).o $(BLASTEST_F2C_LIB) $(LIBBLIS_LINK) $(LDFLAGS) -o $$@
+	@echo "Linking $@ against '$(notdir $(BLASTEST_F2C_LIB)) $(LIBBLIS_LINK) "$(LDFLAGS)"'"
+	@$(LINKER) $< $(BLASTEST_F2C_LIB) $(LIBBLIS_LINK) $(LDFLAGS) -o $@
 endif
-endef
-
-# Instantiate the rule above for each driver file.
-$(foreach name, $(BLASTEST_DRV_BASES), $(eval $(call make-blat-rule,$(name))))
 
 # A rule to run ?blat1.x driver files.
 define make-run-blat1-rule
@@ -784,7 +848,7 @@ testsuite: testsuite-run
 testsuite-bin: check-env $(TESTSUITE_BIN)
 
 # Object file rule.
-$(BASE_OBJ_TESTSUITE_PATH)/%.o: $(TESTSUITE_SRC_PATH)/%.c
+$(BASE_OBJ_TESTSUITE_PATH)/%.o: $(TESTSUITE_SRC_PATH)/%.c $(BLIS_H_FLAT)
 ifeq ($(ENABLE_VERBOSE),yes)
 	$(CC) $(call get-user-cflags-for,$(CONFIG_NAME)) -c $< -o $@
 else
@@ -797,7 +861,7 @@ $(TESTSUITE_BIN): $(MK_TESTSUITE_OBJS) $(LIBBLIS_LINK)
 ifeq ($(ENABLE_VERBOSE),yes)
 	$(LINKER) $(MK_TESTSUITE_OBJS) $(LIBBLIS_LINK) $(LDFLAGS) -o $@
 else
-	@echo "Linking $@ against '$(LIBBLIS_LINK) $(LDFLAGS)'"
+	@echo "Linking $@ against '$(LIBBLIS_LINK) "$(LDFLAGS)"'"
 	@$(LINKER) $(MK_TESTSUITE_OBJS) $(LIBBLIS_LINK) $(LDFLAGS) -o $@
 endif
 
@@ -892,6 +956,19 @@ else
 	@- $(TESTSUITE_CHECK_PATH) $(TESTSUITE_OUT_FILE)
 endif
 
+
+# --- AMD's C++ template header test rules ---
+
+# NOTE: The targets below won't work as intended for an out-of-tree build,
+# and so it's disabled for now.
+
+#testcpp: testvendcpp
+
+# Recursively run the test for AMD's C++ template header.
+#testvendcpp:
+#	$(MAKE) -C $(VEND_TESTCPP_PATH)
+
+
 # --- Install header rules ---
 
 install-headers: check-env $(MK_INCL_DIR_INST)
@@ -909,7 +986,7 @@ endif
 
 # --- Install share rules ---
 
-install-share: check-env $(MK_SHARE_DIR_INST)
+install-share: check-env $(MK_SHARE_DIR_INST) $(PC_SHARE_DIR_INST)
 
 $(MK_SHARE_DIR_INST): $(FRAGS_TO_INSTALL) $(CONFIG_MK_FILE)
 ifeq ($(ENABLE_VERBOSE),yes)
@@ -928,6 +1005,20 @@ else
 	               $(@)/$(CONFIG_DIR)/$(CONFIG_NAME)/
 endif
 
+$(PC_SHARE_DIR_INST):  $(PC_IN_FILE)
+	$(MKDIR) $(@)
+ifeq ($(ENABLE_VERBOSE),no)
+	@echo "Installing $(PC_OUT_FILE) into $(@)/"
+endif
+	$(shell cat "$(PC_IN_FILE)" \
+	| sed -e "s#@PACKAGE_VERSION@#$(VERSION)#g" \
+	| sed -e "s#@prefix@#$(prefix)#g" \
+	| sed -e "s#@exec_prefix@#$(exec_prefix)#g" \
+	| sed -e "s#@libdir@#$(libdir)#g" \
+	| sed -e "s#@includedir@#$(includedir)#g" \
+	| sed -e "s#@LDFLAGS@#$(LDFLAGS)#g" \
+	> "$(PC_OUT_FILE)" )
+	$(INSTALL) -m 0644 $(PC_OUT_FILE) $(@)
 
 # --- Install library rules ---
 
@@ -1048,6 +1139,9 @@ ifeq ($(ENABLE_VERBOSE),yes)
 	- $(FIND) $(FRAME_FRAG_PATH) -name "$(FRAGMENT_MK)" | $(XARGS) $(RM_F)
 	- $(FIND) $(REFKERN_FRAG_PATH) -name "$(FRAGMENT_MK)" | $(XARGS) $(RM_F)
 	- $(FIND) $(KERNELS_FRAG_PATH) -name "$(FRAGMENT_MK)" | $(XARGS) $(RM_F)
+ifneq ($(ADDON_LIST),)
+	- $(FIND) $(ADDON_FRAG_PATH) -name "$(FRAGMENT_MK)" | $(XARGS) $(RM_F)
+endif
 ifneq ($(SANDBOX),)
 	- $(FIND) $(SANDBOX_FRAG_PATH) -name "$(FRAGMENT_MK)" | $(XARGS) $(RM_F)
 endif
@@ -1060,6 +1154,10 @@ else
 	@- $(FIND) $(REFKERN_FRAG_PATH) -name "$(FRAGMENT_MK)" | $(XARGS) $(RM_F)
 	@echo "Removing makefile fragments from $(KERNELS_FRAG_PATH)"
 	@- $(FIND) $(KERNELS_FRAG_PATH) -name "$(FRAGMENT_MK)" | $(XARGS) $(RM_F)
+ifneq ($(ADDON_LIST),)
+	@echo "Removing makefile fragments from $(ADDON_FRAG_PATH)"
+	@- $(FIND) $(ADDON_FRAG_PATH) -name "$(FRAGMENT_MK)" | $(XARGS) $(RM_F)
+endif
 ifneq ($(SANDBOX),)
 	@echo "Removing makefile fragments from $(SANDBOX_FRAG_PATH)"
 	@- $(FIND) $(SANDBOX_FRAG_PATH) -name "$(FRAGMENT_MK)" | $(XARGS) $(RM_F)
@@ -1167,27 +1265,35 @@ ifeq ($(IS_CONFIGURED),yes)
 ifeq ($(ENABLE_VERBOSE),yes)
 	- $(FIND) $(TESTSUITE_DIR)/$(OBJ_DIR) -name "*.o" | $(XARGS) $(RM_F)
 	- $(RM_F) $(TESTSUITE_DIR)/$(TESTSUITE_BIN)
+#	- $(MAKE) -C $(VEND_TESTCPP_DIR) clean
 else
 	@echo "Removing object files from $(TESTSUITE_DIR)/$(OBJ_DIR)"
 	@- $(FIND) $(TESTSUITE_DIR)/$(OBJ_DIR) -name "*.o" | $(XARGS) $(RM_F)
 	@echo "Removing binary $(TESTSUITE_DIR)/$(TESTSUITE_BIN)"
 	@- $(RM_F) $(TESTSUITE_DIR)/$(TESTSUITE_BIN)
+#	@$(MAKE) -C $(VEND_TESTCPP_DIR) clean
 endif # ENABLE_VERBOSE
 endif # IS_CONFIGURED
 
 distclean: cleanmk cleanh cleanlib cleantest
 ifeq ($(IS_CONFIGURED),yes)
 ifeq ($(ENABLE_VERBOSE),yes)
+	- $(RM_F) $(BLIS_ADDON_H)
 	- $(RM_F) $(BLIS_CONFIG_H)
 	- $(RM_F) $(CONFIG_MK_FILE)
+	- $(RM_F) $(PC_OUT_FILE)
 	- $(RM_RF) $(OBJ_DIR)
 	- $(RM_RF) $(LIB_DIR)
 	- $(RM_RF) $(INCLUDE_DIR)
 else
+	@echo "Removing $(BLIS_ADDON_H)"
+	@$(RM_F) $(BLIS_ADDON_H)
 	@echo "Removing $(BLIS_CONFIG_H)"
 	@$(RM_F) $(BLIS_CONFIG_H)
 	@echo "Removing $(CONFIG_MK_FILE)"
 	@- $(RM_F) $(CONFIG_MK_FILE)
+	@echo "Removing $(PC_OUT_FILE)"
+	@- $(RM_F) $(PC_OUT_FILE)
 	@echo "Removing $(OBJ_DIR)"
 	@- $(RM_RF) $(OBJ_DIR)
 	@echo "Removing $(LIB_DIR)"
@@ -1202,7 +1308,7 @@ endif
 
 changelog:
 	@echo "Updating '$(DIST_PATH)/$(CHANGELOG)' via '$(GIT_LOG)'"
-	@$(GIT_LOG) > $(DIST_PATH)/$(CHANGELOG) 
+	@$(GIT_LOG) > $(DIST_PATH)/$(CHANGELOG)
 
 
 # --- Uninstall rules ---
