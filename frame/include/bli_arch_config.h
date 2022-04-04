@@ -161,6 +161,14 @@ CNTX_INIT_PROTS( generic )
 #include "bli_family_x86_64_no_skx.h"
 #endif
 
+#ifdef BLIS_FAMILY_X86_64_NO_ZEN2
+#include "bli_family_x86_64_no_zen2.h"
+#endif
+
+#ifdef BLIS_FAMILY_X86_64_NO_ZEN3
+#include "bli_family_x86_64_no_zen3.h"
+#endif
+
 // -- Intel64 architectures --
 
 #ifdef BLIS_FAMILY_SKX
