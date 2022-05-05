@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -35,7 +35,6 @@
 
 #include <unistd.h>
 #include "blis.h"
-
 
 //#define PRINT
 
@@ -89,9 +88,6 @@ int main( int argc, char** argv )
 
 	ind_t ind_mod = ind;
 
-	// A hack to use 3m1 as 1mpb (with 1m as 1mbp).
-	if ( ind == BLIS_3M1 ) ind_mod = BLIS_1M;
-
 	// Initialize a context for the current induced method and datatype.
 	cntx = bli_gks_query_ind_cntx( ind_mod, dt );
 
@@ -122,12 +118,13 @@ int main( int argc, char** argv )
 
 	printf( "data_%s_%cherk_%s", THR_STR, dt_ch, STR );
 	printf( "( %2lu, 1:3 ) = [ %4lu %4lu %7.2f ];\n",
-	        ( unsigned long )(p - p_begin + 1)/p_inc + 1,
+	        ( unsigned long )(p - p_begin)/p_inc + 1,
 	        ( unsigned long )0,
 	        ( unsigned long )0, 0.0 );
 
 
-	for ( p = p_begin; p <= p_max; p += p_inc )
+	//for ( p = p_begin; p <= p_max; p += p_inc )
+	for ( p = p_max; p_begin <= p; p -= p_inc )
 	{
 
 		if ( m_input < 0 ) m = p / ( dim_t )abs(m_input);
@@ -190,14 +187,14 @@ int main( int argc, char** argv )
 
 			if ( bli_is_float( dt ) )
 			{
-				f77_int  mm     = bli_obj_length( &c );
-				f77_int  kk     = bli_obj_width_after_trans( &a );
-				f77_int  lda    = bli_obj_col_stride( &a );
-				f77_int  ldc    = bli_obj_col_stride( &c );
-				float*   alphap = bli_obj_buffer( &alpha );
-				float*   ap     = bli_obj_buffer( &a );
-				float*   betap  = bli_obj_buffer( &beta );
-				float*   cp     = bli_obj_buffer( &c );
+				f77_int   mm     = bli_obj_length( &c );
+				f77_int   kk     = bli_obj_width_after_trans( &a );
+				f77_int   lda    = bli_obj_col_stride( &a );
+				f77_int   ldc    = bli_obj_col_stride( &c );
+				float*    alphap = ( float* )bli_obj_buffer( &alpha );
+				float*    ap     = ( float* )bli_obj_buffer( &a );
+				float*    betap  = ( float* )bli_obj_buffer( &beta );
+				float*    cp     = ( float* )bli_obj_buffer( &c );
 
 				ssyrk_( &f77_uploc,
 						&f77_transa,
@@ -210,14 +207,14 @@ int main( int argc, char** argv )
 			}
 			else if ( bli_is_double( dt ) )
 			{
-				f77_int  mm     = bli_obj_length( &c );
-				f77_int  kk     = bli_obj_width_after_trans( &a );
-				f77_int  lda    = bli_obj_col_stride( &a );
-				f77_int  ldc    = bli_obj_col_stride( &c );
-				double*  alphap = bli_obj_buffer( &alpha );
-				double*  ap     = bli_obj_buffer( &a );
-				double*  betap  = bli_obj_buffer( &beta );
-				double*  cp     = bli_obj_buffer( &c );
+				f77_int   mm     = bli_obj_length( &c );
+				f77_int   kk     = bli_obj_width_after_trans( &a );
+				f77_int   lda    = bli_obj_col_stride( &a );
+				f77_int   ldc    = bli_obj_col_stride( &c );
+				double*   alphap = ( double* )bli_obj_buffer( &alpha );
+				double*   ap     = ( double* )bli_obj_buffer( &a );
+				double*   betap  = ( double* )bli_obj_buffer( &beta );
+				double*   cp     = ( double* )bli_obj_buffer( &c );
 
 				dsyrk_( &f77_uploc,
 						&f77_transa,
@@ -230,14 +227,21 @@ int main( int argc, char** argv )
 			}
 			else if ( bli_is_scomplex( dt ) )
 			{
-				f77_int    mm     = bli_obj_length( &c );
-				f77_int    kk     = bli_obj_width_after_trans( &a );
-				f77_int    lda    = bli_obj_col_stride( &a );
-				f77_int    ldc    = bli_obj_col_stride( &c );
-				float*     alphap = bli_obj_buffer( &alpha );
-				scomplex*  ap     = bli_obj_buffer( &a );
-				float*     betap  = bli_obj_buffer( &beta );
-				scomplex*  cp     = bli_obj_buffer( &c );
+				f77_int   mm     = bli_obj_length( &c );
+				f77_int   kk     = bli_obj_width_after_trans( &a );
+				f77_int   lda    = bli_obj_col_stride( &a );
+				f77_int   ldc    = bli_obj_col_stride( &c );
+#ifdef EIGEN
+				float*    alphap = ( float*    )bli_obj_buffer( &alpha );
+				float*    ap     = ( float*    )bli_obj_buffer( &a );
+				float*    betap  = ( float*    )bli_obj_buffer( &beta );
+				float*    cp     = ( float*    )bli_obj_buffer( &c );
+#else
+				float*    alphap = ( float*    )bli_obj_buffer( &alpha );
+				scomplex* ap     = ( scomplex* )bli_obj_buffer( &a );
+				float*    betap  = ( float*    )bli_obj_buffer( &beta );
+				scomplex* cp     = ( scomplex* )bli_obj_buffer( &c );
+#endif
 
 				cherk_( &f77_uploc,
 						&f77_transa,
@@ -250,14 +254,21 @@ int main( int argc, char** argv )
 			}
 			else if ( bli_is_dcomplex( dt ) )
 			{
-				f77_int    mm     = bli_obj_length( &c );
-				f77_int    kk     = bli_obj_width_after_trans( &a );
-				f77_int    lda    = bli_obj_col_stride( &a );
-				f77_int    ldc    = bli_obj_col_stride( &c );
-				double*    alphap = bli_obj_buffer( &alpha );
-				dcomplex*  ap     = bli_obj_buffer( &a );
-				double*    betap  = bli_obj_buffer( &beta );
-				dcomplex*  cp     = bli_obj_buffer( &c );
+				f77_int   mm     = bli_obj_length( &c );
+				f77_int   kk     = bli_obj_width_after_trans( &a );
+				f77_int   lda    = bli_obj_col_stride( &a );
+				f77_int   ldc    = bli_obj_col_stride( &c );
+#ifdef EIGEN
+				double*   alphap = ( double*   )bli_obj_buffer( &alpha );
+				double*   ap     = ( double*   )bli_obj_buffer( &a );
+				double*   betap  = ( double*   )bli_obj_buffer( &beta );
+				double*   cp     = ( double*   )bli_obj_buffer( &c );
+#else
+				double*   alphap = ( double*   )bli_obj_buffer( &alpha );
+				dcomplex* ap     = ( dcomplex* )bli_obj_buffer( &a );
+				double*   betap  = ( double*   )bli_obj_buffer( &beta );
+				dcomplex* cp     = ( dcomplex* )bli_obj_buffer( &c );
+#endif
 
 				zherk_( &f77_uploc,
 						&f77_transa,
@@ -284,7 +295,7 @@ int main( int argc, char** argv )
 
 		printf( "data_%s_%cherk_%s", THR_STR, dt_ch, STR );
 		printf( "( %2lu, 1:3 ) = [ %4lu %4lu %7.2f ];\n",
-		        ( unsigned long )(p - p_begin + 1)/p_inc + 1,
+		        ( unsigned long )(p - p_begin)/p_inc + 1,
 		        ( unsigned long )m,
 		        ( unsigned long )k, gflops );
 

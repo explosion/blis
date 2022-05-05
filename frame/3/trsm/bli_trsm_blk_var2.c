@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -60,7 +60,7 @@ void bli_trsm_blk_var2
 	bli_thread_range_ndim
 	(
 	  direct, thread, a, b, c, cntl, cntx,
-      &my_start, &my_end
+	  &my_start, &my_end
 	);
 
 	// Partition along the n dimension.
@@ -77,7 +77,7 @@ void bli_trsm_blk_var2
 		                        i, b_alg, c, &c1 );
 
 		// Perform trsm subproblem.
-		bli_trsm_int
+		bli_l3_int
 		(
 		  &BLIS_ONE,
 		  a,

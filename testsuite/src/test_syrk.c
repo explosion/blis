@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -192,11 +192,11 @@ void libblis_test_syrk_experiment
 
 	// Create test operands (vectors and/or matrices).
 	libblis_test_mobj_create( params, datatype, transa,
-	                          sc_str[0], m, k, &a );
+	                          sc_str[1], m, k, &a );
 	libblis_test_mobj_create( params, datatype, BLIS_NO_TRANSPOSE,
-	                          sc_str[1], m, m, &c );
+	                          sc_str[0], m, m, &c );
 	libblis_test_mobj_create( params, datatype, BLIS_NO_TRANSPOSE,
-	                          sc_str[1], m, m, &c_save );
+	                          sc_str[0], m, m, &c_save );
 
 	// Set alpha and beta.
 	if ( bli_obj_is_real( &c ) )
@@ -276,8 +276,6 @@ void libblis_test_syrk_impl
 	{
 		case BLIS_TEST_SEQ_FRONT_END:
 		bli_syrk( alpha, a, beta, c );
-		//bli_syrk4m( alpha, a, beta, c );
-		//bli_syrk3m( alpha, a, beta, c );
 		break;
 
 		default:
@@ -324,7 +322,7 @@ void libblis_test_syrk_check
 	//
 	// is functioning correctly if
 	//
-	//   normf( v - z )
+	//   normfv( v - z )
 	//
 	// is negligible, where
 	//

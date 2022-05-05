@@ -66,11 +66,19 @@ GENFRONT( randm )
 GENFRONT( randnm )
 GENFRONT( sumsqv )
 
+// -----------------------------------------------------------------------------
+
+// Operations with only basic interfaces.
 
 #undef  GENFRONT
 #define GENFRONT( opname ) \
 \
-GENARRAY_FPA( void*, opname ); \
+/*
+GENARRAY_FPA( void_fp, opname ); \
+*/ \
+\
+GENARRAY_FPA( PASTECH(opname,_vft), \
+              PASTECH0(opname) ); \
 \
 PASTECH(opname,_vft) \
 PASTEMAC(opname,_qfp)( num_t dt ) \
@@ -78,6 +86,9 @@ PASTEMAC(opname,_qfp)( num_t dt ) \
 	return PASTECH(opname,_fpa)[ dt ]; \
 }
 
+GENFRONT( eqsc )
+GENFRONT( eqv )
+GENFRONT( eqm )
 GENFRONT( fprintv )
 GENFRONT( fprintm )
 //GENFRONT( printv )

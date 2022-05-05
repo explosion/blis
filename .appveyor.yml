@@ -1,3 +1,5 @@
+skip_branch_with_pr: true
+
 environment:
   matrix:
     - LIB_TYPE: shared
@@ -39,10 +41,11 @@ build_script:
 - bash -lc "cd /c/projects/blis && ./configure %CONFIGURE_OPTS% --enable-threading=%THREADING% --enable-arg-max-hack --prefix=/c/blis %CONFIG%"
 - bash -lc "cd /c/projects/blis && mingw32-make -j4 V=1"
 - bash -lc "cd /c/projects/blis && mingw32-make install"
-- ps: Compress-Archive -Path C:\blis -DestinationPath C:\blis.zip
+- 7z a C:\blis.zip C:\blis
 - ps: Push-AppveyorArtifact C:\blis.zip
 
 test_script:
+# "make checkblas" does not work with shared linking Windows due to inability to override xerbla_
 - if [%LIB_TYPE%]==[shared] set "TEST_TARGET=checkblis-fast"
 - if [%LIB_TYPE%]==[static] set "TEST_TARGET=check"
 - bash -lc "cd /c/projects/blis && mingw32-make %TEST_TARGET% -j4 V=1"

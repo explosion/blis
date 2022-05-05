@@ -74,17 +74,33 @@ GENTFUNCCO( scomplex, float,  c, s, blasname, blisname ) \
 GENTFUNCCO( dcomplex, double, z, d, blasname, blisname )
 
 
+// -- Basic one-operand macro with conjugation (real funcs only, used only for dot, ger) --
+
+
+#define INSERT_GENTFUNCDOTR_BLAS( blasname, blisname ) \
+\
+GENTFUNCDOT( float,    s,  , BLIS_NO_CONJUGATE, blasname, blisname ) \
+GENTFUNCDOT( double,   d,  , BLIS_NO_CONJUGATE, blasname, blisname )
+
+
+// -- Basic one-operand macro with conjugation (complex funcs only, used only for dot, ger) --
+
+
+#define INSERT_GENTFUNCDOTC_BLAS( blasname, blisname ) \
+\
+GENTFUNCDOT( scomplex, c, c, BLIS_CONJUGATE,    blasname, blisname ) \
+GENTFUNCDOT( scomplex, c, u, BLIS_NO_CONJUGATE, blasname, blisname ) \
+GENTFUNCDOT( dcomplex, z, c, BLIS_CONJUGATE,    blasname, blisname ) \
+GENTFUNCDOT( dcomplex, z, u, BLIS_NO_CONJUGATE, blasname, blisname )
+
+
 // -- Basic one-operand macro with conjugation (used only for dot, ger) --
 
 
 #define INSERT_GENTFUNCDOT_BLAS( blasname, blisname ) \
 \
-GENTFUNCDOT( float,    s,  , BLIS_NO_CONJUGATE, blasname, blisname ) \
-GENTFUNCDOT( double,   d,  , BLIS_NO_CONJUGATE, blasname, blisname ) \
-GENTFUNCDOT( scomplex, c, c, BLIS_CONJUGATE,    blasname, blisname ) \
-GENTFUNCDOT( scomplex, c, u, BLIS_NO_CONJUGATE, blasname, blisname ) \
-GENTFUNCDOT( dcomplex, z, c, BLIS_CONJUGATE,    blasname, blisname ) \
-GENTFUNCDOT( dcomplex, z, u, BLIS_NO_CONJUGATE, blasname, blisname )
+INSERT_GENTFUNCDOTR_BLAS( blasname, blisname ) \
+INSERT_GENTFUNCDOTC_BLAS( blasname, blisname )
 
 
 // -- Basic one-operand macro with real projection --
@@ -222,6 +238,24 @@ GENTFUNCR( float,    float,  s, s, tfuncname, varname1, varname2, varname3, varn
 GENTFUNCR( double,   double, d, d, tfuncname, varname1, varname2, varname3, varname4 ) \
 GENTFUNCR( scomplex, float,  c, s, tfuncname, varname1, varname2, varname3, varname4 ) \
 GENTFUNCR( dcomplex, double, z, d, tfuncname, varname1, varname2, varname3, varname4 )
+
+
+
+// -- Basic one-operand macro with real domain only --
+
+// -- (no auxiliary arguments) --
+
+#define INSERT_GENTFUNCRO_BASIC0( tfuncname ) \
+\
+GENTFUNCRO( float,  s, tfuncname ) \
+GENTFUNCRO( double, d, tfuncname ) \
+
+// -- (one auxiliary argument) --
+
+#define INSERT_GENTFUNCRO_BASIC( tfuncname, varname ) \
+\
+GENTFUNCRO( float,  s, tfuncname, varname ) \
+GENTFUNCRO( double, d, tfuncname, varname ) \
 
 
 

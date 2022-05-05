@@ -71,7 +71,7 @@ void bli_trsm_blk_var3
 		                        i, b_alg, b, &b1 );
 
 		// Perform trsm subproblem.
-		bli_trsm_int
+		bli_l3_int
 		(
 		  &BLIS_ONE,
 		  &a1,
@@ -85,7 +85,7 @@ void bli_trsm_blk_var3
 		);
 
 		//bli_thread_ibarrier( thread );
-		bli_thread_obarrier( bli_thrinfo_sub_node( thread ) );
+		bli_thread_barrier( bli_thrinfo_sub_node( thread ) );
 
 		// This variant executes multiple rank-k updates. Therefore, if the
 		// internal alpha scalars on A/B and C are non-zero, we must ensure

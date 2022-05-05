@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -266,6 +266,11 @@ void libblis_test_amaxv_check
 	//bli_obj_scalar_init_detached( BLIS_INT, &index );
 	//bli_amaxv( x, &index );
 	bli_getsc( index, &i_d, &junk ); i = i_d;
+
+	// If x is length 0, then we can't access any elements, and so we
+	// return early with a good residual.
+	if ( bli_obj_vector_dim( x ) == 0 ) { *resid = 0.0; return; }
+
 	bli_acquire_vi( i, x, &chi_i );
 
 	bli_obj_scalar_init_detached( BLIS_INT, &index_test );
@@ -351,11 +356,18 @@ void PASTEMAC0(opname) \
 \
     void*     buf_index = bli_obj_buffer_at_off( index ); \
 \
+/*
+	FGVZ: Disabling this code since bli_amaxv_check() is supposed to be a
+	non-public API function, and therefore unavailable unless all symbols
+	are scheduled to be exported at configure-time (which is not currently
+	the default behavior).
+
     if ( bli_error_checking_is_enabled() ) \
         bli_amaxv_check( x, index ); \
+*/ \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH(tname,_vft) f = \
 	PASTEMAC(opname,_qfp)( dt ); \
 \

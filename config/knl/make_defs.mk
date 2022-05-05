@@ -57,7 +57,7 @@ endif
 ifeq ($(DEBUG_TYPE),noopt)
 COPTFLAGS      := -O0
 else
-COPTFLAGS      := -O3
+COPTFLAGS      := -O2
 endif
 
 ifeq ($(DEBUG_TYPE),sde)
@@ -73,7 +73,7 @@ MK_ENABLE_MEMKIND := no
 endif
 
 # Flags specific to optimized kernels.
-CKOPTFLAGS     := $(COPTFLAGS)
+CKOPTFLAGS     := $(COPTFLAGS) -O3
 ifeq ($(CC_VENDOR),gcc)
 CKVECFLAGS     := -mavx512f -mavx512pf -mfpmath=sse -march=knl
 else
@@ -99,13 +99,13 @@ endif
 # Note: We use AVX2 for reference kernels instead of AVX-512.
 CROPTFLAGS     := $(CKOPTFLAGS)
 ifeq ($(CC_VENDOR),gcc)
-CRVECFLAGS     := -march=knl -mno-avx512f -mno-avx512pf -mno-avx512er -mno-avx512cd -funsafe-math-optimizations
+CRVECFLAGS     := -march=knl -mno-avx512f -mno-avx512pf -mno-avx512er -mno-avx512cd -funsafe-math-optimizations -ffp-contract=fast
 else
 ifeq ($(CC_VENDOR),icc)
 CRVECFLAGS     := -xMIC-AVX512
 else
 ifeq ($(CC_VENDOR),clang)
-CRVECFLAGS     := -march=knl -mno-avx512f -mno-avx512pf -mno-avx512er -mno-avx512cd
+CRVECFLAGS     := -march=knl -mno-avx512f -mno-avx512pf -mno-avx512er -mno-avx512cd -funsafe-math-optimizations -ffp-contract=fast
 else
 $(error gcc, icc, or clang is required for this configuration.)
 endif

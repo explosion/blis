@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -45,11 +46,11 @@
 // internally within BLIS as well as those exposed in the native BLAS-like BLIS
 // interface.
 #ifndef BLIS_INT_TYPE_SIZE
-#ifdef BLIS_ARCH_64
-#define BLIS_INT_TYPE_SIZE               64
-#else
-#define BLIS_INT_TYPE_SIZE               32
-#endif
+  #ifdef BLIS_ARCH_64
+    #define BLIS_INT_TYPE_SIZE 64
+  #else
+    #define BLIS_INT_TYPE_SIZE 32
+  #endif
 #endif
 
 
@@ -98,6 +99,26 @@
   #define BLIS_ENABLE_MULTITHREADING
 #endif
 
+// Enable the use of prime numbers of threads when requesting automatic thread
+// factorization. When disabled, requesting a prime number of threads will
+// result in a reduction (by one) of the number of threads, provided that the
+// prime number exceeds a minimum threshold (see below).
+#ifdef BLIS_ENABLE_AUTO_PRIME_NUM_THREADS
+  #undef BLIS_DISABLE_AUTO_PRIME_NUM_THREADS
+#else
+  // Default behavior is disabled.
+  #undef  BLIS_DISABLE_AUTO_PRIME_NUM_THREADS // In case user explicitly disabled.
+  #define BLIS_DISABLE_AUTO_PRIME_NUM_THREADS
+#endif
+
+// Set the maximum requested number of threads that BLIS will accept from the
+// user that may be prime. If a larger prime number of threads is requested,
+// it will be reduced by one to allow for more efficient thread factorizations.
+// This value will only be used if BLIS_ENABLE_AUTO_PRIME_NUM_THREADS is defined.
+#ifndef BLIS_NT_MAX_PRIME
+  #define BLIS_NT_MAX_PRIME 11
+#endif
+
 
 // -- MIXED DATATYPE SUPPORT ---------------------------------------------------
 
@@ -128,16 +149,6 @@
   #define BLIS_RELAX_MCNR_NCMR_CONSTRAINTS
 #endif
 
-// Stay initialized after auto-initialization, unless and until the user
-// explicitly calls bli_finalize().
-#ifdef BLIS_DISABLE_STAY_AUTO_INITIALIZED
-  #undef BLIS_ENABLE_STAY_AUTO_INITIALIZED
-#else
-  // Default behavior is enabled.
-  #undef  BLIS_ENABLE_STAY_AUTO_INITIALIZED // In case user explicitly enabled.
-  #define BLIS_ENABLE_STAY_AUTO_INITIALIZED
-#endif
-
 
 // -- BLAS COMPATIBILITY LAYER -------------------------------------------------
 
@@ -157,7 +168,19 @@
 // C99 type "long int". Note that this ONLY affects integers used within the
 // BLAS compatibility layer.
 #ifndef BLIS_BLAS_INT_TYPE_SIZE
-#define BLIS_BLAS_INT_TYPE_SIZE     32
+  #define BLIS_BLAS_INT_TYPE_SIZE 32
+#endif
+
+// By default, the level-3 BLAS routines are implemented by directly calling
+// the BLIS object API. Alternatively, they may first call the typed BLIS
+// API, which will then call the object API.
+//#define BLIS_BLAS3_CALLS_TAPI
+#ifdef BLIS_BLAS3_CALLS_TAPI
+  #undef  BLIS_BLAS3_CALLS_OAPI
+#else
+  // Default behavior is to call object API directly.
+  #undef  BLIS_BLAS3_CALLS_OAPI // In case user explicitly enabled.
+  #define BLIS_BLAS3_CALLS_OAPI
 #endif
 
 
@@ -173,6 +196,74 @@
   // No additional definitions needed.
 #else
   // Default behavior is disabled.
+#endif
+
+
+// -- SHARED LIBRARY SYMBOL EXPORT ---------------------------------------------
+
+// When building shared libraries, we can control which symbols are exported for
+// linking by external applications. BLIS annotates all function prototypes that
+// are meant to be "public" with BLIS_EXPORT_BLIS (with BLIS_EXPORT_BLAS playing
+// a similar role for BLAS compatibility routines). Which symbols are exported
+// is controlled by the default symbol visibility, as specifed by the gcc option
+// -fvisibility=[default|hidden]. The default for this option is 'default', or,
+// "public", which, if allowed to stand, causes all symbols in BLIS to be
+// linkable from the outside. But when compiling with -fvisibility=hidden, all
+// symbols start out hidden (that is, restricted only for internal use by BLIS),
+// with that setting overridden only for function prototypes or variable
+// declarations that are annotated with BLIS_EXPORT_BLIS.
+
+#ifndef BLIS_EXPORT
+  #if !defined(BLIS_ENABLE_SHARED)
+    #define BLIS_EXPORT
+  #else
+    #if defined(_WIN32) || defined(__CYGWIN__)
+      #ifdef BLIS_IS_BUILDING_LIBRARY
+        #define BLIS_EXPORT __declspec(dllexport)
+      #else
+        #define BLIS_EXPORT __declspec(dllimport)
+      #endif
+    #elif defined(__GNUC__) && __GNUC__ >= 4
+      #define BLIS_EXPORT __attribute__ ((visibility ("default")))
+    #else
+      #define BLIS_EXPORT
+    #endif
+  #endif
+#endif
+
+#define BLIS_EXPORT_BLIS  BLIS_EXPORT
+#define BLIS_EXPORT_BLAS  BLIS_EXPORT
+#define BLIS_EXPORT_ADDON BLIS_EXPORT
+
+
+// -- OVERRIDABLE (WEAK) SYMBOLS -----------------------------------------------
+
+// On Linux, functions called from a shared library can be overriden by the main
+// program simply by providing a new definition. However, macOS uses a "two-level
+// namespace" which causes calls to shared library functions to be tied to the
+// library and not overridable. As a workaround, certain symbols can be defined
+// as "weak" and are given lower preference during linking.
+#ifndef BLIS_OVERRIDABLE
+#if BLIS_OS_OSX
+#define BLIS_OVERRIDABLE __attribute__((weak))
+#else
+#define BLIS_OVERRIDABLE
+#endif
+#endif
+
+
+// -- STATIC INLINE FUNCTIONS --------------------------------------------------
+
+// C and C++ have different semantics for defining "inline" functions. In C,
+// the keyword phrase "static inline" accomplishes this, though the "inline"
+// is optional. In C++, the "inline" keyword is required and obviates "static"
+// altogether. Why does this matter? While BLIS is compiled in C99, blis.h may
+// be #included by a source file that is compiled with C++.
+#ifdef __cplusplus
+  #define BLIS_INLINE inline
+#else
+  //#define BLIS_INLINE static inline
+  #define BLIS_INLINE static
 #endif
 
 

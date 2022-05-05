@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2020, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -121,6 +121,8 @@ void* libblis_test_thread_entry( void* tdata_void )
 
 void libblis_test_thread_decorator( test_params_t* params, test_ops_t* ops )
 {
+	err_t r_val;
+
 	// Query the total number of threads to simulate.
 	size_t nt = ( size_t )params->n_app_threads;
 
@@ -130,22 +132,22 @@ void libblis_test_thread_decorator( test_params_t* params, test_ops_t* ops )
 	#ifdef BLIS_ENABLE_MEM_TRACING
 	printf( "libblis_test_thread_decorator(): " );
 	#endif
-	bli_pthread_t* pthread = bli_malloc_intl( sizeof( bli_pthread_t ) * nt );
+	bli_pthread_t* pthread = bli_malloc_user( sizeof( bli_pthread_t ) * nt, &r_val );
 
 	#ifdef BLIS_ENABLE_MEM_TRACING
 	printf( "libblis_test_thread_decorator(): " );
 	#endif
-	thread_data_t* tdata   = bli_malloc_intl( sizeof( thread_data_t ) * nt );
+	thread_data_t* tdata   = bli_malloc_user( sizeof( thread_data_t ) * nt, &r_val );
 
 	// Allocate a mutex for the threads to share.
-	//bli_pthread_mutex_t* mutex   = bli_malloc_intl( sizeof( bli_pthread_mutex_t ) );
+	//bli_pthread_mutex_t* mutex   = bli_malloc_user( sizeof( bli_pthread_mutex_t ) );
 
 	// Allocate a barrier for the threads to share.
 
 	#ifdef BLIS_ENABLE_MEM_TRACING
 	printf( "libblis_test_thread_decorator(): " );
 	#endif
-	bli_pthread_barrier_t* barrier = bli_malloc_intl( sizeof( bli_pthread_barrier_t ) );
+	bli_pthread_barrier_t* barrier = bli_malloc_user( sizeof( bli_pthread_barrier_t ), &r_val );
 
 	// Initialize the mutex.
 	//bli_pthread_mutex_init( mutex, NULL );
@@ -191,18 +193,18 @@ void libblis_test_thread_decorator( test_params_t* params, test_ops_t* ops )
 	#ifdef BLIS_ENABLE_MEM_TRACING
 	printf( "libblis_test_thread_decorator(): " );
 	#endif
-	bli_free_intl( pthread );
+	bli_free_user( pthread );
 
 	#ifdef BLIS_ENABLE_MEM_TRACING
 	printf( "libblis_test_thread_decorator(): " );
 	#endif
-	bli_free_intl( tdata );
+	bli_free_user( tdata );
 
 	#ifdef BLIS_ENABLE_MEM_TRACING
 	printf( "libblis_test_thread_decorator(): " );
 	#endif
-	//bli_free_intl( mutex );
-	bli_free_intl( barrier );
+	//bli_free_user( mutex );
+	bli_free_user( barrier );
 }
 
 
@@ -314,6 +316,7 @@ void libblis_test_level3_ukrs( thread_data_t* tdata, test_params_t* params, test
 void libblis_test_level3_ops( thread_data_t* tdata, test_params_t* params, test_ops_t* ops )
 {
 	libblis_test_gemm( tdata, params, &(ops->gemm) );
+	libblis_test_gemmt( tdata, params, &(ops->gemmt) );
 	libblis_test_hemm( tdata, params, &(ops->hemm) );
 	libblis_test_herk( tdata, params, &(ops->herk) );
 	libblis_test_her2k( tdata, params, &(ops->her2k) );
@@ -408,6 +411,7 @@ void libblis_test_read_ops_file( char* input_filename, test_ops_t* ops )
 
 	// Level-3
 	libblis_test_read_op_info( ops, input_stream, BLIS_GEMM,  BLIS_TEST_DIMS_MNK, 2, &(ops->gemm) );
+	libblis_test_read_op_info( ops, input_stream, BLIS_GEMMT, BLIS_TEST_DIMS_MK,  3, &(ops->gemmt) );
 	libblis_test_read_op_info( ops, input_stream, BLIS_HEMM,  BLIS_TEST_DIMS_MN,  4, &(ops->hemm) );
 	libblis_test_read_op_info( ops, input_stream, BLIS_HERK,  BLIS_TEST_DIMS_MK,  2, &(ops->herk) );
 	libblis_test_read_op_info( ops, input_stream, BLIS_HER2K, BLIS_TEST_DIMS_MK,  3, &(ops->her2k) );
@@ -546,26 +550,6 @@ void libblis_test_read_params_file( char* input_filename, test_params_t* params 
 	libblis_test_read_next_line( buffer, input_stream );
 	sscanf( buffer, "%u ", &(params->p_inc) );
 
-	// Read whether to enable 3mh.
-	libblis_test_read_next_line( buffer, input_stream );
-	sscanf( buffer, "%u ", &(params->ind_enable[ BLIS_3MH ]) );
-
-	// Read whether to enable 3m1.
-	libblis_test_read_next_line( buffer, input_stream );
-	sscanf( buffer, "%u ", &(params->ind_enable[ BLIS_3M1 ]) );
-
-	// Read whether to enable 4mh.
-	libblis_test_read_next_line( buffer, input_stream );
-	sscanf( buffer, "%u ", &(params->ind_enable[ BLIS_4MH ]) );
-
-	// Read whether to enable 4m1b (4mb).
-	libblis_test_read_next_line( buffer, input_stream );
-	sscanf( buffer, "%u ", &(params->ind_enable[ BLIS_4M1B ]) );
-
-	// Read whether to enable 4m1a (4m1).
-	libblis_test_read_next_line( buffer, input_stream );
-	sscanf( buffer, "%u ", &(params->ind_enable[ BLIS_4M1A ]) );
-
 	// Read whether to enable 1m.
 	libblis_test_read_next_line( buffer, input_stream );
 	sscanf( buffer, "%u ", &(params->ind_enable[ BLIS_1M ]) );
@@ -585,24 +569,13 @@ void libblis_test_read_params_file( char* input_filename, test_params_t* params 
 	// threads.
 	if ( params->n_app_threads > 1 )
 	{
-		if ( params->ind_enable[ BLIS_3MH  ] ||
-		     params->ind_enable[ BLIS_3M1  ] ||
-		     params->ind_enable[ BLIS_4MH  ] ||
-		     params->ind_enable[ BLIS_4M1B ] ||
-		     params->ind_enable[ BLIS_4M1A ] ||
-		     params->ind_enable[ BLIS_1M   ]
-		   )
+		if ( params->ind_enable[ BLIS_1M ] )
 		{
 			// Due to an inherent race condition in the way induced methods
 			// are enabled and disabled at runtime, all induced methods must be
 			// disabled when simulating multiple application threads.
 			libblis_test_printf_infoc( "simulating multiple application threads; disabling induced methods.\n" );
 
-			params->ind_enable[ BLIS_3MH  ] = 0;
-			params->ind_enable[ BLIS_3M1  ] = 0;
-			params->ind_enable[ BLIS_4MH  ] = 0;
-			params->ind_enable[ BLIS_4M1B ] = 0;
-			params->ind_enable[ BLIS_4M1A ] = 0;
 			params->ind_enable[ BLIS_1M   ] = 0;
 		}
 	}
@@ -663,7 +636,7 @@ void libblis_test_read_op_info( test_ops_t*  ops,
 	int   i, p;
 
 	// Initialize the operation type field.
-	op->opid = opid; 
+	op->opid = opid;
 
 	// Read the line for the overall operation switch.
 	libblis_test_read_next_line( buffer, input_stream );
@@ -698,7 +671,7 @@ void libblis_test_read_op_info( test_ops_t*  ops,
 			//printf( "buffer[p]:       %s\n", &buffer[p] );
 
 			// Advance until we hit non-whitespace (ie: the next number).
-			for ( ; isspace( buffer[p] ); ++p ) ; 
+			for ( ; isspace( buffer[p] ); ++p ) ;
 
 			//printf( "buffer[p] after: %s\n", &buffer[p] );
 
@@ -707,7 +680,7 @@ void libblis_test_read_op_info( test_ops_t*  ops,
 			//printf( "dim[%d] = %d\n", i, op->dim_spec[i] );
 
 			// Advance until we hit whitespace (ie: the space before the next number).
-			for ( ; !isspace( buffer[p] ); ++p ) ; 
+			for ( ; !isspace( buffer[p] ); ++p ) ;
 		}
 	}
 
@@ -805,11 +778,11 @@ void libblis_test_output_params_struct( FILE* os, test_params_t* params )
 	// convert these values into strings, with "unset" being used if the
 	// value returned was -1 (indicating the environment variable was unset).
 	dim_t nt    = bli_thread_get_num_threads();
-	dim_t jc_nt = bli_thread_get_jc_nt(); 
-	dim_t pc_nt = bli_thread_get_pc_nt(); 
-	dim_t ic_nt = bli_thread_get_ic_nt(); 
-	dim_t jr_nt = bli_thread_get_jr_nt(); 
-	dim_t ir_nt = bli_thread_get_ir_nt(); 
+	dim_t jc_nt = bli_thread_get_jc_nt();
+	dim_t pc_nt = bli_thread_get_pc_nt();
+	dim_t ic_nt = bli_thread_get_ic_nt();
+	dim_t jr_nt = bli_thread_get_jr_nt();
+	dim_t ir_nt = bli_thread_get_ir_nt();
 
 	if (    nt == -1 ) sprintf(    nt_str, "unset" );
 	else               sprintf(    nt_str, "%d", ( int )   nt );
@@ -829,12 +802,12 @@ void libblis_test_output_params_struct( FILE* os, test_params_t* params )
 	rntm_t gemm, herk, trmm_l, trmm_r, trsm_l, trsm_r;
 	dim_t  m = 1000, n = 1000, k = 1000;
 
-	bli_thread_init_rntm( &gemm   );
-	bli_thread_init_rntm( &herk   );
-	bli_thread_init_rntm( &trmm_l );
-	bli_thread_init_rntm( &trmm_r );
-	bli_thread_init_rntm( &trsm_l );
-	bli_thread_init_rntm( &trsm_r );
+	bli_rntm_init_from_global( &gemm   );
+	bli_rntm_init_from_global( &herk   );
+	bli_rntm_init_from_global( &trmm_l );
+	bli_rntm_init_from_global( &trmm_r );
+	bli_rntm_init_from_global( &trsm_l );
+	bli_rntm_init_from_global( &trsm_r );
 
 	bli_rntm_set_ways_for_op( BLIS_GEMM, BLIS_LEFT,  m, n, k, &gemm );
 	bli_rntm_set_ways_for_op( BLIS_HERK, BLIS_LEFT,  m, n, k, &herk );
@@ -869,7 +842,8 @@ void libblis_test_output_params_struct( FILE* os, test_params_t* params )
 	libblis_test_fprintf_c( os, "  stack address                %d\n", ( int )bli_info_get_stack_buf_align_size() );
 	libblis_test_fprintf_c( os, "  obj_t address                %d\n", ( int )bli_info_get_heap_addr_align_size() );
 	libblis_test_fprintf_c( os, "  obj_t stride                 %d\n", ( int )bli_info_get_heap_stride_align_size() );
-	libblis_test_fprintf_c( os, "  pool block addr              %d\n", ( int )bli_info_get_pool_addr_align_size() );
+	libblis_test_fprintf_c( os, "  pool block addr A (+offset)  %d (+%d)\n", ( int )bli_info_get_pool_addr_align_size_a(), ( int )bli_info_get_pool_addr_offset_size_a() );
+	libblis_test_fprintf_c( os, "  pool block addr B (+offset)  %d (+%d)\n", ( int )bli_info_get_pool_addr_align_size_b(), ( int )bli_info_get_pool_addr_offset_size_b() );
 	libblis_test_fprintf_c( os, "\n" );
 	libblis_test_fprintf_c( os, "BLAS/CBLAS compatibility layers  \n" );
 	libblis_test_fprintf_c( os, "  BLAS API enabled?            %d\n", ( int )bli_info_get_enable_blas() );
@@ -1226,11 +1200,6 @@ void libblis_test_output_params_struct( FILE* os, test_params_t* params )
 	libblis_test_fprintf_c( os, "problem size: max to test    %u\n", params->p_max );
 	libblis_test_fprintf_c( os, "problem size increment       %u\n", params->p_inc );
 	libblis_test_fprintf_c( os, "complex implementations        \n" );
-	libblis_test_fprintf_c( os, "  3mh?                       %u\n", params->ind_enable[ BLIS_3MH ] );
-	libblis_test_fprintf_c( os, "  3m1?                       %u\n", params->ind_enable[ BLIS_3M1 ] );
-	libblis_test_fprintf_c( os, "  4mh?                       %u\n", params->ind_enable[ BLIS_4MH ] );
-	libblis_test_fprintf_c( os, "  4m1b (4mb)?                %u\n", params->ind_enable[ BLIS_4M1B ] );
-	libblis_test_fprintf_c( os, "  4m1a (4m1)?                %u\n", params->ind_enable[ BLIS_4M1A ] );
 	libblis_test_fprintf_c( os, "  1m?                        %u\n", params->ind_enable[ BLIS_1M ] );
 	libblis_test_fprintf_c( os, "  native?                    %u\n", params->ind_enable[ BLIS_NAT ] );
 	libblis_test_fprintf_c( os, "simulated app-level threads  %u\n", params->n_app_threads );
@@ -1770,7 +1739,7 @@ void libblis_test_op_driver
 				= ( char* ) malloc( ( n_operands + 1 ) * sizeof( char ) );
 
 				for ( o = 0; o < n_operands; ++o )
-				{ 
+				{
 					unsigned int ij;
 					operand_t    operand_type
 					= libblis_test_get_operand_type_for_char( o_types[o] );
@@ -1785,8 +1754,8 @@ void libblis_test_op_driver
 		}
 	}
 
-	// Enumerate all combinations of datatype domains requested, but only
-	// for the gemm operation.
+	// Enumerate all combinations of datatypes requested, but only for the
+	// gemm operation.
 
 	if      ( !mixed_domain &&  mixed_precision && op->opid == BLIS_GEMM )
 	{
@@ -2108,6 +2077,11 @@ void libblis_test_op_driver
 
 	// Loop over the requested storage schemes.
 	for ( sci = 0; sci < n_store_combos; ++sci )
+	//for ( sci = 0; sci < 5; ( sci == 0 || sci == 2 ? sci+=2 : ++sci ) )
+	//for ( sci = 0; sci < 5; ( sci == 2 ? sci+=2 : ++sci ) )
+	//for ( sci = 3; sci < 8; ( sci == 3 ? sci+=2 : ++sci ) )
+	//for ( sci = 0; sci < 1; ++sci )
+	//for ( sci = 7; sci < 8; ++sci )
 	{
 		// Loop over the requested datatypes.
 		for ( dci = 0; dci < n_dt_combos; ++dci )
@@ -2207,7 +2181,7 @@ void libblis_test_op_driver
 				ind_str = bli_ind_oper_get_avail_impl_string( op->opid, datatype );
 
 				// Loop over the requested parameter combinations.
-				for ( pci = 0; pci < n_param_combos; ++pci )	
+				for ( pci = 0; pci < n_param_combos; ++pci )
 				{
 					// Loop over the requested problem sizes.
 					for ( p_cur = p_first, pi = 1; p_cur <= p_max; p_cur += p_inc, ++pi )
@@ -2378,7 +2352,11 @@ void libblis_test_op_driver
 
 
 	// Mark this operation as done.
-	op->test_done = TRUE;
+	if ( tdata->id == 0 )
+		op->test_done = TRUE;
+
+	// Wait here so that all threads know we are done
+	bli_pthread_barrier_wait( tdata->barrier );
 }
 
 
@@ -2425,7 +2403,7 @@ void libblis_test_build_function_string
 	if ( strlen( funcname_str ) > MAX_FUNC_STRING_LENGTH )
 		libblis_test_printf_error( "Function name string length (%d) exceeds maximum (%d).\n",
 		                           strlen( funcname_str ), MAX_FUNC_STRING_LENGTH );
-		
+
 }
 
 
@@ -2561,13 +2539,13 @@ void fill_string_with_n_spaces( char* str, unsigned int n_spaces )
 void libblis_test_mobj_create( test_params_t* params, num_t dt, trans_t trans, char storage, dim_t m, dim_t n, obj_t* a )
 {
 	dim_t  gs        = params->gs_spacing;
-	bool_t alignment = params->alignment;
+	bool   alignment = params->alignment;
 	siz_t  elem_size = bli_dt_size( dt );
 	dim_t  m_trans   = m;
 	dim_t  n_trans   = n;
 	dim_t  rs        = 1; // Initialization avoids a compiler warning.
 	dim_t  cs        = 1; // Initialization avoids a compiler warning.
-	
+
 	// Apply the trans parameter to the dimensions (if needed).
 	bli_set_dims_with_trans( trans, m, n, &m_trans, &n_trans );
 
@@ -2613,12 +2591,9 @@ void libblis_test_mobj_create( test_params_t* params, num_t dt, trans_t trans, c
 }
 
 
-
-#if 0
-cntl_t* libblis_test_pobj_create( bszid_t bmult_id_m, bszid_t bmult_id_n, invdiag_t inv_diag, pack_t pack_schema, packbuf_t pack_buf, obj_t* a, obj_t* p, cntx_t* cntx )
+cntl_t* libblis_test_pobj_create( bszid_t bmult_id_m, bszid_t bmult_id_n, invdiag_t inv_diag, pack_t pack_schema, packbuf_t pack_buf, obj_t* a, obj_t* p, cntx_t* cntx, rntm_t* rntm )
 {
-	bool_t does_inv_diag;
-	rntm_t rntm;
+	bool   does_inv_diag;
 
 	if ( inv_diag == BLIS_NO_INVERT_DIAG ) does_inv_diag = FALSE;
 	else                                   does_inv_diag = TRUE;
@@ -2628,7 +2603,6 @@ cntl_t* libblis_test_pobj_create( bszid_t bmult_id_m, bszid_t bmult_id_n, invdia
 	(
 	  NULL, // we don't need the small block allocator from the runtime.
 	  NULL, // func ptr is not referenced b/c we don't call via l3 _int().
-	  bli_packm_blk_var1,
 	  bmult_id_m,
 	  bmult_id_n,
 	  does_inv_diag,
@@ -2639,20 +2613,13 @@ cntl_t* libblis_test_pobj_create( bszid_t bmult_id_m, bszid_t bmult_id_n, invdia
 	  NULL  // no child node needed
 	);
 
-	// Initialize a local-to-BLIS rntm_t. This is simply so we have something
-	// to pass into bli_l3_packm(). The function doesn't (currently) use the
-	// runtime object, and even if it did, one with default values would work
-	// fine here.
-	bli_rntm_init( &rntm );
-
 	// Pack the contents of A to P.
-	bli_l3_packm( a, p, cntx, &rntm, cntl, &BLIS_PACKM_SINGLE_THREADED );
+	bli_packm_blk_var1( a, p, cntx, rntm, cntl, &BLIS_PACKM_SINGLE_THREADED );
 
 	// Return the control tree pointer so the caller can free the cntl_t and its
 	// mem_t entry later on.
 	return cntl;
 }
-#endif
 
 
 void libblis_test_vobj_create( test_params_t* params, num_t dt, char storage, dim_t m, obj_t* x )
@@ -2675,7 +2642,7 @@ void libblis_test_vobj_create( test_params_t* params, num_t dt, char storage, di
 
 
 
-void libblis_test_vobj_randomize( test_params_t* params, bool_t normalize, obj_t* x )
+void libblis_test_vobj_randomize( test_params_t* params, bool normalize, obj_t* x )
 {
 	if ( params->rand_method == BLIS_TEST_RAND_REAL_VALUES )
 		bli_randv( x );
@@ -2704,7 +2671,7 @@ void libblis_test_vobj_randomize( test_params_t* params, bool_t normalize, obj_t
 
 
 
-void libblis_test_mobj_randomize( test_params_t* params, bool_t normalize, obj_t* a )
+void libblis_test_mobj_randomize( test_params_t* params, bool normalize, obj_t* a )
 {
 	if ( params->rand_method == BLIS_TEST_RAND_REAL_VALUES )
 		bli_randm( a );
@@ -2997,7 +2964,7 @@ void libblis_test_parse_message( FILE* output_stream, char* message, va_list arg
 	char*         the_string;
 	char          the_char;
 
-	// Begin looping over message to insert variables wherever there are 
+	// Begin looping over message to insert variables wherever there are
 	// format specifiers.
 	for ( c = 0; message[c] != '\0'; )
 	{
@@ -3070,8 +3037,8 @@ void libblis_test_parse_message( FILE* output_stream, char* message, va_list arg
 
 void libblis_test_parse_command_line( int argc, char** argv )
 {
-	bool_t   gave_option_g = FALSE;
-	bool_t   gave_option_o = FALSE;
+	bool     gave_option_g = FALSE;
+	bool     gave_option_o = FALSE;
 	int      opt;
 	char     opt_ch;
 	getopt_t state;
@@ -3177,7 +3144,7 @@ int libblis_test_op_is_disabled( test_op_t* op )
 	return r_val;
 }
 
-int libblis_test_op_is_done( test_op_t* op )
+bool libblis_test_op_is_done( test_op_t* op )
 {
 	return op->test_done;
 }

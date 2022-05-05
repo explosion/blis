@@ -38,20 +38,49 @@
 
 // -- Define default threading parameters --------------------------------------
 
+// -- Conventional (large code path) values --
+
+// These BLIS_THREAD_RATIO_? macros distort the amount of work in the m and n
+// dimensions for the purposes of factorizing the total number of threads into
+// ways of parallelism in the ic and jc loops. See bli_rntm.c to see how these
+// macros are used.
 #ifndef BLIS_THREAD_RATIO_M
-#define BLIS_THREAD_RATIO_M     2
+#define BLIS_THREAD_RATIO_M     1
 #endif
 
 #ifndef BLIS_THREAD_RATIO_N
 #define BLIS_THREAD_RATIO_N     1
 #endif
 
+// These BLIS_THREAD_MAX_?R macros place a ceiling on the maximum amount of
+// parallelism allowed when performing automatic factorization. See bli_rntm.c
+// to see how these macros are used.
 #ifndef BLIS_THREAD_MAX_IR
 #define BLIS_THREAD_MAX_IR      1
 #endif
 
 #ifndef BLIS_THREAD_MAX_JR
 #define BLIS_THREAD_MAX_JR      4
+#endif
+
+#if 0
+// -- Skinny/small possibly-unpacked (sup code path) values --
+
+#ifndef BLIS_THREAD_SUP_RATIO_M
+#define BLIS_THREAD_SUP_RATIO_M   1
+#endif
+
+#ifndef BLIS_THREAD_SUP_RATIO_N
+#define BLIS_THREAD_SUP_RATIO_N   2
+#endif
+
+#ifndef BLIS_THREAD_SUP_MAX_IR
+#define BLIS_THREAD_SUP_MAX_IR    1
+#endif
+
+#ifndef BLIS_THREAD_SUP_MAX_JR
+#define BLIS_THREAD_SUP_MAX_JR    8
+#endif
 #endif
 
 
@@ -134,21 +163,21 @@
 // When configuring with umbrella configuration families, this should be
 // set to the maximum number of registers across all sub-configurations in
 // the family.
-#ifndef BLIS_SIMD_NUM_REGISTERS
-#define BLIS_SIMD_NUM_REGISTERS          32
+#ifndef BLIS_SIMD_MAX_NUM_REGISTERS
+#define BLIS_SIMD_MAX_NUM_REGISTERS      32
 #endif
 
 // The maximum size (in bytes) of each SIMD vector.
 // When configuring with umbrella configuration families, this should be
 // set to the maximum SIMD size across all sub-configurations in the family.
-#ifndef BLIS_SIMD_SIZE
-#define BLIS_SIMD_SIZE                   64
+#ifndef BLIS_SIMD_MAX_SIZE
+#define BLIS_SIMD_MAX_SIZE               64
 #endif
 
 // Alignment size (in bytes) needed by the instruction set for aligned
 // SIMD/vector instructions.
 #ifndef BLIS_SIMD_ALIGN_SIZE
-#define BLIS_SIMD_ALIGN_SIZE             BLIS_SIMD_SIZE
+#define BLIS_SIMD_ALIGN_SIZE             BLIS_SIMD_MAX_SIZE
 #endif
 
 // The maximum size in bytes of local stack buffers within macro-kernel
@@ -159,25 +188,62 @@
 // micro-tile footprint, even though the virtual micro-kernels will only
 // ever be writing to half (real or imaginary part) at a time.
 #ifndef BLIS_STACK_BUF_MAX_SIZE
-#define BLIS_STACK_BUF_MAX_SIZE          ( BLIS_SIMD_NUM_REGISTERS * \
-                                           BLIS_SIMD_SIZE * 2 )
+#define BLIS_STACK_BUF_MAX_SIZE          ( BLIS_SIMD_MAX_NUM_REGISTERS * \
+                                           BLIS_SIMD_MAX_SIZE * 2 )
 #endif
 
 // Alignment size used to align local stack buffers within macro-kernel
 // functions.
+#ifndef BLIS_STACK_BUF_ALIGN_SIZE
 #define BLIS_STACK_BUF_ALIGN_SIZE        BLIS_SIMD_ALIGN_SIZE
+#endif
 
 // Alignment size used when allocating memory via BLIS_MALLOC_USER.
 // To disable heap alignment, set this to 1.
+#ifndef BLIS_HEAP_ADDR_ALIGN_SIZE
 #define BLIS_HEAP_ADDR_ALIGN_SIZE        BLIS_SIMD_ALIGN_SIZE
+#endif
 
 // Alignment size used when sizing leading dimensions of memory allocated
 // via BLIS_MALLOC_USER.
+#ifndef BLIS_HEAP_STRIDE_ALIGN_SIZE
 #define BLIS_HEAP_STRIDE_ALIGN_SIZE      BLIS_SIMD_ALIGN_SIZE
+#endif
 
-// Alignment size used when allocating blocks to the internal memory
+// Alignment sizes used when allocating blocks to the internal memory
 // pool, via BLIS_MALLOC_POOL.
-#define BLIS_POOL_ADDR_ALIGN_SIZE        BLIS_PAGE_SIZE
+#ifndef BLIS_POOL_ADDR_ALIGN_SIZE_A
+#define BLIS_POOL_ADDR_ALIGN_SIZE_A      BLIS_PAGE_SIZE
+#endif
+
+#ifndef BLIS_POOL_ADDR_ALIGN_SIZE_B
+#define BLIS_POOL_ADDR_ALIGN_SIZE_B      BLIS_PAGE_SIZE
+#endif
+
+#ifndef BLIS_POOL_ADDR_ALIGN_SIZE_C
+#define BLIS_POOL_ADDR_ALIGN_SIZE_C      BLIS_PAGE_SIZE
+#endif
+
+#ifndef BLIS_POOL_ADDR_ALIGN_SIZE_GEN
+#define BLIS_POOL_ADDR_ALIGN_SIZE_GEN    BLIS_PAGE_SIZE
+#endif
+
+// Offsets from alignment specified by BLIS_POOL_ADDR_ALIGN_SIZE_*.
+#ifndef BLIS_POOL_ADDR_OFFSET_SIZE_A
+#define BLIS_POOL_ADDR_OFFSET_SIZE_A     0
+#endif
+
+#ifndef BLIS_POOL_ADDR_OFFSET_SIZE_B
+#define BLIS_POOL_ADDR_OFFSET_SIZE_B     0
+#endif
+
+#ifndef BLIS_POOL_ADDR_OFFSET_SIZE_C
+#define BLIS_POOL_ADDR_OFFSET_SIZE_C     0
+#endif
+
+#ifndef BLIS_POOL_ADDR_OFFSET_SIZE_GEN
+#define BLIS_POOL_ADDR_OFFSET_SIZE_GEN   0
+#endif
 
 
 

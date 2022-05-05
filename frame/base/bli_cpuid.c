@@ -5,7 +5,8 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018-2020, Advanced Micro Devices, Inc.
+   Copyright (C) 2019, Dave Love, University of Manchester
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -45,18 +46,41 @@
   #define __arm__
 #endif
 
-#ifndef BLIS_CONFIGURETIME_CPUID
-  #include "blis.h"
-#else
+#ifdef BLIS_CONFIGURETIME_CPUID
+
+  // NOTE: If you need to make any changes to this cpp branch, it's probably
+  // the case that you also need to modify bli_arch.c, bli_cpuid.c, and
+  // bli_env.c. Don't forget to update these other files as needed!
+
+  // The BLIS_ENABLE_SYSTEM macro must be defined so that the correct cpp
+  // branch in bli_system.h is processed. (This macro is normally defined in
+  // bli_config.h.)
+  #define BLIS_ENABLE_SYSTEM
+
+  // Use C-style static inline functions for any static inline functions that
+  // happen to be defined by the headers below. (This macro is normally defined
+  // in bli_config_macro_defs.h.)
+  #define BLIS_INLINE static
+
+  // Since we're not building a shared library, we can forgo the use of the
+  // BLIS_EXPORT_BLIS annotations by #defining them to be nothing. (This macro
+  // is normally defined in bli_config_macro_defs.h.)
   #define BLIS_EXPORT_BLIS
+
   #include "bli_system.h"
   #include "bli_type_defs.h"
+  #include "bli_arch.h"
   #include "bli_cpuid.h"
+  //#include "bli_env.h"
+#else
+  #include "blis.h"
 #endif
 
 // -----------------------------------------------------------------------------
 
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
+
+#include "cpuid.h"
 
 arch_t bli_cpuid_query_id( void )
 {
@@ -66,6 +90,14 @@ arch_t bli_cpuid_query_id( void )
 	// model id, and a feature bit field. The return value encodes the
 	// vendor.
 	vendor = bli_cpuid_query( &family, &model, &features );
+
+#if 0
+	printf( "vendor   = %s\n", vendor==1 ? "AMD": "INTEL" );
+	printf("family    = %x\n", family );
+	printf( "model    = %x\n", model );
+
+	printf( "features = %x\n", features );
+#endif
 
 	if ( vendor == VENDOR_INTEL )
 	{
@@ -100,6 +132,14 @@ arch_t bli_cpuid_query_id( void )
 
 		// Check for each AMD configuration that is enabled, check for that
 		// microarchitecture. We check from most recent to most dated.
+#ifdef BLIS_CONFIG_ZEN3
+		if ( bli_cpuid_is_zen3( family, model, features ) )
+			return BLIS_ARCH_ZEN3;
+#endif
+#ifdef BLIS_CONFIG_ZEN2
+		if ( bli_cpuid_is_zen2( family, model, features ) )
+			return BLIS_ARCH_ZEN2;
+#endif
 #ifdef BLIS_CONFIG_ZEN
 		if ( bli_cpuid_is_zen( family, model, features ) )
 			return BLIS_ARCH_ZEN;
@@ -134,7 +174,7 @@ arch_t bli_cpuid_query_id( void )
 
 // -----------------------------------------------------------------------------
 
-bool_t bli_cpuid_is_skx
+bool bli_cpuid_is_skx
      (
        uint32_t family,
        uint32_t model,
@@ -153,13 +193,28 @@ bool_t bli_cpuid_is_skx
 
 	int nvpu = vpu_count();
 
-	if ( !bli_cpuid_has_features( features, expected ) || nvpu != 2 )
+	if ( bli_cpuid_has_features( features, expected ) )
+	{
+		switch ( nvpu )
+		{
+		case 1:
+			bli_arch_log( "Hardware has 1 FMA unit; using 'haswell' (not 'skx') sub-config.\n" );
+			return FALSE;
+		case 2:
+			bli_arch_log( "Hardware has 2 FMA units; using 'skx' sub-config.\n" );
+			return TRUE;
+		default:
+			bli_arch_log( "Number of FMA units unknown; using 'haswell' (not 'skx') config.\n" );
+			return FALSE;
+		}
+	}
+	else
 		return FALSE;
 
 	return TRUE;
 }
 
-bool_t bli_cpuid_is_knl
+bool bli_cpuid_is_knl
      (
        uint32_t family,
        uint32_t model,
@@ -178,7 +233,7 @@ bool_t bli_cpuid_is_knl
 	return TRUE;
 }
 
-bool_t bli_cpuid_is_haswell
+bool bli_cpuid_is_haswell
      (
        uint32_t family,
        uint32_t model,
@@ -195,7 +250,7 @@ bool_t bli_cpuid_is_haswell
 	return TRUE;
 }
 
-bool_t bli_cpuid_is_sandybridge
+bool bli_cpuid_is_sandybridge
      (
        uint32_t family,
        uint32_t model,
@@ -210,7 +265,7 @@ bool_t bli_cpuid_is_sandybridge
 	return TRUE;
 }
 
-bool_t bli_cpuid_is_penryn
+bool bli_cpuid_is_penryn
      (
        uint32_t family,
        uint32_t model,
@@ -228,7 +283,66 @@ bool_t bli_cpuid_is_penryn
 
 // -----------------------------------------------------------------------------
 
-bool_t bli_cpuid_is_zen
+bool bli_cpuid_is_zen3
+     (
+       uint32_t family,
+       uint32_t model,
+       uint32_t features
+     )
+{
+	// Check for expected CPU features.
+	const uint32_t expected = FEATURE_AVX  |
+	                          FEATURE_FMA3 |
+	                          FEATURE_AVX2;
+
+	if ( !bli_cpuid_has_features( features, expected ) ) return FALSE;
+
+	// All Zen3 cores have a family of 0x19.
+	if ( family != 0x19 ) return FALSE;
+
+	// Finally, check for specific models:
+	// - 0x00 ~ 0xff
+	// NOTE: We accept any model because the family 25 (0x19) is unique.
+	const bool is_arch
+	=
+	( 0x00 <= model && model <= 0xff );
+
+	if ( !is_arch ) return FALSE;
+
+	return TRUE;
+}
+
+bool bli_cpuid_is_zen2
+     (
+       uint32_t family,
+       uint32_t model,
+       uint32_t features
+     )
+{
+	// Check for expected CPU features.
+	const uint32_t expected = FEATURE_AVX  |
+	                          FEATURE_FMA3 |
+	                          FEATURE_AVX2;
+
+	if ( !bli_cpuid_has_features( features, expected ) ) return FALSE;
+
+	// All Zen2 cores have a family of 0x17.
+	if ( family != 0x17 ) return FALSE;
+
+	// Finally, check for specific models:
+	// - 0x30 ~ 0xff
+	// NOTE: We must check model because the family 23 (0x17) is shared with
+	// zen.
+	const bool is_arch
+	=
+	( 0x30 <= model && model <= 0xff );
+
+	if ( !is_arch ) return FALSE;
+
+	return TRUE;
+}
+
+bool bli_cpuid_is_zen
      (
        uint32_t family,
        uint32_t model,
@@ -246,17 +360,19 @@ bool_t bli_cpuid_is_zen
 	if ( family != 0x17 ) return FALSE;
 
 	// Finally, check for specific models:
-	// - 0x00-0xff (THIS NEEDS UPDATING)
-	const bool_t is_arch
+	// - 0x00 ~ 0x2f
+	// NOTE: We must check model because the family 23 (0x17) is shared with
+	// zen2.
+	const bool is_arch
 	=
-	( 0x00 <= model && model <= 0xff );
+	( 0x00 <= model && model <= 0x2f );
 
 	if ( !is_arch ) return FALSE;
 
 	return TRUE;
 }
 
-bool_t bli_cpuid_is_excavator
+bool bli_cpuid_is_excavator
      (
        uint32_t family,
        uint32_t model,
@@ -274,8 +390,8 @@ bool_t bli_cpuid_is_excavator
 	if ( family != 0x15 ) return FALSE;
 
 	// Finally, check for specific models:
-	// - 0x60-0x7f
-	const bool_t is_arch
+	// - 0x60 ~ 0x7f
+	const bool is_arch
 	=
 	( 0x60 <= model && model <= 0x7f );
 
@@ -284,7 +400,7 @@ bool_t bli_cpuid_is_excavator
 	return TRUE;
 }
 
-bool_t bli_cpuid_is_steamroller
+bool bli_cpuid_is_steamroller
      (
        uint32_t family,
        uint32_t model,
@@ -302,8 +418,8 @@ bool_t bli_cpuid_is_steamroller
 	if ( family != 0x15 ) return FALSE;
 
 	// Finally, check for specific models:
-	// - 0x30-0x3f
-	const bool_t is_arch
+	// - 0x30 ~ 0x3f
+	const bool is_arch
 	=
 	( 0x30 <= model && model <= 0x3f );
 
@@ -312,7 +428,7 @@ bool_t bli_cpuid_is_steamroller
 	return TRUE;
 }
 
-bool_t bli_cpuid_is_piledriver
+bool bli_cpuid_is_piledriver
      (
        uint32_t family,
        uint32_t model,
@@ -331,8 +447,8 @@ bool_t bli_cpuid_is_piledriver
 
 	// Finally, check for specific models:
 	// - 0x02
-	// - 0x10-0x1f
-	const bool_t is_arch
+	// - 0x10 ~ 0x1f
+	const bool is_arch
 	=
 	model == 0x02 || ( 0x10 <= model && model <= 0x1f );
 
@@ -341,7 +457,7 @@ bool_t bli_cpuid_is_piledriver
 	return TRUE;
 }
 
-bool_t bli_cpuid_is_bulldozer
+bool bli_cpuid_is_bulldozer
      (
        uint32_t family,
        uint32_t model,
@@ -360,7 +476,7 @@ bool_t bli_cpuid_is_bulldozer
 	// Finally, check for specific models:
 	// - 0x00
 	// - 0x01
-	const bool_t is_arch
+	const bool is_arch
 	=
 	( model == 0x00 || model == 0x01 );
 
@@ -375,30 +491,24 @@ arch_t bli_cpuid_query_id( void )
 {
 	uint32_t vendor, model, part, features;
 
-	// Call the CPUID instruction and parse its results into a model id,
-	// part id, and a feature bit field. The return value encodes the
-	// vendor.
 	vendor = bli_cpuid_query( &model, &part, &features );
 
-	//printf( "vendor   = %u\n", vendor );
-	//printf( "model    = %u\n", model );
-	//printf( "part     = 0x%x\n", part );
-	//printf( "features = %u\n", features );
+#if 0
+	printf( "vendor   = %u\n", vendor );
+	printf( "model    = %u\n", model );
+	printf( "part     = 0x%x\n", part );
+	printf( "features = %u\n", features );
+#endif
+
+
 
 	if ( vendor == VENDOR_ARM )
 	{
 		if ( model == MODEL_ARMV8 )
 		{
+			return part;
 			// Check for each ARMv8 configuration that is enabled, check for that
 			// microarchitecture. We check from most recent to most dated.
-#ifdef BLIS_CONFIG_THUNDERX2
-			if ( bli_cpuid_is_thunderx2( model, part, features ) )
-				return BLIS_ARCH_THUNDERX2;
-#endif
-#ifdef BLIS_CONFIG_CORTEXA57
-			if ( bli_cpuid_is_cortexa57( model, part, features ) )
-				return BLIS_ARCH_CORTEXA57;
-#endif
 			// If none of the other sub-configurations were detected, return
 			// the 'generic' arch_t id value.
 			return BLIS_ARCH_GENERIC;
@@ -428,7 +538,7 @@ arch_t bli_cpuid_query_id( void )
 	return BLIS_ARCH_GENERIC;
 }
 
-bool_t bli_cpuid_is_thunderx2
+bool bli_cpuid_is_cortexa15
      (
        uint32_t family,
        uint32_t model,
@@ -438,12 +548,10 @@ bool_t bli_cpuid_is_thunderx2
 	// Check for expected CPU features.
 	const uint32_t expected = FEATURE_NEON;
 
-	if ( !bli_cpuid_has_features( features, expected ) ) return FALSE;
-
-	return TRUE;
+	return bli_cpuid_has_features( features, expected ) && model == 0xc0f;
 }
 
-bool_t bli_cpuid_is_cortexa57
+bool bli_cpuid_is_cortexa9
      (
        uint32_t family,
        uint32_t model,
@@ -453,54 +561,7 @@ bool_t bli_cpuid_is_cortexa57
 	// Check for expected CPU features.
 	const uint32_t expected = FEATURE_NEON;
 
-	if ( !bli_cpuid_has_features( features, expected ) ) return FALSE;
-
-	return TRUE;
-}
-
-bool_t bli_cpuid_is_cortexa53
-     (
-       uint32_t family,
-       uint32_t model,
-       uint32_t features
-     )
-{
-	// Check for expected CPU features.
-	const uint32_t expected = FEATURE_NEON;
-
-	if ( !bli_cpuid_has_features( features, expected ) ) return FALSE;
-
-	return TRUE;
-}
-
-bool_t bli_cpuid_is_cortexa15
-     (
-       uint32_t family,
-       uint32_t model,
-       uint32_t features
-     )
-{
-	// Check for expected CPU features.
-	const uint32_t expected = FEATURE_NEON;
-
-	if ( !bli_cpuid_has_features( features, expected ) ) return FALSE;
-
-	return TRUE;
-}
-
-bool_t bli_cpuid_is_cortexa9
-     (
-       uint32_t family,
-       uint32_t model,
-       uint32_t features
-     )
-{
-	// Check for expected CPU features.
-	const uint32_t expected = FEATURE_NEON;
-
-	if ( !bli_cpuid_has_features( features, expected ) ) return FALSE;
-
-	return TRUE;
+	return bli_cpuid_has_features( features, expected ) && model == 0xc09;
 }
 
 #endif
@@ -517,7 +578,7 @@ bool_t bli_cpuid_is_cortexa9
 
    Copyright (C) 2017, The University of Texas at Austin
    Copyright (C) 2017, Devin Matthews
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -847,6 +908,10 @@ void get_cpu_name( char *cpu_name )
 	*( uint32_t* )&cpu_name[32+12] = edx;
 }
 
+// Return the number of FMA units _assuming avx512 is supported_.
+// This needs updating for new processor types, sigh.
+// See https://ark.intel.com/content/www/us/en/ark.html#@Processors
+// and also https://github.com/jeffhammond/vpu-count
 int vpu_count( void )
 {
 	char  cpu_name[48] = {};
@@ -858,56 +923,304 @@ int vpu_count( void )
 
 	if ( strstr( cpu_name, "Intel(R) Xeon(R)" ) != NULL )
 	{
-		loc = strstr( cpu_name, "Platinum" );
+		if (( loc = strstr( cpu_name, "Platinum" ) ))
+			return 2;
 		if ( loc == NULL )
-			loc = strstr( cpu_name, "Gold" );
+			loc = strstr( cpu_name, "Gold" ); // 1 or 2, tested below
 		if ( loc == NULL )
-			loc = strstr( cpu_name, "Silver" );
+			if (( loc = strstr( cpu_name, "Silver" ) ))
+				return 1;
 		if ( loc == NULL )
-			loc = strstr( cpu_name, "Bronze" );
+			if (( loc = strstr( cpu_name, "Bronze" ) ))
+				return 1;
 		if ( loc == NULL )
 			loc = strstr( cpu_name, "W" );
 		if ( loc == NULL )
+			if (( loc = strstr( cpu_name, "D" ) ))
+				// Fixme:  May be wrong
+				// <https://github.com/jeffhammond/vpu-count/issues/3#issuecomment-542044651>
+				return 1;
+		if ( loc == NULL )
 			return -1;
 
-		loc = strstr( loc+1, " " );
+		// We may have W-nnnn rather than, say, Gold nnnn
+		if ( 'W' == *loc && '-' == *(loc+1) )
+			loc++;
+		else
+			loc = strstr( loc+1, " " );
 		if ( loc == NULL )
 			return -1;
 
 		strncpy( model_num, loc+1, 4 );
-		model_num[4] = '\0';
+		model_num[4] = '\0'; // Things like i9-10900X matched above
 
 		sku = atoi( model_num );
 
+		// These were derived from ARK listings as of 2019-10-09, but
+		// may not be complete, especially as the ARK Skylake listing
+		// seems to be limited.
 		if      ( 8199 >= sku && sku >= 8100 ) return 2;
 		else if ( 6199 >= sku && sku >= 6100 ) return 2;
 		else if (                sku == 5122 ) return 2;
+		else if ( 6299 >= sku && sku >= 6200 ) return 2; // Cascade Lake Gold
+		else if ( 5299 >= sku && sku >= 5200 ) return 1; // Cascade Lake Gold
 		else if ( 5199 >= sku && sku >= 5100 ) return 1;
 		else if ( 4199 >= sku && sku >= 4100 ) return 1;
 		else if ( 3199 >= sku && sku >= 3100 ) return 1;
+		else if ( 3299 >= sku && sku >= 3200 ) return 2; // Cascade Lake W
+		else if ( 2299 >= sku && sku >= 2200 ) return 2; // Cascade Lake W
 		else if ( 2199 >= sku && sku >= 2120 ) return 2;
+		else if ( 2102 == sku || sku == 2104 ) return 2; // Gold exceptions
 		else if ( 2119 >= sku && sku >= 2100 ) return 1;
 		else return -1;
 	}
-	else if ( strstr( cpu_name, "Intel(R) Core(TM) i9" ) != NULL )
-	{
-		return 1;
-	}
-	else if ( strstr( cpu_name, "Intel(R) Core(TM) i7" ) != NULL )
-	{
-		if ( strstr( cpu_name, "7800X" ) != NULL ||
-		     strstr( cpu_name, "7820X" ) != NULL )
-			return 1;
-		else
-			return -1;
-	}
+	else if ( strstr( cpu_name, "Intel(R) Core(TM)" ) != NULL )
+		return 2; // All i7/i9 with avx512?
 	else
 	{
 		return -1;
 	}
 }
 
-#elif defined(__aarch64__) || defined(__arm__) || defined(_M_ARM)
+#elif defined(__aarch64__)
+
+#ifdef __linux__
+// This is adapted from OpenBLAS.  See
+// https://www.kernel.org/doc/html/latest/arm64/cpu-feature-registers.html
+// for the mechanism, but not the magic numbers.
+
+// Fixme:  Could these be missing in older Linux?
+#include <asm/hwcap.h>
+#include <sys/auxv.h>
+
+#ifndef HWCAP_CPUID
+#define HWCAP_CPUID (1 << 11)
+#endif
+/* From https://www.kernel.org/doc/html/latest/arm64/sve.html and the
+   aarch64 hwcap.h */
+#ifndef HWCAP_SVE
+#define HWCAP_SVE (1 << 22)
+#endif
+/* Maybe also for AT_HWCAP2
+#define HWCAP2_SVE2(1 << 1)
+et al
+) */
+
+#endif //__linux__
+
+#ifdef __APPLE__
+#include <sys/types.h>
+// #include <sys/sysctl.h>
+#endif
+
+static uint32_t get_coretype
+	(
+	  uint32_t* features
+	)
+{
+	int implementer = 0x00, part = 0x000;
+	*features = FEATURE_NEON;
+
+#ifdef __linux__
+	if ( getauxval( AT_HWCAP ) & HWCAP_CPUID )
+	{
+		// Also available from
+		// /sys/devices/system/cpu/cpu0/regs/identification/midr_el1
+		// and split out in /proc/cpuinfo (with a tab before the colon):
+		// CPU part	: 0x0a1
+		
+		uint64_t midr_el1;
+		__asm("mrs %0, MIDR_EL1" : "=r" (midr_el1));
+		/*
+		 * MIDR_EL1
+		 *
+		 * 31          24 23     20 19          16 15          4 3         0
+		 * -----------------------------------------------------------------
+		 * | Implementer | Variant | Architecture | Part Number | Revision |
+		 * -----------------------------------------------------------------
+		 */
+		implementer = (midr_el1 >> 24) & 0xFF;
+		part        = (midr_el1 >> 4)  & 0xFFF;
+	}
+	
+	bool has_sve = getauxval( AT_HWCAP ) & HWCAP_SVE;
+	if (has_sve)
+		*features |= FEATURE_SVE;
+#endif //__linux__
+
+#ifdef __APPLE__
+	// Better values could be obtained from sysctlbyname()
+	implementer = 0x61; //Apple
+	part        = 0x023; //Firestorm
+#endif //__APPLE__
+
+	// From Linux arch/arm64/include/asm/cputype.h
+	// ARM_CPU_IMP_ARM 0x41
+	// ARM_CPU_IMP_APM 0x50
+	// ARM_CPU_IMP_CAVIUM 0x43
+	// ARM_CPU_IMP_BRCM 0x42
+	// ARM_CPU_IMP_QCOM 0x51
+	// ARM_CPU_IMP_NVIDIA 0x4E
+	// ARM_CPU_IMP_FUJITSU 0x46
+	// ARM_CPU_IMP_HISI 0x48
+	// ARM_CPU_IMP_APPLE 0x61
+	//
+	// ARM_CPU_PART_AEM_V8 0xD0F
+	// ARM_CPU_PART_FOUNDATION 0xD00
+	// ARM_CPU_PART_CORTEX_A57 0xD07
+	// ARM_CPU_PART_CORTEX_A72 0xD08
+	// ARM_CPU_PART_CORTEX_A53 0xD03
+	// ARM_CPU_PART_CORTEX_A73 0xD09
+	// ARM_CPU_PART_CORTEX_A75 0xD0A
+	// ARM_CPU_PART_CORTEX_A35 0xD04
+	// ARM_CPU_PART_CORTEX_A55 0xD05
+	// ARM_CPU_PART_CORTEX_A76 0xD0B
+	// ARM_CPU_PART_NEOVERSE_N1 0xD0C
+	// ARM_CPU_PART_CORTEX_A77 0xD0D
+	//   from GCC:
+	// ARM_CPU_PART_CORTEX_A78 0xd41
+	// ARM_CPU_PART_CORTEX_X1 0xd44
+	// ARM_CPU_PART_CORTEX_V1 0xd40
+	// ARM_CPU_PART_CORTEX_N2 0xd49
+	// ARM_CPU_PART_CORTEX_R82 0xd15
+	//
+	// APM_CPU_PART_POTENZA 0x000
+	//
+	// CAVIUM_CPU_PART_THUNDERX 0x0A1
+	// CAVIUM_CPU_PART_THUNDERX_81XX 0x0A2
+	// CAVIUM_CPU_PART_THUNDERX_83XX 0x0A3
+	// CAVIUM_CPU_PART_THUNDERX2 0x0AF
+	// CAVIUM_CPU_PART_THUNDERX3 0x0B8  // taken from OpenBLAS
+	//
+	// BRCM_CPU_PART_BRAHMA_B53 0x100 
+	// BRCM_CPU_PART_VULCAN 0x516
+	//
+	// QCOM_CPU_PART_FALKOR_V1 0x800
+	// QCOM_CPU_PART_FALKOR 0xC00
+	// QCOM_CPU_PART_KRYO 0x200
+	// QCOM_CPU_PART_KRYO_3XX_SILVER 0x803
+	// QCOM_CPU_PART_KRYO_4XX_GOLD 0x804
+	// QCOM_CPU_PART_KRYO_4XX_SILVER 0x805
+	//
+	// NVIDIA_CPU_PART_DENVER 0x003
+	// NVIDIA_CPU_PART_CARMEL 0x004
+	//
+	// FUJITSU_CPU_PART_A64FX 0x001
+	//
+	// HISI_CPU_PART_TSV110 0xD01
+
+	// APPLE_CPU_PART_M1_ICESTORM 0x022
+	// APPLE_CPU_PART_M1_FIRESTORM 0x023
+
+	// Fixme:  After merging the vpu_count branch we could report the
+	// part here with bli_dolog.
+	switch(implementer)
+	{
+		case 0x41:		// ARM
+			switch (part)
+			{
+#ifdef BLIS_CONFIG_CORTEXA57
+				case 0xd07: // Cortex A57
+					return BLIS_ARCH_CORTEXA57;
+#endif
+#ifdef BLIS_CONFIG_CORTEXA53
+				case 0xd03: // Cortex A53
+					return BLIS_ARCH_CORTEXA53;
+#endif
+#ifdef BLIS_CONFIG_THUNDERX2
+				case 0xd0c: // Neoverse N1 (and Graviton G2?)
+					return BLIS_ARCH_THUNDERX2; //placeholder for N1
+#endif
+			}
+			break;
+		case 0x42:		// Broadcom
+			switch (part)
+			{
+#ifdef BLIS_CONFIG_THUNDERX2
+				case 0x516: // Vulcan
+					return BLIS_ARCH_THUNDERX2;
+#endif
+			}
+			break;
+		case 0x43:		// Cavium
+			switch (part)
+			{
+#ifdef BLIS_CONFIG_THUNDERX2
+				case 0x0af: // ThunderX2
+				case 0x0b8: // ThunderX3
+					return BLIS_ARCH_THUNDERX2;
+#endif
+			}
+			break;
+		case 0x46:      	// Fujitsu
+			switch (part)
+			{
+#ifdef BLIS_CONFIG_A64FX
+				case 0x001: // A64FX
+					return BLIS_ARCH_A64FX;
+#endif
+			}
+			break;
+		case 0x61:		// Apple
+			switch (part)
+			{
+#ifdef BLIS_CONFIG_FIRESTORM
+				case 0x022: // Icestorm (M1.LITTLE)
+				case 0x023: // Firestorm (M1.big)
+					return BLIS_ARCH_FIRESTORM;
+#endif
+			}
+			break;
+	}
+
+#ifdef BLIS_CONFIG_ARMSVE
+	if (has_sve)
+		return BLIS_ARCH_ARMSVE;
+#endif
+
+// Can't use #if defined(...) here because of parsing done for autoconfiguration
+#ifdef BLIS_CONFIG_CORTEXA57
+	return BLIS_ARCH_CORTEXA57;
+#else
+#ifdef BLIS_CONFIG_CORTEXA53
+	return BLIS_ARCH_CORTEXA53;
+#else
+	return BLIS_ARCH_GENERIC;
+#endif
+#endif
+}
+
+uint32_t bli_cpuid_query
+     (
+       uint32_t* model,
+       uint32_t* part,
+       uint32_t* features
+     )
+{
+	*model = MODEL_ARMV8;
+	*part  = get_coretype(features);
+
+	return VENDOR_ARM;
+}
+
+#elif defined(__arm__) || defined(_M_ARM)
+
+/* 
+   I can't easily find documentation to do this as for aarch64, though
+   it presumably could be unearthed from Linux code.  However, on
+   Linux 5.2 (and Androids's 3.4), /proc/cpuinfo has this sort of
+   thing, used below:
+
+   CPU implementer	: 0x41
+   CPU architecture: 7
+   CPU variant	: 0x3
+   CPU part	: 0xc09
+
+   The complication for family selection is that Neon is optional for
+   CortexA9, for instance.  That's tested in bli_cpuid_is_cortexa9.
+ */
+
+#define TEMP_BUFFER_SIZE 200
 
 uint32_t bli_cpuid_query
      (
@@ -919,96 +1232,44 @@ uint32_t bli_cpuid_query
 	*model    = MODEL_UNKNOWN;
     *part     = 0;
 	*features = 0;
-    
-#if 1
-	const char* grep_str1 = "grep -m 1 Processor /proc/cpuinfo";
-	const char* grep_str2 = "grep -m 1 'CPU part' /proc/cpuinfo";
-	const char* grep_str3 = "grep -m 1 Features /proc/cpuinfo";
-#else
-	const char* grep_str1 = "grep -m 1 Processor ./proc_cpuinfo";
-	const char* grep_str2 = "grep -m 1 'CPU part' ./proc_cpuinfo";
-	const char* grep_str3 = "grep -m 1 Features ./proc_cpuinfo";
-#endif
 
-	FILE *fd1 = popen( grep_str1, "r");
-	if ( !fd1 )
-	{
-        //printf("popen 1 failed\n");
-		return VENDOR_ARM;
-	}
-	FILE *fd2 = popen( grep_str2, "r");
-	if (!fd2)
-	{
-        //printf("popen 2 failed\n");
-		pclose(fd1);
-		return VENDOR_ARM;
-	}
-	FILE *fd3 = popen( grep_str3, "r");
-	if (!fd3)
-	{
-        //printf("popen 3 failed\n");
-		pclose(fd1);
-		pclose(fd2);
-		return VENDOR_ARM;
-	}
+	char* pci_str = "/proc/cpuinfo";
 
-	uint32_t n1, n2, n3;
-	int      c;
-
-	// First, discover how many chars are in each stream.
-	for ( n1 = 0; (c = fgetc(fd1)) != EOF; ++n1 ) continue;
-	for ( n2 = 0; (c = fgetc(fd2)) != EOF; ++n2 ) continue;
-	for ( n3 = 0; (c = fgetc(fd3)) != EOF; ++n3 ) continue;
-
-	//printf( "n1, n2, n3 = %u %u %u\n", n1, n2, n3 );
-
-	// Close the streams.
-	pclose( fd1 );
-	pclose( fd2 );
-	pclose( fd3 );
-
-	// Allocate the correct amount of memory for each stream.
-	char* proc_str = malloc( ( size_t )( n1 + 1 ) );
-	char* ptno_str = malloc( ( size_t )( n2 + 1 ) );
-	char* feat_str = malloc( ( size_t )( n3 + 1 ) );
-    *proc_str = 0;
-    *ptno_str = 0;
-    *feat_str = 0;
-
-	// Re-open the streams. Note that there is no need to check for errors
-	// this time since we're assumign that the contents of /proc/cpuinfo
-	// will be the same as before.
-	fd1 = popen( grep_str1, "r");
-	fd2 = popen( grep_str2, "r");
-	fd3 = popen( grep_str3, "r");
-
+	char  proc_str[ TEMP_BUFFER_SIZE ];
+	char  ptno_str[ TEMP_BUFFER_SIZE ];
+	char  feat_str[ TEMP_BUFFER_SIZE ];
 	char* r_val;
 
-	// Now read each stream in its entirety. Nothing should go wrong, but
-	// if it does, bail out.
-	r_val = fgets( proc_str, n1, fd1 );
-	if ( n1 && r_val == NULL ) bli_abort();
+	//printf( "bli_cpuid_query(): beginning search\n" );
 
-	r_val = fgets( ptno_str, n2, fd2 );
-	if ( n2 && r_val == NULL ) bli_abort();
+	// Search /proc/cpuinfo for the 'Processor' entry.
+	r_val = find_string_in( "Processor", proc_str, TEMP_BUFFER_SIZE, pci_str );
+	if ( r_val == NULL ) return VENDOR_ARM;
 
-	r_val = fgets( feat_str, n3, fd3 );
-	if ( n3 && r_val == NULL ) bli_abort();
+	// Search /proc/cpuinfo for the 'CPU part' entry.
+	r_val = find_string_in( "CPU part",  ptno_str, TEMP_BUFFER_SIZE, pci_str );
+	if ( r_val == NULL ) return VENDOR_ARM;
 
-    //printf( "proc_str: %s\n", proc_str );
-	//printf( "ptno_str: %s\n", ptno_str );
-	//printf( "feat_str: %s\n", feat_str );
+	// Search /proc/cpuinfo for the 'Features' entry.
+	r_val = find_string_in( "Features",  feat_str, TEMP_BUFFER_SIZE, pci_str );
+	if ( r_val == NULL ) return VENDOR_ARM;
 
-	// Close the streams.
-	pclose( fd1 );
-	pclose( fd2 );
-	pclose( fd3 );
+#if 0
+	printf( "bli_cpuid_query(): full processor string: %s\n", proc_str );
+	printf( "bli_cpuid_query(): full part num  string: %s\n", ptno_str );
+	printf( "bli_cpuid_query(): full features  string: %s\n", feat_str );
+#endif
 
 	// Parse the feature string to check for SIMD features.
 	if ( strstr( feat_str, "neon"  ) != NULL ||
 	     strstr( feat_str, "asimd" ) != NULL )
 		*features |= FEATURE_NEON;
-	//printf( "features var: %u\n", *features );
+
+	// Parse the feature string to check for SVE features.
+	if ( strstr( feat_str, "sve" ) != NULL )
+		*features |= FEATURE_SVE;
+
+	//printf( "bli_cpuid_query(): features var: %u\n", *features );
 
 	// Parse the processor string to uncover the model.
 	if      ( strstr( proc_str, "ARMv7"   ) != NULL )
@@ -1016,7 +1277,8 @@ uint32_t bli_cpuid_query
 	else if ( strstr( proc_str, "AArch64" ) != NULL ||
               strstr( proc_str, "ARMv8"   ) )
 		*model = MODEL_ARMV8;
-	//printf( "model: %u\n", *model );
+
+	//printf( "bli_cpuid_query(): model: %u\n", *model );
 
 	// Parse the part number string.
 	r_val = strstr( ptno_str, "0x" );
@@ -1024,9 +1286,69 @@ uint32_t bli_cpuid_query
     {
 	    *part = strtol( r_val, NULL, 16 );
     }
-	//printf( "part#: %x\n", *part );
+	//printf( "bli_cpuid_query(): part#: %x\n", *part );
 
 	return VENDOR_ARM;
 }
 
+char* find_string_in( char* target, char* buffer, size_t buf_len, char* filepath )
+{
+	// This function searches for the first line of the file located at
+	// 'filepath' that contains the string 'target' and then copies that
+	// line (actually, the substring of the line starting with 'target')
+	// to 'buffer', which is 'buf_len' bytes long.
+
+	char* r_val = NULL;
+
+	// Allocate a temporary local buffer equal to the size of buffer.
+	char* buf_local = malloc( buf_len * sizeof( char ) );
+
+	// Open the file stream.
+	FILE* stream = fopen( filepath, "r" );
+
+	// Repeatedly read in a line from the stream, storing the contents of
+	// the stream into buf_local.
+	while ( !feof( stream ) )
+	{
+		// Read in the current line, up to buf_len-1 bytes.
+		r_val = fgets( buf_local, buf_len-1, stream );
+
+		//printf( "read line: %s", buf_local );
+
+		// fgets() returns the pointer specified by the first argument (in
+		// this case, buf_local) on success and NULL on error.
+		if ( r_val == NULL ) break;
+
+		// Since fgets() was successful, we can search for the target string
+		// within the current line, as captured in buf_local.
+		r_val = strstr( buf_local, target );
+
+		// If the target string was found in buf_local, we save it to buffer.
+		if ( r_val != NULL )
+		{
+			//printf( "  found match to '%s'\n", target );
+
+			// Copy the string read by fgets() to the caller's buffer.
+			strncpy( buffer, buf_local, buf_len );
+
+			// Make sure that we have a terminating null character by the
+			// end of the buffer.
+			if ( buf_len > 0 ) buffer[ buf_len - 1 ] = '\0';
+
+			// Leave the loop since we found the target string.
+			break;
+		}
+	}
+
+	// Close the file stream.
+	fclose( stream );
+
+	// Free the temporary local buffer.
+	free( buf_local );
+
+	// Return r_val so the caller knows if we failed.
+	return r_val;
+}
+
 #endif
+

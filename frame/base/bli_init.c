@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -56,46 +56,17 @@ void bli_init_auto( void )
 
 void bli_finalize_auto( void )
 {
-#ifdef BLIS_ENABLE_STAY_AUTO_INITIALIZED
-
-	// If BLIS was configured to stay initialized after being automatically
-	// initialized, we honor the configuration request and do nothing.
-	// BLIS will remain initialized unless and until the user explicitly
-	// calls bli_finalize().
-
-#else
-
-	bli_finalize_once();
-
-#endif
-}
-
-// -----------------------------------------------------------------------------
-
-void bli_init_apis( void )
-{
-	// Initialize various sub-APIs.
-	bli_gks_init();
-	bli_ind_init();
-	bli_thread_init();
-	bli_memsys_init();
-}
-
-void bli_finalize_apis( void )
-{
-	// Finalize various sub-APIs.
-	bli_memsys_finalize();
-	bli_thread_finalize();
-	bli_gks_finalize();
-	bli_ind_finalize();
+	// The _auto() functions are used when initializing the BLAS compatibility
+	// layer. It would not make much sense to automatically initialize and
+	// finalize for every BLAS routine call; therefore, we remain initialized
+	// unless and until the application explicitly calls bli_finalize().
 }
 
 // -----------------------------------------------------------------------------
 
 // A pthread_once_t variable is a pthread structure used in pthread_once().
 // pthread_once() is guaranteed to execute exactly once among all threads that
-// pass in this control object. Thus, we need one for initialization and a
-// separate one for finalization.
+// pass in this control object (until/unless the variable is reset).
 static bli_pthread_once_t once_init     = BLIS_PTHREAD_ONCE_INIT;
 static bli_pthread_once_t once_finalize = BLIS_PTHREAD_ONCE_INIT;
 
@@ -107,5 +78,45 @@ void bli_init_once( void )
 void bli_finalize_once( void )
 {
 	bli_pthread_once( &once_finalize, bli_finalize_apis );
+}
+
+// -----------------------------------------------------------------------------
+
+void bli_init_apis( void )
+{
+	// Initialize various sub-APIs.
+	bli_gks_init();
+	bli_ind_init();
+	bli_thread_init();
+	bli_pack_init();
+	bli_memsys_init();
+
+	// Reset the control variable that will allow finalization.
+	// NOTE: We must initialize a fresh pthread_once_t object and THEN copy the
+	// contents to the static control variable because some implementations of
+	// pthreads define pthread_once_t as a struct and BLIS_PTHREAD_ONCE_INIT as
+	// a struct initializer expression (i.e. { ... }), which cannot be used in
+	// post-declaration struct assignment in strict C99.
+	const bli_pthread_once_t once_new = BLIS_PTHREAD_ONCE_INIT;
+	once_finalize = once_new;
+}
+
+void bli_finalize_apis( void )
+{
+	// Finalize various sub-APIs.
+	bli_memsys_finalize();
+	bli_pack_finalize();
+	bli_thread_finalize();
+	bli_ind_finalize();
+	bli_gks_finalize();
+
+	// Reset the control variable that will allow (re-)initialization.
+	// NOTE: We must initialize a fresh pthread_once_t object and THEN copy the
+	// contents to the static control variable because some implementations of
+	// pthreads define pthread_once_t as a struct and BLIS_PTHREAD_ONCE_INIT as
+	// a struct initializer expression (i.e. { ... }), which cannot be used in
+	// post-declaration struct assignment in strict C99.
+	const bli_pthread_once_t once_new = BLIS_PTHREAD_ONCE_INIT;
+	once_init = once_new;
 }
 

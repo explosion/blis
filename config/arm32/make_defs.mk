@@ -61,7 +61,7 @@ COPTFLAGS      := -O2
 endif
 
 # Flags specific to optimized kernels.
-CKOPTFLAGS     := $(COPTFLAGS)
+CKOPTFLAGS     := $(COPTFLAGS) -O3
 ifeq ($(CC_VENDOR),gcc)
 CKVECFLAGS     := -march=armv7-a
 else
@@ -70,7 +70,15 @@ endif
 
 # Flags specific to reference kernels.
 CROPTFLAGS     := $(CKOPTFLAGS)
+ifeq ($(CC_VENDOR),gcc)
+CRVECFLAGS     := $(CKVECFLAGS) -funsafe-math-optimizations -ffp-contract=fast
+else
+ifeq ($(CC_VENDOR),clang)
+CRVECFLAGS     := $(CKVECFLAGS) -funsafe-math-optimizations -ffp-contract=fast
+else
 CRVECFLAGS     := $(CKVECFLAGS)
+endif
+endif
 
 # Store all of the variables here to new variables containing the
 # configuration name.

@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -35,7 +35,6 @@
 
 #include <unistd.h>
 #include "blis.h"
-
 
 //#define PRINT
 
@@ -92,9 +91,6 @@ int main( int argc, char** argv )
 
 	ind_t ind_mod = ind;
 
-	// A hack to use 3m1 as 1mpb (with 1m as 1mbp).
-	if ( ind == BLIS_3M1 ) ind_mod = BLIS_1M;
-
 	// Initialize a context for the current induced method and datatype.
 	cntx = bli_gks_query_ind_cntx( ind_mod, dt );
 
@@ -137,12 +133,13 @@ int main( int argc, char** argv )
 
 	printf( "data_%s_%ctrmm_%s", THR_STR, dt_ch, STR );
 	printf( "( %2lu, 1:3 ) = [ %4lu %4lu %7.2f ];\n",
-	        ( unsigned long )(p - p_begin + 1)/p_inc + 1,
+	        ( unsigned long )(p - p_begin)/p_inc + 1,
 	        ( unsigned long )0,
 	        ( unsigned long )0, 0.0 );
 
 
-	for ( p = p_begin; p <= p_max; p += p_inc )
+	//for ( p = p_begin; p <= p_max; p += p_inc )
+	for ( p = p_max; p_begin <= p; p -= p_inc )
 	{
 
 		if ( m_input < 0 ) m = p / ( dim_t )abs(m_input);
@@ -152,7 +149,7 @@ int main( int argc, char** argv )
 
 		bli_obj_create( dt, 1, 1, 0, 0, &alpha );
 
-		if ( bli_does_trans( side ) )
+		if ( bli_is_left( side ) )
 			bli_obj_create( dt, m, m, 0, 0, &a );
         else
 			bli_obj_create( dt, n, n, 0, 0, &a );
@@ -207,9 +204,9 @@ int main( int argc, char** argv )
 				f77_int   kk     = bli_obj_width( &c );
 				f77_int   lda    = bli_obj_col_stride( &a );
 				f77_int   ldc    = bli_obj_col_stride( &c );
-				float*    alphap = bli_obj_buffer( &alpha );
-				float*    ap     = bli_obj_buffer( &a );
-				float*    cp     = bli_obj_buffer( &c );
+				float*    alphap = ( float* )bli_obj_buffer( &alpha );
+				float*    ap     = ( float* )bli_obj_buffer( &a );
+				float*    cp     = ( float* )bli_obj_buffer( &c );
 
 				strmm_( &f77_side,
 						&f77_uploa,
@@ -227,9 +224,9 @@ int main( int argc, char** argv )
 				f77_int   kk     = bli_obj_width( &c );
 				f77_int   lda    = bli_obj_col_stride( &a );
 				f77_int   ldc    = bli_obj_col_stride( &c );
-				double*   alphap = bli_obj_buffer( &alpha );
-				double*   ap     = bli_obj_buffer( &a );
-				double*   cp     = bli_obj_buffer( &c );
+				double*   alphap = ( double* )bli_obj_buffer( &alpha );
+				double*   ap     = ( double* )bli_obj_buffer( &a );
+				double*   cp     = ( double* )bli_obj_buffer( &c );
 
 				dtrmm_( &f77_side,
 						&f77_uploa,
@@ -247,9 +244,15 @@ int main( int argc, char** argv )
 				f77_int   kk     = bli_obj_width( &c );
 				f77_int   lda    = bli_obj_col_stride( &a );
 				f77_int   ldc    = bli_obj_col_stride( &c );
-				scomplex* alphap = bli_obj_buffer( &alpha );
-				scomplex* ap     = bli_obj_buffer( &a );
-				scomplex* cp     = bli_obj_buffer( &c );
+#ifdef EIGEN
+				float*    alphap = ( float*    )bli_obj_buffer( &alpha );
+				float*    ap     = ( float*    )bli_obj_buffer( &a );
+				float*    cp     = ( float*    )bli_obj_buffer( &c );
+#else
+				scomplex* alphap = ( scomplex* )bli_obj_buffer( &alpha );
+				scomplex* ap     = ( scomplex* )bli_obj_buffer( &a );
+				scomplex* cp     = ( scomplex* )bli_obj_buffer( &c );
+#endif
 
 				ctrmm_( &f77_side,
 						&f77_uploa,
@@ -263,13 +266,19 @@ int main( int argc, char** argv )
 			}
 			else if ( bli_is_dcomplex( dt ) )
 			{
-				f77_int    mm     = bli_obj_length( &c );
-				f77_int    kk     = bli_obj_width( &c );
-				f77_int    lda    = bli_obj_col_stride( &a );
-				f77_int    ldc    = bli_obj_col_stride( &c );
-				dcomplex*  alphap = bli_obj_buffer( &alpha );
-				dcomplex*  ap     = bli_obj_buffer( &a );
-				dcomplex*  cp     = bli_obj_buffer( &c );
+				f77_int   mm     = bli_obj_length( &c );
+				f77_int   kk     = bli_obj_width( &c );
+				f77_int   lda    = bli_obj_col_stride( &a );
+				f77_int   ldc    = bli_obj_col_stride( &c );
+#ifdef EIGEN
+				double*   alphap = ( double*   )bli_obj_buffer( &alpha );
+				double*   ap     = ( double*   )bli_obj_buffer( &a );
+				double*   cp     = ( double*   )bli_obj_buffer( &c );
+#else
+				dcomplex* alphap = ( dcomplex* )bli_obj_buffer( &alpha );
+				dcomplex* ap     = ( dcomplex* )bli_obj_buffer( &a );
+				dcomplex* cp     = ( dcomplex* )bli_obj_buffer( &c );
+#endif
 
 				ztrmm_( &f77_side,
 						&f77_uploa,
@@ -300,7 +309,7 @@ int main( int argc, char** argv )
 
 		printf( "data_%s_%ctrmm_%s", THR_STR, dt_ch, STR );
 		printf( "( %2lu, 1:3 ) = [ %4lu %4lu %7.2f ];\n",
-		        ( unsigned long )(p - p_begin + 1)/p_inc + 1,
+		        ( unsigned long )(p - p_begin)/p_inc + 1,
 		        ( unsigned long )m,
 		        ( unsigned long )n, gflops );
 

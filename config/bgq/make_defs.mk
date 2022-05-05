@@ -68,18 +68,26 @@ endif
 ifeq ($(DEBUG_TYPE),noopt)
 COPTFLAGS      := -O0
 else
-COPTFLAGS      := -O3
+COPTFLAGS      := -O2
 endif
 
 # Flags specific to optimized kernels.
-CKOPTFLAGS     := $(COPTFLAGS)
+CKOPTFLAGS     := $(COPTFLAGS) -O3
 ifeq ($(CC_VENDOR),ibm)
 CKVECFLAGS     := -qarch=qp -qtune=qp -qsimd=auto -qhot=level=1 -qprefetch -qunroll=yes -qnoipa
 endif
 
 # Flags specific to reference kernels.
 CROPTFLAGS     := $(CKOPTFLAGS)
+ifeq ($(CC_VENDOR),gcc)
+CRVECFLAGS     := $(CKVECFLAGS) -funsafe-math-optimizations -ffp-contract=fast
+else
+ifeq ($(CC_VENDOR),clang)
+CRVECFLAGS     := $(CKVECFLAGS) -funsafe-math-optimizations -ffp-contract=fast
+else
 CRVECFLAGS     := $(CKVECFLAGS)
+endif
+endif
 
 # Override the default value for LDFLAGS.
 ifeq ($(CC_VENDOR),ibm)

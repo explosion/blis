@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -40,7 +40,7 @@ cntl_t* bli_cntl_create_node
        rntm_t* rntm,
        opid_t  family,
        bszid_t bszid,
-       void*   var_func,
+       void_fp var_func,
        void*   params,
        cntl_t* sub_node
      )
@@ -192,7 +192,7 @@ void bli_cntl_free_w_thrinfo
 		printf( "bli_cntl_free_w_thrinfo(): releasing mem pool block.\n" );
 		#endif
 
-		bli_membrk_release( rntm, cntl_pack_mem );
+		bli_pba_release( rntm, cntl_pack_mem );
 	}
 
 	// Free the current node.
@@ -236,7 +236,7 @@ void bli_cntl_free_wo_thrinfo
 	// allocated.
 	if ( bli_mem_is_alloc( cntl_pack_mem ) )
 	{
-		bli_membrk_release( rntm, cntl_pack_mem );
+		bli_pba_release( rntm, cntl_pack_mem );
 	}
 
 	// Free the current node.
@@ -360,7 +360,7 @@ dim_t bli_cntl_calc_num_threads_in
 		bszid_t bszid = bli_cntl_bszid( cntl );
 		dim_t   cur_way;
 
-		// We assume bszid is in {KR,MR,NR,MC,KC,NR} if it is not
+		// We assume bszid is in {NC,KC,MC,NR,MR,KR} if it is not
 		// BLIS_NO_PART.
 		if ( bszid != BLIS_NO_PART )
 			cur_way = bli_rntm_ways_for( bszid, rntm );

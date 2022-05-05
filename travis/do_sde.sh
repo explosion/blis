@@ -3,13 +3,30 @@
 set -e
 set -x
 
-SDE_VERSION=sde-external-8.16.0-2018-01-30-lin
+SDE_VERSION=sde-external-8.69.1-2021-07-18-lin
 SDE_TARBALL=$SDE_VERSION.tar.bz2
 SDE=$SDE_VERSION/sde64
 
-set +x
-curl -s -X POST https://content.dropboxapi.com/2/files/download -H "Authorization: Bearer $DROPBOX_TOKEN" -H "Dropbox-API-Arg: {\"path\": \"/$SDE_TARBALL\"}" > $SDE_TARBALL
-set -x
+#
+# This doesn't seem to be necessary anymore
+#
+#curl --verbose --form accept_license=1 --form form_id=intel_licensed_dls_step_1 \
+#     --output /dev/null --cookie-jar jar.txt \
+#     --location https://software.intel.com/protected-download/267266/144917
+#curl --verbose --cookie jar.txt --output $SDE_TARBALL \
+#     https://software.intel.com/system/files/managed/2a/1a/$SDE_TARBALL
+
+#curl --verbose --output $SDE_TARBALL \
+#     https://software.intel.com/content/dam/develop/external/us/en/documents/downloads/$SDE_TARBALL
+
+CI_UTILS=ci-utils
+CI_UTILS_URL=https://github.com/flame/${CI_UTILS}.git
+CI_UTILS_SDE_DIR=sde
+SDE_DIRPATH=$CI_UTILS/$CI_UTILS_SDE_DIR
+
+git clone $CI_UTILS_URL
+mv $SDE_DIRPATH/$SDE_TARBALL .
+
 tar xvf $SDE_TARBALL
 
 make -j2 testsuite-bin
@@ -28,7 +45,8 @@ for LIB in $LD_SO $LIBC_SO $LIBM_SO; do
     sudo mv .tmp $LIB
 done
 
-for ARCH in penryn sandybridge haswell skx knl piledriver steamroller excavator zen; do
+#for ARCH in penryn sandybridge haswell skx knl piledriver steamroller excavator zen; do
+for ARCH in penryn sandybridge haswell skx knl zen zen2 zen3; do
     if [ "$ARCH" = "knl" ]; then
         $SDE -knl -- ./test_libblis.x > output.testsuite
     else

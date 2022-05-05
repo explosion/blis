@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -118,6 +118,11 @@ void bli_obj_create_without_buffer
 	bli_obj_set_offs( 0, 0, obj );
 	bli_obj_set_diag_offset( 0, obj );
 
+	bli_obj_set_pack_fn( NULL, obj );
+	bli_obj_set_pack_params( NULL, obj );
+	bli_obj_set_ker_fn( NULL, obj );
+	bli_obj_set_ker_params( NULL, obj );
+
 	// Set the internal scalar to 1.0.
 	bli_obj_set_scalar_dt( dt, obj );
 	s = bli_obj_internal_scalar_buffer( obj );
@@ -147,6 +152,7 @@ void bli_obj_alloc_buffer
 	siz_t  elem_size;
 	siz_t  buffer_size;
 	void*  p;
+	err_t  r_val;
 
 	bli_init_once();
 
@@ -195,7 +201,7 @@ void bli_obj_alloc_buffer
 	buffer_size = ( siz_t )n_elem * elem_size;
 
 	// Allocate the buffer.
-	p = bli_malloc_user( buffer_size );
+	p = bli_malloc_user( buffer_size, &r_val );
 
 	// Set individual fields.
 	bli_obj_set_buffer( p, obj );
@@ -355,7 +361,7 @@ void bli_obj_free
 
 	buf_a = bli_obj_buffer_at_off( a );
 
-	bli_zzsets( 0.0, 0.0, value ); 
+	bli_zzsets( 0.0, 0.0, value );
 
 	if ( bli_obj_is_float( a ) )
 	{
@@ -405,7 +411,8 @@ void bli_adjust_strides
 	// matrix).
 	if ( m == 0 || n == 0 ) return;
 
-	// Interpret rs = cs = 0 as request for column storage.
+	// Interpret rs = cs = 0 as request for column storage and -1 as a request
+	// for row storage.
 	if ( *rs == 0 && *cs == 0 && ( *is == 0 || *is == 1 ) )
 	{
 		// First we handle the 1x1 scalar case explicitly.
@@ -414,8 +421,9 @@ void bli_adjust_strides
 			*rs = 1;
 			*cs = 1;
 		}
-		// We use column-major storage, except when m == 1, because we don't
-		// want both strides to be unit.
+		// We use column-major storage, except when m == 1, in which case we
+		// use what amounts to row-major storage because we don't want both
+		// strides to be unit.
 		else if ( m == 1 && n > 1 )
 		{
 			*rs = n;
@@ -445,6 +453,46 @@ void bli_adjust_strides
 		                                 BLIS_HEAP_STRIDE_ALIGN_SIZE );
 		}
 	}
+	else if ( *rs == -1 && *cs == -1 && ( *is == 0 || *is == 1 ) )
+	{
+		// First we handle the 1x1 scalar case explicitly.
+		if ( m == 1 && n == 1 )
+		{
+			*rs = 1;
+			*cs = 1;
+		}
+		// We use row-major storage, except when n == 1, in which case we
+		// use what amounts to column-major storage because we don't want both
+		// strides to be unit.
+		else if ( n == 1 && m > 1 )
+		{
+			*rs = 1;
+			*cs = m;
+		}
+		else
+		{
+			*rs = n;
+			*cs = 1;
+		}
+
+		// Use default complex storage.
+		*is = 1;
+
+		// Align the strides depending on the tilt of the matrix. Note that
+		// scalars are neither row nor column tilted. Also note that alignment
+		// is only done for rs = cs = -1, and any user-supplied row and column
+		// strides are preserved.
+		if ( bli_is_col_tilted( m, n, *rs, *cs ) )
+		{
+			*cs = bli_align_dim_to_size( *cs, elem_size,
+			                             BLIS_HEAP_STRIDE_ALIGN_SIZE );
+		}
+		else if ( bli_is_row_tilted( m, n, *rs, *cs ) )
+		{
+			*rs = bli_align_dim_to_size( *rs, elem_size,
+		                                 BLIS_HEAP_STRIDE_ALIGN_SIZE );
+		}
+	}
 	else if ( *rs == 1 && *cs == 1 )
 	{
 		// If both strides are unit, this is probably a "lazy" request for a
@@ -457,7 +505,7 @@ void bli_adjust_strides
 			// Set the column stride to indicate that this is a column vector
 			// stored in column-major order. This is done for legacy reasons,
 			// because we at one time we had to satisify the error checking
-			// in the underlying BLAS library, which expects the leading 
+			// in the underlying BLAS library, which expects the leading
 			// dimension to be set to at least m, even if it will never be
 			// used for indexing since it is a vector and thus only has one
 			// column of data.

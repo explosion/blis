@@ -71,9 +71,11 @@ void bli_cntx_init_skx( cntx_t* cntx )
 	bli_cntx_set_l1v_kers
 	(
 	  10,
+#if 1
 	  // amaxv
 	  BLIS_AMAXV_KER,  BLIS_FLOAT,  bli_samaxv_zen_int,
 	  BLIS_AMAXV_KER,  BLIS_DOUBLE, bli_damaxv_zen_int,
+#endif
 	  // axpyv
 #if 0
 	  BLIS_AXPYV_KER,  BLIS_FLOAT,  bli_saxpyv_zen_int,
@@ -104,8 +106,8 @@ void bli_cntx_init_skx( cntx_t* cntx )
 	bli_blksz_init_easy( &blkszs[ BLIS_MR ],    32,    16,    -1,    -1 );
 	bli_blksz_init_easy( &blkszs[ BLIS_NR ],    12,    14,    -1,    -1 );
 	bli_blksz_init_easy( &blkszs[ BLIS_MC ],   480,   240,    -1,    -1 );
-	bli_blksz_init     ( &blkszs[ BLIS_KC ],   384,   384,    -1,    -1,
-	                                           480,   480,    -1,    -1 );
+	bli_blksz_init     ( &blkszs[ BLIS_KC ],   384,   256,    -1,    -1,
+	                                           480,   320,    -1,    -1 );
 	bli_blksz_init_easy( &blkszs[ BLIS_NC ],  3072,  3752,    -1,    -1 );
 	bli_blksz_init_easy( &blkszs[ BLIS_AF ],     8,     8,    -1,    -1 );
 	bli_blksz_init_easy( &blkszs[ BLIS_DF ],     8,     8,    -1,    -1 );
