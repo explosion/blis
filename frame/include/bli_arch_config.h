@@ -234,6 +234,9 @@ CNTX_INIT_PROTS( generic )
 #endif
 
 // -- ARM families --
+#ifdef BLIS_FAMILY_ARM64_NO_SVE
+#include "bli_family_arm64_no_sve.h"
+#endif
 #ifdef BLIS_FAMILY_ARM64
 #include "bli_family_arm64.h"
 #endif

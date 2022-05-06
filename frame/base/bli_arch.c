@@ -177,6 +177,10 @@ arch_t bli_arch_query_id_impl( void )
 		    defined BLIS_FAMILY_ARM64   || \
 		    defined BLIS_FAMILY_ARM32   || \
 		    defined BLIS_FAMILY_POWER
+		    defined BLIS_FAMILY_ARM64_NO_SVE   || \
+		    defined BLIS_FAMILY_X86_64_NO_SKX  || \
+		    defined BLIS_FAMILY_X86_64_NO_ZEN2 || \
+		    defined BLIS_FAMILY_X86_64_NO_ZEN3
 		id = bli_cpuid_query_id();
 		#endif
 
