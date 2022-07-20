@@ -4502,7 +4502,8 @@ void bli_sgemmsup_rv_haswell_asm_6x2m
 	add(rdi, rcx)
 	
 	
-	vfmadd231ps(mem(rcx, 0*32), xmm3, xmm14)
+	vmovsd(mem(rcx, 0*32), xmm0)
+	vfmadd231ps(xmm0, xmm3, xmm14)
 	vmovsd(xmm14, mem(rcx, 0*32))
 	//add(rdi, rcx)
 	
