@@ -68,6 +68,11 @@ static real c_b52 = 0.f;
 /*  ===================================================================== */
 /* Main program */ int main(void)
 {
+#ifdef BLIS_ENABLE_HPX
+    char* program = "cblat1";
+    bli_thread_initialize_hpx( 1, &program );
+#endif
+
     /* Initialized data */
 
     static real sfac = 9.765625e-4f;
@@ -136,7 +141,12 @@ static real c_b52 = 0.f;
     }
     s_stop("", (ftnlen)0);
 
-    return 0;
+#ifdef BLIS_ENABLE_HPX
+    return bli_thread_finalize_hpx();
+#else
+	// Return peacefully.
+	return 0;
+#endif
 } /* main */
 
 /* Subroutine */ int header_(void)
@@ -230,7 +240,7 @@ static real c_b52 = 0.f;
     complex q__1;
 
     /* Builtin functions */
-    integer s_wsle(cilist *), do_lio(integer *, integer *, char *, ftnlen), 
+    integer s_wsle(cilist *), do_lio(integer *, integer *, char *, ftnlen),
 	    e_wsle(void);
     /* Subroutine */ int s_stop(char *, ftnlen);
 
@@ -238,15 +248,15 @@ static real c_b52 = 0.f;
     integer i__;
     complex cx[8];
     integer np1, len;
-    extern /* Subroutine */ int cscal_(integer *, complex *, complex *, 
-	    integer *), ctest_(integer *, complex *, complex *, complex *, 
+    extern /* Subroutine */ int cscal_(integer *, complex *, complex *,
+	    integer *), ctest_(integer *, complex *, complex *, complex *,
 	    real *);
     complex mwpcs[5], mwpct[5];
     extern real scnrm2_(integer *, complex *, integer *);
     extern /* Subroutine */ int itest1_(integer *, integer *), stest1_(real *,
 	     real *, real *, real *);
     extern integer icamax_(integer *, complex *, integer *);
-    extern /* Subroutine */ int csscal_(integer *, real *, complex *, integer 
+    extern /* Subroutine */ int csscal_(integer *, real *, complex *, integer
 	    *);
     extern real scasum_(integer *, complex *, integer *);
 
@@ -465,7 +475,7 @@ static real c_b52 = 0.f;
     complex q__1;
 
     /* Builtin functions */
-    integer s_wsle(cilist *), do_lio(integer *, integer *, char *, ftnlen), 
+    integer s_wsle(cilist *), do_lio(integer *, integer *, char *, ftnlen),
 	    e_wsle(void);
     /* Subroutine */ int s_stop(char *, ftnlen);
 
@@ -475,17 +485,29 @@ static real c_b52 = 0.f;
     integer mx, my;
     complex cdot[1];
     integer lenx, leny;
-    extern /* Complex */ complex cdotc_(integer *, complex *, integer 
+    extern /* Complex */
+#ifdef BLIS_ENABLE_COMPLEX_RETURN_INTEL
+ void cdotc_(complex *,
+#else
+complex cdotc_(
+#endif
+ integer *, complex *, integer
 	    *, complex *, integer *);
-    extern /* Subroutine */ int ccopy_(integer *, complex *, integer *, 
+    extern /* Subroutine */ int ccopy_(integer *, complex *, integer *,
 	    complex *, integer *);
-    extern /* Complex */ complex cdotu_(integer *, complex *, integer 
+    extern /* Complex */
+#ifdef BLIS_ENABLE_COMPLEX_RETURN_INTEL
+ void cdotu_(complex *,
+#else
+complex cdotu_(
+#endif
+ integer *, complex *, integer
 	    *, complex *, integer *);
-    extern /* Subroutine */ int cswap_(integer *, complex *, integer *, 
-	    complex *, integer *), ctest_(integer *, complex *, complex *, 
+    extern /* Subroutine */ int cswap_(integer *, complex *, integer *,
+	    complex *, integer *), ctest_(integer *, complex *, complex *,
 	    complex *, real *);
     integer ksize;
-    extern /* Subroutine */ int caxpy_(integer *, complex *, complex *, 
+    extern /* Subroutine */ int caxpy_(integer *, complex *, complex *,
 	    integer *, complex *, integer *);
 
     /* Fortran I/O blocks */
@@ -526,14 +548,26 @@ static real c_b52 = 0.f;
 	    }
 	    if (combla_1.icase == 1) {
 /*              .. CDOTC .. */
-		q__1 = cdotc_(&combla_1.n, cx, &combla_1.incx, cy, &
+
+#ifdef BLIS_ENABLE_COMPLEX_RETURN_INTEL
+		cdotc_(&q__1,
+#else
+		q__1 = cdotc_(
+#endif
+		 &combla_1.n, cx, &combla_1.incx, cy, &
 			combla_1.incy);
 		cdot[0].r = q__1.r, cdot[0].i = q__1.i;
 		ctest_(&c__1, cdot, &ct6[kn + (ki << 2) - 5], &csize1[kn - 1],
 			 sfac);
 	    } else if (combla_1.icase == 2) {
 /*              .. CDOTU .. */
-		q__1 = cdotu_(&combla_1.n, cx, &combla_1.incx, cy, &
+
+#ifdef BLIS_ENABLE_COMPLEX_RETURN_INTEL
+		cdotu_(&q__1,
+#else
+		q__1 = cdotu_(
+#endif
+		 &combla_1.n, cx, &combla_1.incx, cy, &
 			combla_1.incy);
 		cdot[0].r = q__1.r, cdot[0].i = q__1.i;
 		ctest_(&c__1, cdot, &ct7[kn + (ki << 2) - 5], &csize1[kn - 1],
@@ -667,7 +701,7 @@ L40:
 	sfac)
 {
     real scomp[1], strue[1];
-    extern /* Subroutine */ int stest_(integer *, real *, real *, real *, 
+    extern /* Subroutine */ int stest_(integer *, real *, real *, real *,
 	    real *);
 
 /*     ************************* STEST1 ***************************** */
@@ -709,7 +743,7 @@ real sdiff_(real *sa, real *sb)
     return ret_val;
 } /* sdiff_ */
 
-/* Subroutine */ int ctest_(integer *len, complex *ccomp, complex *ctrue, 
+/* Subroutine */ int ctest_(integer *len, complex *ccomp, complex *ctrue,
 	complex *csize, real *sfac)
 {
     /* System generated locals */
@@ -721,7 +755,7 @@ real sdiff_(real *sa, real *sb)
     /* Local variables */
     integer i__;
     real scomp[20], ssize[20], strue[20];
-    extern /* Subroutine */ int stest_(integer *, real *, real *, real *, 
+    extern /* Subroutine */ int stest_(integer *, real *, real *, real *,
 	    real *);
 
 /*     **************************** CTEST ***************************** */

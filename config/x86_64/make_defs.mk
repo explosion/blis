@@ -47,7 +47,7 @@ THIS_CONFIG    := x86_64
 # may specify additional flags here as needed.
 CPPROCFLAGS    :=
 CMISCFLAGS     :=
-CPICFLAGS      :=
+CPICFLAGS      := -fPIC
 CWARNFLAGS     :=
 
 ifneq ($(DEBUG_TYPE),off)
@@ -57,11 +57,11 @@ endif
 ifeq ($(DEBUG_TYPE),noopt)
 COPTFLAGS      := -O0
 else
-COPTFLAGS      := -O3
+COPTFLAGS      := -O2
 endif
 
 # Flags specific to optimized kernels.
-CKOPTFLAGS     := $(COPTFLAGS)
+CKOPTFLAGS     := $(COPTFLAGS) -O3
 ifeq ($(CC_VENDOR),gcc)
 CKVECFLAGS     := -mssse3 -mfpmath=sse -march=core2
 else
@@ -79,9 +79,13 @@ endif
 # Flags specific to reference kernels.
 CROPTFLAGS     := $(CKOPTFLAGS)
 ifeq ($(CC_VENDOR),gcc)
-CRVECFLAGS     := $(CKVECFLAGS)
+CRVECFLAGS     := $(CKVECFLAGS) -funsafe-math-optimizations -ffp-contract=fast
+else
+ifeq ($(CC_VENDOR),clang)
+CRVECFLAGS     := $(CKVECFLAGS) -funsafe-math-optimizations -ffp-contract=fast
 else
 CRVECFLAGS     := $(CKVECFLAGS)
+endif
 endif
 
 # Store all of the variables here to new variables containing the

@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2017, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -52,11 +52,11 @@ void PASTEMAC(ch,varname) \
        rntm_t*  rntm  \
      ) \
 { \
-	ctype*   chi1; \
-	ctype_r  chi1_r; \
-	ctype_r  chi1_i; \
-	ctype_r  absum; \
-	dim_t    i; \
+	ctype*  chi1; \
+	ctype_r chi1_r; \
+	ctype_r chi1_i; \
+	ctype_r absum; \
+	dim_t   i; \
 \
 	/* Initialize the absolute sum accumulator to zero. */ \
 	PASTEMAC(chr,set0s)( absum ); \
@@ -81,7 +81,7 @@ void PASTEMAC(ch,varname) \
 	PASTEMAC(chr,copys)( absum, *asum ); \
 }
 
-INSERT_GENTFUNCR_BASIC0( asumv_unb_var1 )
+INSERT_GENTFUNCR_BASIC( asumv_unb_var1 )
 
 
 #undef  GENTFUNCR
@@ -137,7 +137,7 @@ void PASTEMAC(ch,varname) \
 	); \
 }
 
-INSERT_GENTFUNCR_BASIC0( mkherm_unb_var1 )
+INSERT_GENTFUNCR_BASIC( mkherm_unb_var1 )
 
 
 #undef  GENTFUNC
@@ -179,7 +179,7 @@ void PASTEMAC(ch,varname) \
 	); \
 }
 
-INSERT_GENTFUNC_BASIC0( mksymm_unb_var1 )
+INSERT_GENTFUNC_BASIC( mksymm_unb_var1 )
 
 
 #undef  GENTFUNC
@@ -224,7 +224,7 @@ void PASTEMAC(ch,varname) \
 	); \
 }
 
-INSERT_GENTFUNC_BASIC0( mktrim_unb_var1 )
+INSERT_GENTFUNC_BASIC( mktrim_unb_var1 )
 
 
 #undef  GENTFUNCR
@@ -239,10 +239,10 @@ void PASTEMAC(ch,varname) \
        rntm_t*  rntm  \
      ) \
 { \
-	ctype*   chi1; \
-	ctype_r  abs_chi1; \
-	ctype_r  absum; \
-	dim_t    i; \
+	ctype*  chi1; \
+	ctype_r abs_chi1; \
+	ctype_r absum; \
+	dim_t   i; \
 \
 	/* Initialize the absolute sum accumulator to zero. */ \
 	PASTEMAC(chr,set0s)( absum ); \
@@ -262,7 +262,7 @@ void PASTEMAC(ch,varname) \
 	PASTEMAC(chr,copys)( absum, *norm ); \
 }
 
-INSERT_GENTFUNCR_BASIC0( norm1v_unb_var1 )
+INSERT_GENTFUNCR_BASIC( norm1v_unb_var1 )
 
 
 #undef  GENTFUNCR
@@ -311,7 +311,14 @@ GENTFUNCR( scomplex, float,  c, s, normfv_unb_var1, sumsqv_unb_var1 )
 GENTFUNCR( dcomplex, double, z, d, normfv_unb_var1, sumsqv_unb_var1 )
 
 #undef  GENTFUNCR
-#ifdef FE_OVERFLOW
+// We've disabled the dotv-based implementation because that method of
+// computing the sum of the squares of x inherently does not check for
+// overflow. Instead, we use the fallback method based on sumsqv, which
+// takes care to not overflow unnecessarily (ie: takes care for the
+// sqrt( sum of the squares of x ) to not overflow if the sum of the
+// squares of x would normally overflow. See GitHub issue #332 for
+// discussion.
+#if 0 //defined(FE_OVERFLOW) && !defined(__APPLE__)
 #define GENTFUNCR( ctype, ctype_r, ch, chr, varname, kername ) \
 \
 void PASTEMAC(ch,varname) \
@@ -448,10 +455,10 @@ void PASTEMAC(ch,varname) \
        rntm_t*  rntm  \
      ) \
 { \
-	ctype*   chi1; \
-	ctype_r  abs_chi1; \
-	ctype_r  abs_chi1_max; \
-	dim_t    i; \
+	ctype*  chi1; \
+	ctype_r abs_chi1; \
+	ctype_r abs_chi1_max; \
+	dim_t   i; \
 \
 	/* Initialize the maximum absolute value to zero. */ \
 	PASTEMAC(chr,set0s)( abs_chi1_max ); \
@@ -466,7 +473,7 @@ void PASTEMAC(ch,varname) \
 		/* If the absolute value of the current element exceeds that of
 		   the previous largest, save it and its index. If NaN is
 		   encountered, then treat it the same as if it were a valid
-		   value that was smaller than any previously seen. This
+		   value that was larger than any previously seen. This
 		   behavior mimics that of LAPACK's ?lange(). */ \
 		if ( abs_chi1_max < abs_chi1 || bli_isnan( abs_chi1 ) ) \
 		{ \
@@ -478,7 +485,7 @@ void PASTEMAC(ch,varname) \
 	PASTEMAC(chr,copys)( abs_chi1_max, *norm ); \
 }
 
-INSERT_GENTFUNCR_BASIC0( normiv_unb_var1 )
+INSERT_GENTFUNCR_BASIC( normiv_unb_var1 )
 
 
 
@@ -498,19 +505,19 @@ void PASTEMAC(ch,varname) \
        rntm_t*  rntm  \
      ) \
 { \
-	ctype*   one       = PASTEMAC(ch,1); \
-	ctype*   x0; \
-	ctype*   chi1; \
-	ctype*   x2; \
-	ctype_r  absum_max; \
-	ctype_r  absum_j; \
-	ctype_r  abval_chi1; \
-	uplo_t   uplox_eff; \
-	dim_t    n_iter; \
-	dim_t    n_elem, n_elem_max; \
-	inc_t    ldx, incx; \
-	dim_t    j, i; \
-	dim_t    ij0, n_shift; \
+	ctype*  one = PASTEMAC(ch,1); \
+	ctype*  x0; \
+	ctype*  chi1; \
+	ctype*  x2; \
+	ctype_r absum_max; \
+	ctype_r absum_j; \
+	ctype_r abval_chi1; \
+	uplo_t  uplox_eff; \
+	dim_t   n_iter; \
+	dim_t   n_elem, n_elem_max; \
+	inc_t   ldx, incx; \
+	dim_t   j, i; \
+	dim_t   ij0, n_shift; \
 \
 	/* Initialize the maximum absolute column sum to zero. */ \
 	PASTEMAC(chr,set0s)( absum_max ); \
@@ -856,85 +863,6 @@ INSERT_GENTFUNCR_BASIC( normim_unb_var1, norm1m_unb_var1 )
 
 
 #undef  GENTFUNC
-#define GENTFUNC( ctype, ch, opname ) \
-\
-void PASTEMAC(ch,opname) \
-     ( \
-       FILE*  file, \
-       char*  s1, \
-       dim_t  n, \
-       ctype* x, inc_t incx, \
-       char*  format, \
-       char*  s2  \
-     ) \
-{ \
-	dim_t  i; \
-	ctype* chi1; \
-	char   default_spec[32] = PASTEMAC(ch,formatspec)(); \
-\
-	if ( format == NULL ) format = default_spec; \
-\
-	chi1 = x; \
-\
-	fprintf( file, "%s\n", s1 ); \
-\
-	for ( i = 0; i < n; ++i ) \
-	{ \
-		PASTEMAC(ch,fprints)( file, format, *chi1 ); \
-		fprintf( file, "\n" ); \
-\
-		chi1 += incx; \
-	} \
-\
-	fprintf( file, "%s\n", s2 ); \
-}
-
-INSERT_GENTFUNC_BASIC0_I( fprintv )
-
-
-#undef  GENTFUNC
-#define GENTFUNC( ctype, ch, opname ) \
-\
-void PASTEMAC(ch,opname) \
-     ( \
-       FILE*  file, \
-       char*  s1, \
-       dim_t  m, \
-       dim_t  n, \
-       ctype* x, inc_t rs_x, inc_t cs_x, \
-       char*  format, \
-       char*  s2  \
-     ) \
-{ \
-	dim_t  i, j; \
-	ctype* chi1; \
-	char   default_spec[32] = PASTEMAC(ch,formatspec)(); \
-\
-	if ( format == NULL ) format = default_spec; \
-\
-	fprintf( file, "%s\n", s1 ); \
-\
-	for ( i = 0; i < m; ++i ) \
-	{ \
-		for ( j = 0; j < n; ++j ) \
-		{ \
-			chi1 = (( ctype* ) x) + i*rs_x + j*cs_x; \
-\
-			PASTEMAC(ch,fprints)( file, format, *chi1 ); \
-			fprintf( file, " " ); \
-		} \
-\
-		fprintf( file, "\n" ); \
-	} \
-\
-	fprintf( file, "%s\n", s2 ); \
-	fflush( file ); \
-}
-
-INSERT_GENTFUNC_BASIC0_I( fprintm )
-
-
-#undef  GENTFUNC
 #define GENTFUNC( ctype, ch, varname, randmac ) \
 \
 void PASTEMAC(ch,varname) \
@@ -976,20 +904,20 @@ void PASTEMAC(ch,varname) \
        rntm_t* rntm  \
      ) \
 { \
-	ctype*  one = PASTEMAC(ch,1); \
-	ctype*  x0; \
-	ctype*  x1; \
-	ctype*  x2; \
-	ctype*  chi1; \
-	ctype   beta; \
-	ctype   omega; \
-	double  max_m_n; \
-	uplo_t  uplox_eff; \
-	dim_t   n_iter; \
-	dim_t   n_elem, n_elem_max; \
-	inc_t   ldx, incx; \
-	dim_t   j, i; \
-	dim_t   ij0, n_shift; \
+	ctype* one = PASTEMAC(ch,1); \
+	ctype* x0; \
+	ctype* x1; \
+	ctype* x2; \
+	ctype* chi1; \
+	ctype  beta; \
+	ctype  omega; \
+	double max_m_n; \
+	uplo_t uplox_eff; \
+	dim_t  n_iter; \
+	dim_t  n_elem, n_elem_max; \
+	inc_t  ldx, incx; \
+	dim_t  j, i; \
+	dim_t  ij0, n_shift; \
 \
 	/* Set various loop parameters. Here, we pretend that diagx is equal to
 	   BLIS_NONUNIT_DIAG because we handle the unit diagonal case manually. */ \
@@ -1012,7 +940,8 @@ void PASTEMAC(ch,varname) \
 \
 			x1     = x + (j  )*ldx + (0  )*incx; \
 \
-			PASTEMAC2(ch,kername,BLIS_TAPI_EX_SUF) \
+			/*PASTEMAC2(ch,kername,BLIS_TAPI_EX_SUF)*/ \
+			PASTEMAC(ch,kername) \
 			( \
 			  n_elem, \
 			  x1, incx, \
@@ -1039,7 +968,8 @@ void PASTEMAC(ch,varname) \
 				x0     = x1; \
 				chi1   = x1 + (n_elem-1)*incx; \
 \
-				PASTEMAC2(ch,kername,BLIS_TAPI_EX_SUF) \
+				/*PASTEMAC2(ch,kername,BLIS_TAPI_EX_SUF)*/ \
+				PASTEMAC(ch,kername) \
 				( \
 				  n_elem, \
 				  x1, incx, \
@@ -1079,7 +1009,8 @@ void PASTEMAC(ch,varname) \
 				x2     = x1 + incx; \
 				chi1   = x1; \
 \
-				PASTEMAC2(ch,kername,BLIS_TAPI_EX_SUF) \
+				/*PASTEMAC2(ch,kername,BLIS_TAPI_EX_SUF)*/ \
+				PASTEMAC(ch,kername) \
 				( \
 				  n_elem, \
 				  x1, incx, \
@@ -1111,8 +1042,8 @@ void PASTEMAC(ch,varname) \
 	} \
 }
 
-INSERT_GENTFUNC_BASIC( randm_unb_var1,  randv )
-INSERT_GENTFUNC_BASIC( randnm_unb_var1, randnv )
+INSERT_GENTFUNC_BASIC( randm_unb_var1,  randv_unb_var1 )
+INSERT_GENTFUNC_BASIC( randnm_unb_var1, randnv_unb_var1 )
 
 
 #undef  GENTFUNCR
@@ -1128,16 +1059,17 @@ void PASTEMAC(ch,varname) \
        rntm_t*  rntm  \
      ) \
 { \
-	const ctype_r zero_r = *PASTEMAC(chr,0); \
-	const ctype_r one_r  = *PASTEMAC(chr,1); \
+	ctype_r zero_r = *PASTEMAC(chr,0); \
+	ctype_r one_r  = *PASTEMAC(chr,1); \
 \
-	ctype*        chi1; \
-	ctype_r       chi1_r; \
-	ctype_r       chi1_i; \
-	ctype_r       scale_r; \
-	ctype_r       sumsq_r; \
-	ctype_r       abs_chi1_r; \
-	dim_t         i; \
+	ctype*  chi1; \
+	ctype_r chi1_r; \
+	ctype_r chi1_i; \
+	ctype_r scale_r; \
+	ctype_r sumsq_r; \
+	ctype_r abs_chi1_r; \
+	ctype_r abs_chi1_i; \
+	dim_t   i; \
 \
 	/* NOTE: This function attempts to mimic the algorithm for computing
 	   the Frobenius norm in netlib LAPACK's ?lassq(). */ \
@@ -1154,10 +1086,47 @@ void PASTEMAC(ch,varname) \
 		PASTEMAC2(ch,chr,gets)( *chi1, chi1_r, chi1_i ); \
 \
 		abs_chi1_r = bli_fabs( chi1_r ); \
+		abs_chi1_i = bli_fabs( chi1_i ); \
+\
+		if ( bli_isnan( abs_chi1_r ) ) \
+		{ \
+			sumsq_r = abs_chi1_r; \
+			scale_r = one_r; \
+		} \
+\
+		if ( bli_isnan( abs_chi1_i ) ) \
+		{ \
+			sumsq_r = abs_chi1_i; \
+			scale_r = one_r; \
+		} \
+\
+		if ( bli_isnan( sumsq_r ) ) \
+		{ \
+			chi1 += incx; \
+			continue; \
+		} \
+\
+		if ( bli_isinf( abs_chi1_r ) ) \
+		{ \
+			sumsq_r = abs_chi1_r; \
+			scale_r = one_r; \
+		} \
+\
+		if ( bli_isinf( abs_chi1_i ) ) \
+		{ \
+			sumsq_r = abs_chi1_i; \
+			scale_r = one_r; \
+		} \
+\
+		if ( bli_isinf( sumsq_r ) ) \
+		{ \
+			chi1 += incx; \
+			continue; \
+		} \
 \
 		/* Accumulate real component into sumsq, adjusting scale if
 		   needed. */ \
-		if ( abs_chi1_r > zero_r || bli_isnan( abs_chi1_r) ) \
+		if ( abs_chi1_r > zero_r ) \
 		{ \
 			if ( scale_r < abs_chi1_r ) \
 			{ \
@@ -1174,24 +1143,22 @@ void PASTEMAC(ch,varname) \
 			} \
 		} \
 \
-		abs_chi1_r = bli_fabs( chi1_i ); \
-\
 		/* Accumulate imaginary component into sumsq, adjusting scale if
 		   needed. */ \
-		if ( abs_chi1_r > zero_r || bli_isnan( abs_chi1_r) ) \
+		if ( abs_chi1_i > zero_r ) \
 		{ \
-			if ( scale_r < abs_chi1_r ) \
+			if ( scale_r < abs_chi1_i ) \
 			{ \
 				sumsq_r = one_r + \
-				          sumsq_r * ( scale_r / abs_chi1_r ) * \
-				                    ( scale_r / abs_chi1_r );  \
+				          sumsq_r * ( scale_r / abs_chi1_i ) * \
+				                    ( scale_r / abs_chi1_i );  \
 \
-				PASTEMAC(chr,copys)( abs_chi1_r, scale_r ); \
+				PASTEMAC(chr,copys)( abs_chi1_i, scale_r ); \
 			} \
 			else \
 			{ \
-				sumsq_r = sumsq_r + ( abs_chi1_r / scale_r ) * \
-				                    ( abs_chi1_r / scale_r );  \
+				sumsq_r = sumsq_r + ( abs_chi1_i / scale_r ) * \
+				                    ( abs_chi1_i / scale_r );  \
 			} \
 		} \
 \
@@ -1203,5 +1170,236 @@ void PASTEMAC(ch,varname) \
 	PASTEMAC(chr,copys)( sumsq_r, *sumsq ); \
 }
 
-INSERT_GENTFUNCR_BASIC0( sumsqv_unb_var1 )
+INSERT_GENTFUNCR_BASIC( sumsqv_unb_var1 )
+
+// -----------------------------------------------------------------------------
+
+#undef  GENTFUNC
+#define GENTFUNC( ctype, ch, opname ) \
+\
+bool PASTEMAC(ch,opname) \
+     ( \
+       conj_t conjx, \
+       dim_t  n, \
+       ctype* x, inc_t incx, \
+       ctype* y, inc_t incy  \
+     ) \
+{ \
+	for ( dim_t i = 0; i < n; ++i ) \
+	{ \
+		ctype* chi1 = x + (i  )*incx; \
+		ctype* psi1 = y + (i  )*incy; \
+\
+		ctype chi1c; \
+\
+		if ( bli_is_conj( conjx ) ) { PASTEMAC(ch,copyjs)( *chi1, chi1c ); } \
+		else                        { PASTEMAC(ch,copys)( *chi1, chi1c ); } \
+\
+		if ( !PASTEMAC(ch,eq)( chi1c, *psi1 ) ) \
+			return FALSE; \
+	} \
+\
+	return TRUE; \
+}
+
+INSERT_GENTFUNC_BASIC( eqv_unb_var1 )
+
+
+#undef  GENTFUNC
+#define GENTFUNC( ctype, ch, opname ) \
+\
+bool PASTEMAC(ch,opname) \
+     ( \
+       doff_t  diagoffx, \
+       diag_t  diagx, \
+       uplo_t  uplox, \
+       trans_t transx, \
+       dim_t   m, \
+       dim_t   n, \
+       ctype*  x, inc_t rs_x, inc_t cs_x, \
+       ctype*  y, inc_t rs_y, inc_t cs_y  \
+     ) \
+{ \
+	uplo_t   uplox_eff; \
+	conj_t   conjx; \
+	dim_t    n_iter; \
+	dim_t    n_elem_max; \
+	inc_t    ldx, incx; \
+	inc_t    ldy, incy; \
+	dim_t    ij0, n_shift; \
+\
+	/* Set various loop parameters. */ \
+	bli_set_dims_incs_uplo_2m \
+	( \
+	  diagoffx, diagx, transx, \
+	  uplox, m, n, rs_x, cs_x, rs_y, cs_y, \
+	  &uplox_eff, &n_elem_max, &n_iter, &incx, &ldx, &incy, &ldy, \
+	  &ij0, &n_shift \
+	); \
+\
+	/* In the odd case where we are comparing against a complete unstored
+	   matrix, we assert equality. Why? We assume the matrices are equal
+	   unless we can find two corresponding elements that are unequal. So
+	   if there are no elements, there is no inequality. Granted, this logic
+	   is strange to think about no matter what, and thankfully it should
+	   never be used under normal usage. */ \
+	if ( bli_is_zeros( uplox_eff ) ) return TRUE; \
+\
+	/* Extract the conjugation component from the transx parameter. */ \
+	conjx = bli_extract_conj( transx ); \
+\
+	/* Handle dense and upper/lower storage cases separately. */ \
+	if ( bli_is_dense( uplox_eff ) ) \
+	{ \
+		for ( dim_t j = 0; j < n_iter; ++j ) \
+		{ \
+			const dim_t n_elem = n_elem_max; \
+\
+			ctype* x1 = x + (j  )*ldx + (0  )*incx; \
+			ctype* y1 = y + (j  )*ldy + (0  )*incy; \
+\
+			for ( dim_t i = 0; i < n_elem; ++i ) \
+			{ \
+				ctype* x11 = x1 + (i  )*incx; \
+				ctype* y11 = y1 + (i  )*incy; \
+				ctype  x11c; \
+\
+				if ( bli_is_conj( conjx ) ) { PASTEMAC(ch,copyjs)( *x11, x11c ); } \
+				else                        { PASTEMAC(ch,copys)( *x11, x11c ); } \
+\
+				if ( !PASTEMAC(ch,eq)( x11c, *y11 ) ) \
+					return FALSE; \
+			} \
+		} \
+	} \
+	else \
+	{ \
+		if ( bli_is_upper( uplox_eff ) ) \
+		{ \
+			for ( dim_t j = 0; j < n_iter; ++j ) \
+			{ \
+				const dim_t n_elem = bli_min( n_shift + j + 1, n_elem_max ); \
+\
+				ctype* x1 = x + (ij0+j  )*ldx + (0  )*incx; \
+				ctype* y1 = y + (ij0+j  )*ldy + (0  )*incy; \
+\
+				for ( dim_t i = 0; i < n_elem; ++i ) \
+				{ \
+					ctype* x11 = x1 + (i  )*incx; \
+					ctype* y11 = y1 + (i  )*incy; \
+					ctype  x11c; \
+\
+					if ( bli_is_conj( conjx ) ) { PASTEMAC(ch,copyjs)( *x11, x11c ); } \
+					else                        { PASTEMAC(ch,copys)( *x11, x11c ); } \
+\
+					if ( !PASTEMAC(ch,eq)( x11c, *y11 ) ) \
+						return FALSE; \
+				} \
+			} \
+		} \
+		else if ( bli_is_lower( uplox_eff ) ) \
+		{ \
+			for ( dim_t j = 0; j < n_iter; ++j ) \
+			{ \
+				const dim_t offi   = bli_max( 0, ( doff_t )j - ( doff_t )n_shift ); \
+				const dim_t n_elem = n_elem_max - offi; \
+\
+				ctype* x1 = x + (j  )*ldx + (ij0+offi  )*incx; \
+				ctype* y1 = y + (j  )*ldy + (ij0+offi  )*incy; \
+\
+				for ( dim_t i = 0; i < n_elem; ++i ) \
+				{ \
+					ctype* x11 = x1 + (i  )*incx; \
+					ctype* y11 = y1 + (i  )*incy; \
+					ctype  x11c; \
+\
+					if ( bli_is_conj( conjx ) ) { PASTEMAC(ch,copyjs)( *x11, x11c ); } \
+					else                        { PASTEMAC(ch,copys)( *x11, x11c ); } \
+\
+					if ( !PASTEMAC(ch,eq)( x11c, *y11 ) ) \
+						return FALSE; \
+				} \
+			} \
+		} \
+	} \
+\
+	return TRUE; \
+}
+
+INSERT_GENTFUNC_BASIC( eqm_unb_var1 )
+
+
+#undef  GENTFUNC
+#define GENTFUNC( ctype, ch, opname ) \
+\
+void PASTEMAC(ch,opname) \
+     ( \
+             FILE*  file, \
+       const char*  s1, \
+             dim_t  n, \
+       const ctype* x, inc_t incx, \
+       const char*  format, \
+       const char*  s2  \
+     ) \
+{ \
+	const char default_spec[32] = PASTEMAC(ch,formatspec)(); \
+\
+	if ( format == NULL ) format = default_spec; \
+\
+	const ctype*chi1 = x; \
+\
+	fprintf( file, "%s\n", s1 ); \
+\
+	for ( dim_t i = 0; i < n; ++i ) \
+	{ \
+		PASTEMAC(ch,fprints)( file, format, *chi1 ); \
+		fprintf( file, "\n" ); \
+\
+		chi1 += incx; \
+	} \
+\
+	fprintf( file, "%s\n", s2 ); \
+}
+
+INSERT_GENTFUNC_BASIC_I( fprintv )
+
+
+#undef  GENTFUNC
+#define GENTFUNC( ctype, ch, opname ) \
+\
+void PASTEMAC(ch,opname) \
+     ( \
+             FILE*  file, \
+       const char*  s1, \
+             dim_t  m, \
+             dim_t  n, \
+       const ctype* x, inc_t rs_x, inc_t cs_x, \
+       const char*  format, \
+       const char*  s2  \
+     ) \
+{ \
+	const char default_spec[32] = PASTEMAC(ch,formatspec)(); \
+\
+	if ( format == NULL ) format = default_spec; \
+\
+	fprintf( file, "%s\n", s1 ); \
+\
+	for ( dim_t i = 0; i < m; ++i ) \
+	{ \
+		for ( dim_t j = 0; j < n; ++j ) \
+		{ \
+			const ctype* chi1 = (( ctype* ) x) + i*rs_x + j*cs_x; \
+\
+			PASTEMAC(ch,fprints)( file, format, *chi1 ); \
+			fprintf( file, " " ); \
+		} \
+\
+		fprintf( file, "\n" ); \
+	} \
+\
+	fprintf( file, "%s\n", s2 ); \
+	fflush( file ); \
+}
+
+INSERT_GENTFUNC_BASIC_I( fprintm )
 

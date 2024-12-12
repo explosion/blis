@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2020, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -47,16 +48,17 @@
 \
 typedef void (*PASTECH(opname,_oft)) \
 ( \
-  obj_t*  alpha, \
-  obj_t*  a, \
-  obj_t*  b, \
-  obj_t*  beta, \
-  obj_t*  c, \
-  cntx_t* cntx, \
-  rntm_t* rntm  \
+  const obj_t*  alpha, \
+  const obj_t*  a, \
+  const obj_t*  b, \
+  const obj_t*  beta, \
+  const obj_t*  c, \
+  const cntx_t* cntx, \
+  const rntm_t* rntm  \
 );
 
 GENTDEF( gemm )
+GENTDEF( gemmt )
 GENTDEF( her2k )
 GENTDEF( syr2k )
 
@@ -68,14 +70,14 @@ GENTDEF( syr2k )
 \
 typedef void (*PASTECH(opname,_oft)) \
 ( \
-  side_t  side, \
-  obj_t*  alpha, \
-  obj_t*  a, \
-  obj_t*  b, \
-  obj_t*  beta, \
-  obj_t*  c, \
-  cntx_t* cntx, \
-  rntm_t* rntm  \
+        side_t  side, \
+  const obj_t*  alpha, \
+  const obj_t*  a, \
+  const obj_t*  b, \
+  const obj_t*  beta, \
+  const obj_t*  c, \
+  const cntx_t* cntx, \
+  const rntm_t* rntm  \
 );
 
 GENTDEF( hemm )
@@ -90,12 +92,12 @@ GENTDEF( trmm3 )
 \
 typedef void (*PASTECH(opname,_oft)) \
 ( \
-  obj_t*  alpha, \
-  obj_t*  a, \
-  obj_t*  beta, \
-  obj_t*  c, \
-  cntx_t* cntx, \
-  rntm_t* rntm  \
+  const obj_t*  alpha, \
+  const obj_t*  a, \
+  const obj_t*  beta, \
+  const obj_t*  c, \
+  const cntx_t* cntx, \
+  const rntm_t* rntm  \
 );
 
 GENTDEF( herk )
@@ -109,12 +111,12 @@ GENTDEF( syrk )
 \
 typedef void (*PASTECH(opname,_oft)) \
 ( \
-  side_t  side, \
-  obj_t*  alpha, \
-  obj_t*  a, \
-  obj_t*  b, \
-  cntx_t* cntx, \
-  rntm_t* rntm  \
+        side_t  side, \
+  const obj_t*  alpha, \
+  const obj_t*  a, \
+  const obj_t*  b, \
+  const cntx_t* cntx, \
+  const rntm_t* rntm  \
 );
 
 GENTDEF( trmm )

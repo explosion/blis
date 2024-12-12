@@ -43,8 +43,8 @@
 \
 void PASTEMAC(opname,_check) \
      ( \
-       obj_t*  chi, \
-       obj_t*  psi  \
+       const obj_t* chi, \
+       const obj_t* psi  \
      ) \
 { \
 	bli_l0_xxsc_check( chi, psi ); \
@@ -55,20 +55,8 @@ GENFRONT( copysc )
 GENFRONT( divsc )
 GENFRONT( mulsc )
 GENFRONT( sqrtsc )
+GENFRONT( sqrtrsc )
 GENFRONT( subsc )
-
-
-#undef  GENFRONT
-#define GENFRONT( opname ) \
-\
-void PASTEMAC(opname,_check) \
-     ( \
-       obj_t*  chi  \
-     ) \
-{ \
-	bli_l0_xsc_check( chi ); \
-}
-
 GENFRONT( invertsc )
 
 
@@ -77,8 +65,8 @@ GENFRONT( invertsc )
 \
 void PASTEMAC(opname,_check) \
      ( \
-       obj_t*  chi, \
-       obj_t*  norm  \
+       const obj_t* chi, \
+       const obj_t* norm  \
      ) \
 { \
 	bli_l0_xx2sc_check( chi, norm ); \
@@ -87,12 +75,13 @@ void PASTEMAC(opname,_check) \
 GENFRONT( absqsc )
 GENFRONT( normfsc )
 
+// -----------------------------------------------------------------------------
 
 void bli_getsc_check
      (
-       obj_t*  chi,
-       double* zeta_r,
-       double* zeta_i 
+       const obj_t*  chi,
+       const double* zeta_r,
+       const double* zeta_i
      )
 {
 	err_t e_val;
@@ -116,9 +105,9 @@ void bli_getsc_check
 
 void bli_setsc_check
      (
-       double  zeta_r,
-       double  zeta_i,
-       obj_t*  chi 
+       double       zeta_r,
+       double       zeta_i,
+       const obj_t* chi
      )
 {
 	err_t e_val;
@@ -142,9 +131,9 @@ void bli_setsc_check
 
 void bli_unzipsc_check
      (
-       obj_t*  chi,
-       obj_t*  zeta_r,
-       obj_t*  zeta_i 
+       const obj_t* chi,
+       const obj_t* zeta_r,
+       const obj_t* zeta_i
      )
 {
 	err_t e_val;
@@ -198,9 +187,9 @@ void bli_unzipsc_check
 
 void bli_zipsc_check
      (
-       obj_t*  zeta_r,
-       obj_t*  zeta_i,
-       obj_t*  chi 
+       const obj_t* zeta_r,
+       const obj_t* zeta_i,
+       const obj_t* chi
      )
 {
 	err_t e_val;
@@ -253,7 +242,7 @@ void bli_zipsc_check
 
 void bli_l0_xsc_check
      (
-       obj_t*  chi
+       const obj_t* chi
      )
 {
 	err_t e_val;
@@ -279,8 +268,8 @@ void bli_l0_xsc_check
 
 void bli_l0_xxsc_check
      (
-       obj_t*  chi,
-       obj_t*  psi 
+       const obj_t* chi,
+       const obj_t* psi
      )
 {
 	err_t e_val;
@@ -315,8 +304,8 @@ void bli_l0_xxsc_check
 
 void bli_l0_xx2sc_check
      (
-       obj_t*  chi,
-       obj_t*  absq 
+       const obj_t* chi,
+       const obj_t* absq
      )
 {
 	err_t e_val;
@@ -349,6 +338,40 @@ void bli_l0_xx2sc_check
 	bli_check_error_code( e_val );
 
 	e_val = bli_check_object_buffer( absq );
+	bli_check_error_code( e_val );
+}
+
+void bli_l0_xxbsc_check
+     (
+       const obj_t* chi,
+       const obj_t* psi,
+       const bool*  is
+     )
+{
+	err_t e_val;
+
+	// Check object datatypes.
+
+	e_val = bli_check_noninteger_object( chi );
+	bli_check_error_code( e_val );
+
+	e_val = bli_check_noninteger_object( psi );
+	bli_check_error_code( e_val );
+
+	// Check object dimensions.
+
+	e_val = bli_check_scalar_object( chi );
+	bli_check_error_code( e_val );
+
+	e_val = bli_check_scalar_object( psi );
+	bli_check_error_code( e_val );
+
+	// Check object buffers (for non-NULLness).
+
+	e_val = bli_check_object_buffer( chi );
+	bli_check_error_code( e_val );
+
+	e_val = bli_check_object_buffer( psi );
 	bli_check_error_code( e_val );
 }
 

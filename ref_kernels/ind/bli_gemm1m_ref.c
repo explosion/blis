@@ -39,52 +39,63 @@
 \
 void PASTEMAC3(ch,opname,arch,suf) \
      ( \
-       dim_t               k, \
-       ctype*     restrict alpha, \
-       ctype*     restrict a, \
-       ctype*     restrict b, \
-       ctype*     restrict beta, \
-       ctype*     restrict c, inc_t rs_c, inc_t cs_c, \
-       auxinfo_t* restrict data, \
-       cntx_t*    restrict cntx  \
+             dim_t      m, \
+             dim_t      n, \
+             dim_t      k, \
+       const void*      alpha0, \
+       const void*      a0, \
+       const void*      b0, \
+       const void*      beta0, \
+             void*      c0, inc_t rs_c, inc_t cs_c, \
+             auxinfo_t* data, \
+       const cntx_t*    cntx  \
      ) \
 { \
+	const ctype*      alpha     = alpha0; \
+	const ctype*      a         = a0; \
+	const ctype*      b         = b0; \
+	const ctype*      beta      = beta0; \
+	      ctype*      c         = c0; \
+\
 	const num_t       dt        = PASTEMAC(ch,type); \
 	const num_t       dt_r      = PASTEMAC(chr,type); \
 \
-	PASTECH(chr,gemm_ukr_ft) \
-	                  rgemm_ukr = bli_cntx_get_l3_nat_ukr_dt( dt_r, BLIS_GEMM_UKR, cntx ); \
-	const bool_t      col_pref  = bli_cntx_l3_nat_ukr_prefers_cols_dt( dt_r, BLIS_GEMM_UKR, cntx ); \
-	const bool_t      row_pref  = !col_pref; \
+	      gemm_ukr_ft rgemm_ukr = bli_cntx_get_ukr_dt( dt_r, BLIS_GEMM_UKR, cntx ); \
+	const bool        col_pref  = bli_cntx_ukr_prefers_cols_dt( dt_r, BLIS_GEMM_UKR, cntx ); \
+	const bool        row_pref  = !col_pref; \
 \
 	const dim_t       mr        = bli_cntx_get_blksz_def_dt( dt, BLIS_MR, cntx ); \
 	const dim_t       nr        = bli_cntx_get_blksz_def_dt( dt, BLIS_NR, cntx ); \
 \
+	const dim_t       mr_r      = bli_cntx_get_blksz_def_dt( dt_r, BLIS_MR, cntx ); \
+	const dim_t       nr_r      = bli_cntx_get_blksz_def_dt( dt_r, BLIS_NR, cntx ); \
+\
 	const dim_t       k2        = 2 * k; \
 \
-	ctype             ct[ BLIS_STACK_BUF_MAX_SIZE \
+	      ctype       ct[ BLIS_STACK_BUF_MAX_SIZE \
 	                      / sizeof( ctype_r ) ] \
 	                      __attribute__((aligned(BLIS_STACK_BUF_ALIGN_SIZE))); \
-	inc_t             rs_ct; \
-	inc_t             cs_ct; \
+	      inc_t       rs_ct; \
+	      inc_t       cs_ct; \
 \
-	ctype_r* restrict a_r       = ( ctype_r* )a; \
+	const ctype_r*    a_r       = ( ctype_r* )a; \
 \
-	ctype_r* restrict b_r       = ( ctype_r* )b; \
+	const ctype_r*    b_r       = ( ctype_r* )b; \
 \
-	ctype_r* restrict zero_r    = PASTEMAC(chr,0); \
+	const ctype_r*    zero_r    = PASTEMAC(chr,0); \
 \
-	ctype_r* restrict alpha_r   = &PASTEMAC(ch,real)( *alpha ); \
-	ctype_r* restrict alpha_i   = &PASTEMAC(ch,imag)( *alpha ); \
+	const ctype_r*    alpha_r   = &PASTEMAC(ch,real)( *alpha ); \
+	const ctype_r*    alpha_i   = &PASTEMAC(ch,imag)( *alpha ); \
 \
-	ctype_r* restrict beta_r    = &PASTEMAC(ch,real)( *beta ); \
-	ctype_r* restrict beta_i    = &PASTEMAC(ch,imag)( *beta ); \
+	const ctype_r*    beta_r    = &PASTEMAC(ch,real)( *beta ); \
+	const ctype_r*    beta_i    = &PASTEMAC(ch,imag)( *beta ); \
 \
-	ctype_r*          c_use; \
-	inc_t             rs_c_use; \
-	inc_t             cs_c_use; \
+	      ctype_r*    c_use; \
 \
-	bool_t            using_ct; \
+	      inc_t       rs_c_use; \
+	      inc_t       cs_c_use; \
+\
+	      bool        using_ct; \
 \
 /*
 	PASTEMAC(chr,fprintm)( stdout, "gemm_ukr: a", mr, 2*k, \
@@ -119,6 +130,11 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	else                                                    using_ct = FALSE; \
 \
 \
+	/* If we are not computing a full micro-tile, then we must write to
+	   ct and then accumulate to c afterwards. */ \
+	if ( mr != m || nr != n ) using_ct = TRUE; \
+\
+\
 	if ( using_ct ) \
 	{ \
 		/* In the atypical cases, we compute the result into temporary
@@ -149,6 +165,8 @@ void PASTEMAC3(ch,opname,arch,suf) \
 		/* c = beta * c + alpha_r * a * b; */ \
 		rgemm_ukr \
 		( \
+		  mr_r, \
+		  nr_r, \
 		  k2, \
 		  alpha_r, \
 		  a_r, \
@@ -159,13 +177,11 @@ void PASTEMAC3(ch,opname,arch,suf) \
 		  cntx  \
 		); \
 \
-		dim_t i, j; \
-\
 		/* Accumulate the final result in ct back to c. */ \
 		if ( PASTEMAC(ch,eq1)( *beta ) ) \
 		{ \
-			for ( j = 0; j < nr; ++j ) \
-			for ( i = 0; i < mr; ++i ) \
+			for ( dim_t j = 0; j < n; ++j ) \
+			for ( dim_t i = 0; i < m; ++i ) \
 			{ \
 				PASTEMAC(ch,adds)( *(ct + i*rs_ct + j*cs_ct), \
 				                   *(c  + i*rs_c  + j*cs_c ) ); \
@@ -173,8 +189,8 @@ void PASTEMAC3(ch,opname,arch,suf) \
 		} \
 		else if ( PASTEMAC(ch,eq0)( *beta ) ) \
 		{ \
-			for ( j = 0; j < nr; ++j ) \
-			for ( i = 0; i < mr; ++i ) \
+			for ( dim_t j = 0; j < n; ++j ) \
+			for ( dim_t i = 0; i < m; ++i ) \
 			{ \
 				PASTEMAC(ch,copys)( *(ct + i*rs_ct + j*cs_ct), \
 				                    *(c  + i*rs_c  + j*cs_c ) ); \
@@ -182,8 +198,8 @@ void PASTEMAC3(ch,opname,arch,suf) \
 		} \
 		else \
 		{ \
-			for ( j = 0; j < nr; ++j ) \
-			for ( i = 0; i < mr; ++i ) \
+			for ( dim_t j = 0; j < n; ++j ) \
+			for ( dim_t i = 0; i < m; ++i ) \
 			{ \
 				PASTEMAC(ch,xpbys)( *(ct + i*rs_ct + j*cs_ct), \
 				                    *beta, \
@@ -215,6 +231,8 @@ void PASTEMAC3(ch,opname,arch,suf) \
 		/* c = beta * c + alpha_r * a * b; */ \
 		rgemm_ukr \
 		( \
+		  mr_r, \
+		  nr_r, \
 		  k2, \
 		  alpha_r, \
 		  a_r, \
@@ -227,5 +245,5 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	} \
 }
 
-INSERT_GENTFUNCCO_BASIC2( gemm1m, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX )
+INSERT_GENTFUNCCO( gemm1m, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX )
 

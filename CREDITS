@@ -3,83 +3,145 @@ BLIS framework
 Acknowledgements
 ---
 
-The BLIS framework was primarily authored by
+The BLIS framework was originally authored by
 
-  Field Van Zee         @fgvanzee           (The University of Texas at Austin)
+  Field Van Zee            @fgvanzee                  (The University of Texas at Austin)
 
-but many others have contributed code and feedback, including
+but many others have contributed code, ideas, and feedback, including
 
-  Murtaza Ali                               (Texas Instruments)
-  Sajid Ali             @s-sajid-ali        (Northwestern University)
-  Erling Andersen       @erling-d-andersen
-  Alex Arslan           @ararslan
-  Vernon Austel                             (IBM, T.J. Watson Research Center)
-  Matthew Brett         @matthew-brett      (University of Birmingham)
-  Jed Brown             @jedbrown           (Argonne National Laboratory)
-  Robin Christ          @robinchrist
-  Kay Dewhurst          @jkd2016            (Max Planck Institute, Halle, Germany)
-  Jeff Diamond                              (Oracle)
-  Johannes Dieterich    @iotamudelta
-  Krzysztof Drewniak    @krzysz00
-  Marat Dukhan          @Maratyszcza        (Google)
-  Victor Eijkhout       @VictorEijkhout     (Texas Advanced Computing Center)
-  Isuru Fernando        @isuruf
-  Roman Gareev          @gareevroman
-  Richard Goldschmidt   @SuperFluffy
+  Sameer Agarwal           @sandwichmaker             (Google)
+  Murtaza Ali                                         (Texas Instruments)
+  Sajid Ali                @s-sajid-ali               (Northwestern University)
+  Erling Andersen          @erling-d-andersen
+  Alex Arslan              @ararslan
+  Vernon Austel                                       (IBM, T.J. Watson Research Center)
+  Mohsen Aznaveh           @Aznaveh                   (Texas A&M University)
+  Abhishek Bagusetty       @abagusetty                (Argonne National Laboratory)
+  Satish Balay             @balay                     (Argonne National Laboratory)
+  Kihiro Bando             @bandokihiro
+  Matthew Brett            @matthew-brett             (University of Birmingham)
+  Jérémie du Boisberranger @jeremiedbb
+  Jed Brown                @jedbrown                  (Argonne National Laboratory)
+  Alex Chiang              @alexsifivetw              (SiFive)
+  Robin Christ             @robinchrist
+  Dilyn Corner             @dilyn-corner
+  Mat Cross                @matcross                  (NAG)
+  Harsh Dave               @HarshDave12               (AMD)
+  Tim Davis                @DrTimothyAldenDavis       (Texas A&M University)
+                           @decandia50
+  Daniël de Kok            @danieldk                  (Explosion)
+  Kay Dewhurst             @jkd2016                   (Max Planck Institute, Halle, Germany)
+  Jeff Diamond                                        (Oracle)
+  Johannes Dieterich       @iotamudelta
+  Krzysztof Drewniak       @krzysz00
+  Marat Dukhan             @Maratyszcza               (Google)
+  Victor Eijkhout          @VictorEijkhout            (Texas Advanced Computing Center)
+  Evgeny Epifanovsky       @epifanovsky               (Q-Chem)
+  Isuru Fernando           @isuruf
+  James Foster             @jd-foster                 (CSIRO)
+  Roman Gareev             @gareevroman
+  Richard Goldschmidt      @SuperFluffy
   Chris Goodyer
-  John Gunnels          @jagunnels          (IBM, T.J. Watson Research Center)
-  Ali Emre Gülcü        @Lephar
-  Jeff Hammond          @jeffhammond        (Intel)
-  Jacob Gorm Hansen     @jacobgorm
-  Jean-Michel Hautbois  @jhautbois
-  Ian Henriksen         @insertinterestingnamehere (The University of Texas at Austin)
-  Minh Quan Ho          @hominhquan
-  Matthew Honnibal      @honnibal
-  Stefan Husmann        @stefanhusmann
-  Francisco Igual       @figual             (Universidad Complutense de Madrid)
-  Tony Kelman           @tkelman
-  Lee Killough          @leekillough        (Cray)
-  Mike Kistler          @mkistler           (IBM, Austin Research Laboratory)
-  Michael Lehn          @michael-lehn
-  Dave Love             @loveshack
-  Tze Meng Low                              (The University of Texas at Austin)
-  Ye Luo                @ye-luo             (Argonne National Laboratory)
-  Ricardo Magana        @magania            (Hewlett Packard Enterprise)
-  Bryan Marker          @bamarker           (The University of Texas at Austin)
-  Devin Matthews        @devinamatthews     (The University of Texas at Austin)
-  Stefanos Mavros       @smavros
-  Nisanth Padinharepatt                     (AMD)
-  Devangi Parikh        @dnparikh           (The University of Texas at Austin)
-  Elmar Peise           @elmar-peise        (RWTH-Aachen)
-  Clément Pernet        @ClementPernet
+  Alexander Grund          @Flamefire
+  John Gunnels             @jagunnels                 (IBM, T.J. Watson Research Center)
+  Ali Emre Gülcü           @Lephar
+                           @h-vetinari
+  Jeff Hammond             @jeffhammond               (Intel)
+  Jacob Gorm Hansen        @jacobgorm
+  Shivaprashanth H                                    (Global Edge)
+  Jean-Michel Hautbois     @jhautbois
+  Ian Henriksen            @insertinterestingnamehere (The University of Texas at Austin)
+  Greg Henry                                          (Intel)
+  Minh Quan Ho             @hominhquan
+  Matthew Honnibal         @honnibal
+  Stefan Husmann           @stefanhusmann
+  Aaron Hutchinson         @Aaron-Hutchinson          (SiFive)
+  Francisco Igual          @figual                    (Universidad Complutense de Madrid)
+  John Mather              @jmather-sesi              (SideFX Software)
+  Madeesh Kannan           @shadeMe
+  Tony Kelman              @tkelman
+  Lee Killough             @leekillough               (Tactical Computing Labs)
+  Mike Kistler             @mkistler                  (IBM, Austin Research Laboratory)
+  Nick Knight              @nick-knight               (SiFive)
+  Ivan Korostelev          @ivan23kor                 (University of Alberta)
+  Kyungmin Lee             @kyungminlee               (Ohio State University)
+  Michael Lehn             @michael-lehn
+                           @leo4678
+  Shmuel Levine            @ShmuelLevine
+                           @lschork2
+  Dave Love                @loveshack
+  Tze Meng Low                                        (The University of Texas at Austin)
+  Ye Luo                   @ye-luo                    (Argonne National Laboratory)
+  Ricardo Magana           @magania                   (Hewlett Packard Enterprise)
+  Madan mohan Manokar      @madanm3                   (AMD)
+  Giorgos Margaritis
+  Bryan Marker             @bamarker                  (The University of Texas at Austin)
+  Simon Lukas Märtens      @ACSimon33                 (RWTH Aachen University)
+  Devin Matthews           @devinamatthews            (The University of Texas at Austin)
+  Stefanos Mavros          @smavros
+  Mithun Mohan             @MithunMohanKadavil        (AMD)
+                           @moon-chilled
+  Ilknur Mustafazade       @Runkli
+                           @nagsingh
+  Bhaskar Nallani          @BhaskarNallani            (AMD)
+  Stepan Nassyr            @stepannassyr              (Jülich Supercomputing Centre)
+  Bart Oldeman             @bartoldeman
+  Nisanth M P              @nisanthmp
+  Nisanth Padinharepatt                               (AMD)
+  Ajay Panyala             @ajaypanyala
+  Marc-Antoine Parent      @maparent                  (Conversence)
+  Devangi Parikh           @dnparikh                  (The University of Texas at Austin)
+  Elmar Peise              @elmar-peise               (RWTH-Aachen)
+  Clément Pernet           @ClementPernet
   Ilya Polkovnichenko
-  Jack Poulson          @poulson            (Stanford)
-  Mathieu Poumeyrol     @kali
-                        @qnerd
-  Michael Rader         @mrader1248
-  Pradeep Rao           @pradeeptrgit       (AMD)
+  Jack Poulson             @poulson                   (Stanford)
+  Mathieu Poumeyrol        @kali
+  Christos Psarras         @ChrisPsa                  (RWTH Aachen University)
+                           @pkubaj
+                           @qnerd
+  Michael Rader            @mrader1248
+  Pradeep Rao              @pradeeptrgit              (AMD)
   Aleksei Rechinskii
-  Karl Rupp             @karlrupp
-  Martin Schatz                             (The University of Texas at Austin)
-  Nico Schlömer         @nschloe
+  Leick Robinson           @LeickR                    (Oracle)
+  Karl Rupp                @karlrupp
+  Martin Schatz                                       (The University of Texas at Austin)
+  Nico Schlömer            @nschloe
+  Angelika Schwarz         @angsch
   Rene Sitt
-  Tony Skjellum         @tonyskjellum       (The University of Tennessee at Chattanooga)
-  Mikhail Smelyanskiy                       (Intel, Parallel Computing Lab)
-  Nathaniel Smith       @njsmith
-  Shaden Smith          @ShadenSmith
-  Tyler Smith           @tlrmchlsmth        (The University of Texas at Austin)
-  Paul Springer         @springer13         (RWTH-Aachen)
+  Tony Skjellum            @tonyskjellum              (The University of Tennessee at Chattanooga)
+  Mikhail Smelyanskiy                                 (Intel, Parallel Computing Lab)
+  Barry Smith              @BarrySmith                (Argonne National Laboratory)
+  Nathaniel Smith          @njsmith
+  Shaden Smith             @ShadenSmith
+  Tyler Smith              @tlrmchlsmth               (The University of Texas at Austin)
+  Edward Smyth             @edwsmyth                  (AMD)
+  Snehith                  @ArcadioN09
+  Paul Springer            @springer13                (RWTH Aachen University)
+  Adam J. Stewart          @adamjstewart              (University of Illinois at Urbana-Champaign)
   Vladimir Sukarev
-  Santanu Thangaraj                         (AMD)
-  Rhys Ulerich          @RhysU              (The University of Texas at Austin)
-  Robert van de Geijn   @rvdg               (The University of Texas at Austin)
-  Kiran Varaganti       @kvaragan           (AMD)
-  Natalia Vassilieva                        (Hewlett Packard Enterprise)
-  Zhang Xianyi          @xianyi             (Chinese Academy of Sciences)
-  Benda Xu              @heroxbd
-  Costas Yamin          @cosstas
-  Chenhan Yu            @ChenhanYu          (The University of Texas at Austin)
-  M. Zhou               @cdluminate
+  Harihara Sudhan S        @ihariharasudhan           (AMD)
+  Chengguo Sun             @chengguosun
+  Christopher Taylor       @ct-clmsn                  (Tactical Computing Labs)
+  Santanu Thangaraj                                   (AMD)
+  Nicholai Tukanov         @nicholaiTukanov           (The University of Texas at Austin)
+  Rhys Ulerich             @RhysU                     (The University of Texas at Austin)
+  Robert van de Geijn      @rvdg                      (The University of Texas at Austin)
+  Meghana Vankadari        @Meghana-vankadari         (AMD)
+  Kiran Varaganti          @kvaragan                  (AMD)
+  Natalia Vassilieva                                  (Hewlett Packard Enterprise)
+  Andrew Wildman           @awild82                   (University of Washington)
+  Zhang Xianyi             @xianyi                    (Chinese Academy of Sciences)
+  Benda Xu                 @heroxbd
+  Guodong Xu               @docularxu                 (Linaro.org)
+  RuQing Xu                @xrq-phys                  (The University of Tokyo)
+  Srinivas Yadav           @srinivasyadav18
+  Costas Yamin             @cosstas
+  Michael Yeh              @myeh01                    (SiFive)
+  Chenhan Yu               @ChenhanYu                 (The University of Texas at Austin)
+  Roman Yurchak            @rth                       (Symerio)
+  Stefano Zampini          @stefanozampini
+  M. Zhou                  @cdluminate
+  Igor Zhuravlov           @jip                       (Far Eastern Federal University)
 
 BLIS's development was partially funded by grants from industry
 partners, including

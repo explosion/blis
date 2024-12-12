@@ -34,8 +34,12 @@
 
 #include <unistd.h>
 #include "blis.h"
+#include "test_utils.h"
 
 //#define PRINT
+
+static const char* LOCAL_OPNAME_STR = "hemm";
+static const char* LOCAL_PC_STR     = "ll";
 
 int main( int argc, char** argv )
 {
@@ -59,57 +63,42 @@ int main( int argc, char** argv )
 	double   dtime_save;
 	double   gflops;
 
-	//bli_init();
-
-	//bli_error_checking_level_set( BLIS_NO_ERROR_CHECKING );
-
-	n_repeats = 3;
-
-	dt      = DT;
-
-	ind     = IND;
-
-	p_begin = P_BEGIN;
-	p_max   = P_MAX;
-	p_inc   = P_INC;
-
-	m_input = -1;
-	n_input = -1;
-
+	params_t params;
 
 	// Supress compiler warnings about unused variable 'ind'.
 	( void )ind;
 
-#if 0
 
-	cntx_t* cntx;
+	//bli_init();
 
-	ind_t ind_mod = ind;
+	//bli_error_checking_level_set( BLIS_NO_ERROR_CHECKING );
 
-	// A hack to use 3m1 as 1mpb (with 1m as 1mbp).
-	if ( ind == BLIS_3M1 ) ind_mod = BLIS_1M;
+	// Parse the command line options into strings, integers, enums,
+	// and doubles, as appropriate.
+	parse_cl_params( argc, argv, init_def_params, &params );
 
-	// Initialize a context for the current induced method and datatype.
-	cntx = bli_gks_query_ind_cntx( ind_mod, dt );
+	dt        = params.dt;
 
-	// Set k to the kc blocksize for the current datatype.
-	k_input = bli_cntx_get_blksz_def_dt( dt, BLIS_KC, cntx );
+	ind       = params.im;
 
-#elif 1
+	p_begin   = params.sta;
+	p_max     = params.end;
+	p_inc     = params.inc;
 
-	//k_input = 256;
+	m_input   = params.m;
+	n_input   = params.n;
 
-#endif
+	n_repeats = params.nr;
 
-	// Choose the char corresponding to the requested datatype.
-	if      ( bli_is_float( dt ) )    dt_ch = 's';
-	else if ( bli_is_double( dt ) )   dt_ch = 'd';
-	else if ( bli_is_scomplex( dt ) ) dt_ch = 'c';
-	else                              dt_ch = 'z';
 
-	side  = BLIS_LEFT;
-	uploa = BLIS_LOWER;
+	// Map the datatype to its corresponding char.
+	bli_param_map_blis_to_char_dt( dt, &dt_ch );
 
+	// Map the parameter chars to their corresponding BLIS enum type values.
+	bli_param_map_char_to_blis_side( params.pc_str[0], &side );
+	bli_param_map_char_to_blis_uplo( params.pc_str[1], &uploa );
+
+	// Map the BLIS enum type values to their corresponding BLAS chars.
 	bli_param_map_blis_to_netlib_side( side, &f77_side );
 	bli_param_map_blis_to_netlib_uplo( uploa, &f77_uploa );
 
@@ -117,14 +106,15 @@ int main( int argc, char** argv )
 	// matlab allocates space for the entire array once up-front.
 	for ( p = p_begin; p + p_inc <= p_max; p += p_inc ) ;
 
-	printf( "data_%s_%chemm_%s", THR_STR, dt_ch, STR );
-	printf( "( %2lu, 1:3 ) = [ %4lu %4lu %7.2f ];\n",
-	        ( unsigned long )(p - p_begin + 1)/p_inc + 1,
+	printf( "data_%s_%chemm_%s", THR_STR, dt_ch, IMPL_STR );
+	printf( "( %4lu, 1:3 ) = [ %5lu %5lu %8.2f ];\n",
+	        ( unsigned long )(p - p_begin)/p_inc + 1,
 	        ( unsigned long )0,
 	        ( unsigned long )0, 0.0 );
 
 
-	for ( p = p_begin; p <= p_max; p += p_inc )
+	//for ( p = p_begin; p <= p_max; p += p_inc )
+	for ( p = p_max; p_begin <= p; p -= p_inc )
 	{
 
 		if ( m_input < 0 ) m = p / ( dim_t )abs(m_input);
@@ -135,13 +125,28 @@ int main( int argc, char** argv )
 		bli_obj_create( dt, 1, 1, 0, 0, &alpha );
 		bli_obj_create( dt, 1, 1, 0, 0, &beta );
 
-		if ( bli_is_left( side ) )
-			bli_obj_create( dt, m, m, 0, 0, &a );
-		else
-			bli_obj_create( dt, n, n, 0, 0, &a );
-		bli_obj_create( dt, m, n, 0, 0, &b );
-		bli_obj_create( dt, m, n, 0, 0, &c );
-		bli_obj_create( dt, m, n, 0, 0, &c_save );
+		// Choose the storage of each matrix based on the corresponding
+		// char in the params_t struct. Note that the expected order of
+		// storage specifers in sc_str is CAB (not ABC).
+		if ( params.sc_str[1] == 'c' )
+		{
+			if ( bli_is_left( side ) ) bli_obj_create( dt, m, m, 0, 0, &a );
+			else                       bli_obj_create( dt, n, n, 0, 0, &a );
+		}
+		else // if ( params.sc_str[1] == 'r' )
+		{
+			if ( bli_is_left( side ) ) bli_obj_create( dt, m, m, m, 1, &a );
+			else                       bli_obj_create( dt, n, n, n, 1, &a );
+		}
+
+		if ( params.sc_str[2] == 'c' ) bli_obj_create( dt, m, n, 0, 0, &b );
+		else                           bli_obj_create( dt, m, n, n, 1, &b );
+
+		if ( params.sc_str[0] == 'c' ) bli_obj_create( dt, m, n, 0, 0, &c );
+		else                           bli_obj_create( dt, m, n, n, 1, &c );
+
+		if ( params.sc_str[0] == 'c' ) bli_obj_create( dt, m, n, 0, 0, &c_save );
+		else                           bli_obj_create( dt, m, n, n, 1, &c_save );
 
 		bli_randm( &a );
 		bli_randm( &b );
@@ -155,14 +160,22 @@ int main( int argc, char** argv )
 		bli_mkherm( &a );
 		bli_mktrim( &a );
 
-		bli_setsc(  (2.0/1.0), 0.0, &alpha );
-		bli_setsc(  (1.0/1.0), 0.0, &beta );
+		//bli_setsc(  (2.0/1.0), 0.0, &alpha );
+		//bli_setsc(  (1.0/1.0), 0.0, &beta );
+		bli_setsc( params.alpha, 0.0, &alpha );
+		bli_setsc( params.beta,  0.0, &beta );
 
 		bli_copym( &c, &c_save );
-	
-#if 0 //def BLIS
-		bli_ind_disable_all_dt( dt );
-		bli_ind_enable_dt( ind, dt );
+
+#ifdef BLIS
+		// Switch to the induced method specified by ind, unless the 'auto'
+		// option was given, in which case we leave the induced method
+		// unchanged.
+		if ( params.im_is_auto == FALSE )
+		{
+			bli_ind_disable_all_dt( dt );
+			bli_ind_enable_dt( ind, dt );
+		}
 #endif
 
 		dtime_save = DBL_MAX;
@@ -197,21 +210,21 @@ int main( int argc, char** argv )
 				f77_int   lda    = bli_obj_col_stride( &a );
 				f77_int   ldb    = bli_obj_col_stride( &b );
 				f77_int   ldc    = bli_obj_col_stride( &c );
-				float*    alphap = bli_obj_buffer( &alpha );
-				float*    ap     = bli_obj_buffer( &a );
-				float*    bp     = bli_obj_buffer( &b );
-				float*    betap  = bli_obj_buffer( &beta );
-				float*    cp     = bli_obj_buffer( &c );
+				float*    alphap = ( float* )bli_obj_buffer( &alpha );
+				float*    ap     = ( float* )bli_obj_buffer( &a );
+				float*    bp     = ( float* )bli_obj_buffer( &b );
+				float*    betap  = ( float* )bli_obj_buffer( &beta );
+				float*    cp     = ( float* )bli_obj_buffer( &c );
 
 				ssymm_( &f77_side,
-						&f77_uploa,
-						&mm,
-						&nn,
-						alphap,
-						ap, &lda,
-						bp, &ldb,
-						betap,
-						cp, &ldc );
+				        &f77_uploa,
+				        &mm,
+				        &nn,
+				        alphap,
+				        ap, &lda,
+				        bp, &ldb,
+				        betap,
+				        cp, &ldc );
 			}
 			else if ( bli_is_double( dt ) )
 			{
@@ -220,21 +233,21 @@ int main( int argc, char** argv )
 				f77_int   lda    = bli_obj_col_stride( &a );
 				f77_int   ldb    = bli_obj_col_stride( &b );
 				f77_int   ldc    = bli_obj_col_stride( &c );
-				double*   alphap = bli_obj_buffer( &alpha );
-				double*   ap     = bli_obj_buffer( &a );
-				double*   bp     = bli_obj_buffer( &b );
-				double*   betap  = bli_obj_buffer( &beta );
-				double*   cp     = bli_obj_buffer( &c );
+				double*   alphap = ( double* )bli_obj_buffer( &alpha );
+				double*   ap     = ( double* )bli_obj_buffer( &a );
+				double*   bp     = ( double* )bli_obj_buffer( &b );
+				double*   betap  = ( double* )bli_obj_buffer( &beta );
+				double*   cp     = ( double* )bli_obj_buffer( &c );
 
 				dsymm_( &f77_side,
-						&f77_uploa,
-						&mm,
-						&nn,
-						alphap,
-						ap, &lda,
-						bp, &ldb,
-						betap,
-						cp, &ldc );
+				        &f77_uploa,
+				        &mm,
+				        &nn,
+				        alphap,
+				        ap, &lda,
+				        bp, &ldb,
+				        betap,
+				        cp, &ldc );
 			}
 			else if ( bli_is_scomplex( dt ) )
 			{
@@ -243,21 +256,29 @@ int main( int argc, char** argv )
 				f77_int   lda    = bli_obj_col_stride( &a );
 				f77_int   ldb    = bli_obj_col_stride( &b );
 				f77_int   ldc    = bli_obj_col_stride( &c );
-				scomplex* alphap = bli_obj_buffer( &alpha );
-				scomplex* ap     = bli_obj_buffer( &a );
-				scomplex* bp     = bli_obj_buffer( &b );
-				scomplex* betap  = bli_obj_buffer( &beta );
-				scomplex* cp     = bli_obj_buffer( &c );
+#ifdef EIGEN
+				float*    alphap = ( float*    )bli_obj_buffer( &alpha );
+				float*    ap     = ( float*    )bli_obj_buffer( &a );
+				float*    bp     = ( float*    )bli_obj_buffer( &b );
+				float*    betap  = ( float*    )bli_obj_buffer( &beta );
+				float*    cp     = ( float*    )bli_obj_buffer( &c );
+#else
+				scomplex* alphap = ( scomplex* )bli_obj_buffer( &alpha );
+				scomplex* ap     = ( scomplex* )bli_obj_buffer( &a );
+				scomplex* bp     = ( scomplex* )bli_obj_buffer( &b );
+				scomplex* betap  = ( scomplex* )bli_obj_buffer( &beta );
+				scomplex* cp     = ( scomplex* )bli_obj_buffer( &c );
+#endif
 
 				chemm_( &f77_side,
-						&f77_uploa,
-						&mm,
-						&nn,
-						alphap,
-						ap, &lda,
-						bp, &ldb,
-						betap,
-						cp, &ldc );
+				        &f77_uploa,
+				        &mm,
+				        &nn,
+				        alphap,
+				        ap, &lda,
+				        bp, &ldb,
+				        betap,
+				        cp, &ldc );
 			}
 			else if ( bli_is_dcomplex( dt ) )
 			{
@@ -266,21 +287,29 @@ int main( int argc, char** argv )
 				f77_int   lda    = bli_obj_col_stride( &a );
 				f77_int   ldb    = bli_obj_col_stride( &b );
 				f77_int   ldc    = bli_obj_col_stride( &c );
-				dcomplex* alphap = bli_obj_buffer( &alpha );
-				dcomplex* ap     = bli_obj_buffer( &a );
-				dcomplex* bp     = bli_obj_buffer( &b );
-				dcomplex* betap  = bli_obj_buffer( &beta );
-				dcomplex* cp     = bli_obj_buffer( &c );
+#ifdef EIGEN
+				double*   alphap = ( double*   )bli_obj_buffer( &alpha );
+				double*   ap     = ( double*   )bli_obj_buffer( &a );
+				double*   bp     = ( double*   )bli_obj_buffer( &b );
+				double*   betap  = ( double*   )bli_obj_buffer( &beta );
+				double*   cp     = ( double*   )bli_obj_buffer( &c );
+#else
+				dcomplex* alphap = ( dcomplex* )bli_obj_buffer( &alpha );
+				dcomplex* ap     = ( dcomplex* )bli_obj_buffer( &a );
+				dcomplex* bp     = ( dcomplex* )bli_obj_buffer( &b );
+				dcomplex* betap  = ( dcomplex* )bli_obj_buffer( &beta );
+				dcomplex* cp     = ( dcomplex* )bli_obj_buffer( &c );
+#endif
 
 				zhemm_( &f77_side,
-						&f77_uploa,
-						&mm,
-						&nn,
-						alphap,
-						ap, &lda,
-						bp, &ldb,
-						betap,
-						cp, &ldc );
+				        &f77_uploa,
+				        &mm,
+				        &nn,
+				        alphap,
+				        ap, &lda,
+				        bp, &ldb,
+				        betap,
+				        cp, &ldc );
 			}
 #endif
 
@@ -299,11 +328,12 @@ int main( int argc, char** argv )
 
 		if ( bli_is_complex( dt ) ) gflops *= 4.0;
 
-		printf( "data_%s_%chemm_%s", THR_STR, dt_ch, STR );
-		printf( "( %2lu, 1:3 ) = [ %4lu %4lu %7.2f ];\n",
-		        ( unsigned long )(p - p_begin + 1)/p_inc + 1,
+		printf( "data_%s_%chemm_%s", THR_STR, dt_ch, IMPL_STR );
+		printf( "( %4lu, 1:3 ) = [ %5lu %5lu %8.2f ];\n",
+		        ( unsigned long )(p - p_begin)/p_inc + 1,
 		        ( unsigned long )m,
 		        ( unsigned long )n, gflops );
+		fflush( stdout );
 
 		bli_obj_free( &alpha );
 		bli_obj_free( &beta );
@@ -317,5 +347,27 @@ int main( int argc, char** argv )
 	//bli_finalize();
 
 	return 0;
+}
+
+void init_def_params( params_t* params )
+{
+	params->opname    = LOCAL_OPNAME_STR;
+	params->impl      = IMPL_STR;
+
+	params->pc_str    = LOCAL_PC_STR;
+	params->dt_str    = GLOB_DEF_DT_STR;
+	params->sc_str    = GLOB_DEF_SC_STR;
+
+	params->im_str    = GLOB_DEF_IM_STR;
+
+	params->ps_str    = GLOB_DEF_PS_STR;
+	params->m_str     = GLOB_DEF_M_STR;
+	params->n_str     = GLOB_DEF_N_STR;
+	params->k_str     = GLOB_DEF_K_STR;
+
+	params->nr_str    = GLOB_DEF_NR_STR;
+
+	params->alpha_str = GLOB_DEF_ALPHA_STR;
+	params->beta_str  = GLOB_DEF_BETA_STR;
 }
 

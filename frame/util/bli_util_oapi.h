@@ -42,8 +42,8 @@
 \
 BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
-       obj_t*  x, \
-       obj_t*  asum  \
+       const obj_t* x, \
+       const obj_t* asum  \
        BLIS_OAPI_EX_PARAMS  \
      );
 
@@ -55,7 +55,7 @@ GENPROT( asumv )
 \
 BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
-       obj_t*  a  \
+       const obj_t* a  \
        BLIS_OAPI_EX_PARAMS  \
      );
 
@@ -69,8 +69,8 @@ GENPROT( mktrim )
 \
 BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
-       obj_t*  x, \
-       obj_t*  norm  \
+       const obj_t* x, \
+       const obj_t* norm  \
        BLIS_OAPI_EX_PARAMS  \
      );
 
@@ -84,8 +84,8 @@ GENPROT( normiv )
 \
 BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
-       obj_t*  x, \
-       obj_t*  norm  \
+       const obj_t* x, \
+       const obj_t* norm  \
        BLIS_OAPI_EX_PARAMS  \
      );
 
@@ -99,40 +99,7 @@ GENPROT( normim )
 \
 BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
-       FILE*   file, \
-       char*   s1, \
-       obj_t*  x, \
-       char*   format, \
-       char*   s2  \
-       BLIS_OAPI_EX_PARAMS  \
-     );
-
-GENPROT( fprintv )
-GENPROT( fprintm )
-
-
-#undef  GENPROT
-#define GENPROT( opname ) \
-\
-BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
-     ( \
-       char*   s1, \
-       obj_t*  x, \
-       char*   format, \
-       char*   s2  \
-       BLIS_OAPI_EX_PARAMS  \
-     );
-
-GENPROT( printv )
-GENPROT( printm )
-
-
-#undef  GENPROT
-#define GENPROT( opname ) \
-\
-BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
-     ( \
-       obj_t*  x  \
+       const obj_t* x  \
        BLIS_OAPI_EX_PARAMS  \
      );
 
@@ -145,7 +112,7 @@ GENPROT( randnv )
 \
 BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
-       obj_t*  x  \
+       const obj_t* x  \
        BLIS_OAPI_EX_PARAMS  \
      );
 
@@ -158,11 +125,69 @@ GENPROT( randnm )
 \
 BLIS_EXPORT_BLIS void PASTEMAC(opname,EX_SUF) \
      ( \
-       obj_t*  x, \
-       obj_t*  scale, \
-       obj_t*  sumsq  \
+       const obj_t* x, \
+       const obj_t* scale, \
+       const obj_t* sumsq  \
        BLIS_OAPI_EX_PARAMS  \
      );
 
 GENPROT( sumsqv )
+
+// -----------------------------------------------------------------------------
+
+// Operations with basic interfaces only.
+
+#ifdef BLIS_OAPI_BASIC
+
+
+#undef  GENPROT
+#define GENPROT( opname ) \
+\
+BLIS_EXPORT_BLIS void PASTEMAC0(opname) \
+     ( \
+       const obj_t* x, \
+       const obj_t* y, \
+             bool*  is  \
+     );
+
+GENPROT( eqsc )
+GENPROT( eqv )
+GENPROT( eqm )
+GENPROT( ltsc )
+GENPROT( ltesc )
+GENPROT( gtsc )
+GENPROT( gtesc )
+
+
+#undef  GENPROT
+#define GENPROT( opname ) \
+\
+BLIS_EXPORT_BLIS void PASTEMAC0(opname) \
+     ( \
+             FILE*  file, \
+       const char*  s1, \
+       const obj_t* x, \
+       const char*  format, \
+       const char*  s2  \
+     );
+
+GENPROT( fprintv )
+GENPROT( fprintm )
+
+
+#undef  GENPROT
+#define GENPROT( opname ) \
+\
+BLIS_EXPORT_BLIS void PASTEMAC0(opname) \
+     ( \
+       const char*  s1, \
+       const obj_t* x, \
+       const char*  format, \
+       const char*  s2  \
+     );
+
+GENPROT( printv )
+GENPROT( printm )
+
+#endif // #ifdef BLIS_OAPI_BASIC
 

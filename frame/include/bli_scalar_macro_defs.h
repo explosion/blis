@@ -49,8 +49,8 @@
 // NOTE: These macros are not used by other scalar macros, but they are
 // related to those defined in bli_sets.h, and so we #include them here.
 
-#include "bli_setrs.h"   // sets real component only 
-#include "bli_setis.h"   // sets imaginary component only 
+#include "bli_setrs.h"   // sets real component only
+#include "bli_setis.h"   // sets imaginary component only
 
 // NOTE: This macro also needs to be defined early on since it determines
 // how real and imaginary components are accessed (ie: whether the fields
@@ -154,6 +154,8 @@
 #include "bli_dotjs.h"
 
 #include "bli_eq.h"
+#include "bli_lt.h"
+#include "bli_lte.h"
 
 #include "bli_fprints.h"
 
@@ -194,40 +196,17 @@
 #include "bli_adds_mxn.h"
 #include "bli_adds_mxn_uplo.h"
 #include "bli_set0s_mxn.h"
+#include "bli_set0s_edge.h"
 #include "bli_copys_mxn.h"
+#include "bli_scal2s_mxn.h"
 #include "bli_xpbys_mxn.h"
 #include "bli_xpbys_mxn_uplo.h"
 
+// -- "broadcast B" scalar macros --
 
-// -- 3m-specific scalar macros --
-
-#include "bli_copyri3s.h"
-#include "bli_copyjri3s.h"
-
-#include "bli_scal2ri3s.h"
-#include "bli_scal2jri3s.h"
-
-#include "bli_scal2ri3s_mxn.h"
-
-
-// -- 4mh/3mh-specific scalar macros --
-
-// ro
-#include "bli_scal2ros.h"
-#include "bli_scal2jros.h"
-
-// io
-#include "bli_scal2ios.h"
-#include "bli_scal2jios.h"
-
-// rpi
-#include "bli_scal2rpis.h"
-#include "bli_scal2jrpis.h"
-
-#include "bli_scal2rihs_mxn.h"
-#include "bli_scal2rihs_mxn_diag.h"
-#include "bli_scal2rihs_mxn_uplo.h"
-#include "bli_setrihs_mxn_diag.h"
+#include "bli_bcastbbs_mxn.h"
+#include "bli_scal2bbs_mxn.h"
+#include "bli_set0bbs_mxn.h"
 
 
 // -- 1m-specific scalar macros --
@@ -254,7 +233,7 @@
 #include "bli_scal21rs.h"
 #include "bli_scal2j1rs.h"
 
-// 1m (1e or 1r) 
+// 1m (1e or 1r)
 #include "bli_invert1ms_mxn_diag.h"
 
 #include "bli_scal1ms_mxn.h"

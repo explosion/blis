@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -35,7 +35,7 @@
 
 #include "blis.h"
 
-static trsm_var_oft vars[2][2] =
+static l3_var_oft vars[2][2] =
 {
 	{ bli_trsm_ll_ker_var2, bli_trsm_lu_ker_var2 },
 	{ bli_trsm_rl_ker_var2, bli_trsm_ru_ker_var2 }
@@ -43,18 +43,16 @@ static trsm_var_oft vars[2][2] =
 
 void bli_trsm_xx_ker_var2
      (
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  c,
-       cntx_t* cntx,
-       rntm_t* rntm,
-       cntl_t* cntl,
-       thrinfo_t* thread
+       const obj_t*     a,
+       const obj_t*     b,
+       const obj_t*     c,
+       const cntx_t*    cntx,
+       const cntl_t*    cntl,
+             thrinfo_t* thread_par
      )
 {
-	bool_t       side;
-	bool_t       uplo;
-	trsm_var_oft f;
+	dim_t side;
+	dim_t uplo;
 
 	// Set two bools: one based on the implied side parameter (the structure
 	// of the root object) and one based on the uplo field of the triangular
@@ -73,7 +71,7 @@ void bli_trsm_xx_ker_var2
 	}
 
 	// Index into the variant array to extract the correct function pointer.
-	f = vars[side][uplo];
+	l3_var_oft f = vars[side][uplo];
 
 	// Call the macrokernel.
 	f
@@ -82,9 +80,8 @@ void bli_trsm_xx_ker_var2
 	  b,
 	  c,
 	  cntx,
-	  rntm,
 	  cntl,
-	  thread
+	  thread_par
 	);
 }
 

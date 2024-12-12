@@ -6,7 +6,7 @@
 
    Copyright (C) 2014, The University of Texas at Austin
    Copyright (C) 2016, Hewlett Packard Enterprise Development LP
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -48,15 +48,23 @@ extern "C" {
 // NOTE: PLEASE DON'T CHANGE THE ORDER IN WHICH HEADERS ARE INCLUDED UNLESS
 // YOU ARE SURE THAT IT DOESN'T BREAK INTER-HEADER MACRO DEPENDENCIES.
 
-// -- System headers --
-// NOTE: This header must be included before bli_config_macro_defs.h.
-
-#include "bli_system.h"
-
-
 // -- configure definitions --
 
+// NOTE: bli_config.h must be included before any other BLIS header. It is
+// bootstrapped by ./configure and does not depend on later headers. Moreover
+// these configuration variables are necessary to change some default behaviors
+// (e.g. disable OS detection in bli_system.h in case of --disable-system).
 #include "bli_config.h"
+
+// -- System and language-related headers --
+
+// NOTE: bli_system.h header must be included before bli_config_macro_defs.h.
+#include "bli_system.h"
+#include "bli_lang_defs.h"
+
+
+// -- configure default definitions --
+
 #include "bli_config_macro_defs.h"
 
 
@@ -71,9 +79,34 @@ extern "C" {
 #include "bli_pragma_macro_defs.h"
 
 
+// -- BLIS architecture/kernel definitions --
+
+#include "bli_pre_ker_params.h"
+#include "bli_l1v_ker_params.h"
+#include "bli_l1f_ker_params.h"
+#include "bli_l1m_ker_params.h"
+#include "bli_l3_ukr_params.h"
+#include "bli_l3_sup_ker_params.h"
+
+#include "bli_l1v_ker_prot.h"
+#include "bli_l1f_ker_prot.h"
+#include "bli_l1m_ker_prot.h"
+#include "bli_l3_ukr_prot.h"
+#include "bli_l3_sup_ker_prot.h"
+
+#include "bli_arch_config_pre.h"
+#include "bli_arch_config.h"
+
+#include "bli_kernel_macro_defs.h"
+
+
 // -- Threading definitions --
 
 #include "bli_thread.h"
+#include "bli_thread_range.h"
+#include "bli_thread_range_slab_rr.h"
+#include "bli_thread_range_tlb.h"
+
 #include "bli_pthread.h"
 
 
@@ -82,22 +115,10 @@ extern "C" {
 #include "bli_extern_defs.h"
 
 
-// -- BLIS architecture/kernel definitions --
-
-#include "bli_l1v_ker_prot.h"
-#include "bli_l1f_ker_prot.h"
-#include "bli_l1m_ker_prot.h"
-#include "bli_l3_ukr_prot.h"
-
-#include "bli_arch_config_pre.h"
-#include "bli_arch_config.h"
-
-#include "bli_kernel_macro_defs.h"
-
-
 // -- Base operation prototypes --
 
 #include "bli_init.h"
+#include "bli_malloc.h"
 #include "bli_const.h"
 #include "bli_obj.h"
 #include "bli_obj_scalar.h"
@@ -108,7 +129,7 @@ extern "C" {
 #include "bli_rntm.h"
 #include "bli_gks.h"
 #include "bli_ind.h"
-#include "bli_membrk.h"
+#include "bli_pba.h"
 #include "bli_pool.h"
 #include "bli_array.h"
 #include "bli_apool.h"
@@ -128,11 +149,14 @@ extern "C" {
 #include "bli_getopt.h"
 #include "bli_opid.h"
 #include "bli_cntl.h"
+#include "bli_env.h"
+#include "bli_pack.h"
 #include "bli_info.h"
 #include "bli_arch.h"
 #include "bli_cpuid.h"
 #include "bli_string.h"
-#include "bli_setgetij.h"
+#include "bli_setgetijm.h"
+#include "bli_setgetijv.h"
 #include "bli_setri.h"
 
 #include "bli_castm.h"
@@ -180,6 +204,14 @@ extern "C" {
 // -- Utility operations --
 
 #include "bli_util.h"
+
+
+// -- addon definitions --
+
+// NOTE: These definitions should not be included much earlier since an addon
+// may wish to utilize other types and definitions provided by BLIS.
+
+#include "bli_addon.h"
 
 
 // -- sandbox implementation --

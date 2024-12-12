@@ -4,19 +4,23 @@
 # Please refer to the BLIS wiki on configurations for information on the
 # syntax and semantics of this file [1].
 #
-# [1] https://github.com/flame/blis/wiki/ConfigurationHowTo
+# [1] https://github.com/flame/blis/blob/master/docs/ConfigurationHowTo.md
 #
 
 # Processor families.
-x86_64_no_skx:      intel64_no_skx amd64
-x86_64:      intel64 amd64
-intel64:     skx knl haswell sandybridge penryn generic
-intel64_no_skx:     haswell sandybridge penryn generic
-amd64:       zen excavator steamroller piledriver bulldozer generic
-# NOTE: ARM families will remain disabled until runtime hardware detection
-# logic is added to BLIS.
-#arm64:       cortexa57 generic
-#arm32:       cortexa15 cortexa9 generic
+x86_64_no_skx:  intel64_no_skx amd64_legacy # gcc without SKL-X also doesn't support Zen 1
+x86_64_no_zen2: intel64_no_knl zen amd64_legacy
+x86_64_no_zen3: intel64 zen zen2 amd64_legacy
+x86_64:         intel64 amd64 amd64_legacy
+intel64:        skx knl haswell sandybridge penryn generic
+intel64_no_knl: skx haswell sandybridge penryn generic
+intel64_no_skx: haswell sandybridge penryn generic
+amd64_legacy:   excavator steamroller piledriver bulldozer generic
+amd64:          zen3 zen2 zen generic
+arm64_no_sve:   firestorm cortexa57 cortexa53 generic
+arm64:          armsve firestorm thunderx2 cortexa57 cortexa53 generic
+arm32:          cortexa15 cortexa9 generic
+
 
 # Intel architectures.
 skx:         skx/skx/haswell/zen
@@ -26,6 +30,8 @@ sandybridge: sandybridge
 penryn:      penryn
 
 # AMD architectures.
+zen3:        zen3/zen3/zen2/zen/haswell
+zen2:        zen2/zen2/zen/haswell
 zen:         zen/zen/haswell
 excavator:   excavator/piledriver
 steamroller: steamroller/piledriver
@@ -33,6 +39,9 @@ piledriver:  piledriver
 bulldozer:   bulldozer
 
 # ARM architectures.
+armsve:      armsve/armsve
+a64fx:       a64fx/armsve
+firestorm:   firestorm/armv8a
 thunderx2:   thunderx2/armv8a
 cortexa57:   cortexa57/armv8a
 cortexa53:   cortexa53/armv8a
@@ -40,7 +49,8 @@ cortexa15:   cortexa15/armv7a
 cortexa9:    cortexa9/armv7a
 
 # IBM architectures.
-power9:	     power9/generic
+power10:     power10
+power9:      power9
 bgq:         bgq
 
 # Generic architectures.

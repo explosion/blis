@@ -6,7 +6,7 @@
 
    Copyright (C) 2014, The University of Texas at Austin
    Copyright (C) 2016, Hewlett Packard Enterprise Development LP
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -36,29 +36,35 @@
 
 #include "blis.h"
 
-void bli_memsys_init( void )
+int bli_memsys_init( void )
 {
+	// NOTE: This function is called once by ONLY ONE application thread per
+	// library init/finalize cycle (see bli_init.c). Thus, a mutex is not
+	// needed to protect the data initialization.
+
 	// Query a native context so we have something to pass into
-	// bli_membrk_init_pools(). We use BLIS_DOUBLE for the datatype,
-	// but the dt argument is actually only used when initializing
-	// contexts for induced methods.
-	// NOTE: Instead of calling bli_gks_query_cntx(), we call
-	// bli_gks_query_cntx_noinit() to avoid the call to bli_init_once().
-	cntx_t* cntx_p = bli_gks_query_cntx_noinit();
+	// bli_pba_init_pools().
+	// NOTE: We intentionally call bli_gks_query_nat_cntx_noinit() in order
+	// to avoid the internal call to bli_init_once().
+	const cntx_t* cntx_p = bli_gks_query_nat_cntx_noinit();
 
 	// Initialize the packing block allocator and its data structures.
-	bli_membrk_init( cntx_p );
+	bli_pba_init( cntx_p );
 
 	// Initialize the small block allocator and its data structures.
 	bli_sba_init();
+
+	return 0;
 }
 
-void bli_memsys_finalize( void )
+int bli_memsys_finalize( void )
 {
 	// Finalize the small block allocator and its data structures.
 	bli_sba_finalize();
 
-	// Finalize the global membrk_t object and its data structures.
-	bli_membrk_finalize();
+	// Finalize the packing block allocator and its data structures.
+	bli_pba_finalize();
+
+	return 0;
 }
 

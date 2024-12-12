@@ -5,6 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -34,11 +35,23 @@
 
 void bli_trsm_front
      (
+             side_t  side,
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const cntx_t* cntx,
+             rntm_t* rntm
+     );
+
+#ifdef BLIS_ENABLE_SMALL_MATRIX
+err_t bli_trsm_small
+     (
        side_t  side,
        obj_t*  alpha,
        obj_t*  a,
        obj_t*  b,
        cntx_t* cntx,
-       rntm_t* rntm,
        cntl_t* cntl
      );
+#endif
+

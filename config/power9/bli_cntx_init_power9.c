@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2014, The University of Texas at Austin
+   Copyright (C) 2019, The University of Texas at Austin
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -43,35 +43,61 @@ void bli_cntx_init_power9( cntx_t* cntx )
 
 	// -------------------------------------------------------------------------
 
-	// Update the context with optimized native gemm micro-kernels and
-	// their storage preferences.
-//	bli_cntx_set_l3_nat_ukrs
-//	(
-//	  1,
-//	  BLIS_GEMM_UKR, BLIS_DOUBLE,   bli_dgemm_power7_int_8x4,  FALSE,
-//	  cntx
-//	);
-/*
-	// Initialize level-3 blocksize objects with architecture-specific values.
-	//                                           s      d      c      z
-	bli_blksz_init_easy( &blkszs[ BLIS_MR ],     0,     8,     0,     0 );
-	bli_blksz_init_easy( &blkszs[ BLIS_NR ],     0,     4,     0,     0 );
-	bli_blksz_init_easy( &blkszs[ BLIS_MC ],     0,    64,     0,     0 );
-	bli_blksz_init_easy( &blkszs[ BLIS_KC ],     0,   256,     0,     0 );
-	bli_blksz_init_easy( &blkszs[ BLIS_NC ],     0,  4096,     0,     0 );
+	// Update the context with optimized native gemm micro-kernels.
+	bli_cntx_set_ukrs
+	(
+	  cntx,
+
+	  // level-3
+	  BLIS_GEMM_UKR, BLIS_DOUBLE, bli_dgemm_power9_asm_12x6,
+
+	  BLIS_VA_END
+	);
+
+	// Update the context with storage preferences.
+	bli_cntx_set_ukr_prefs
+	(
+	  cntx,
+
+	  // level-3
+	  BLIS_GEMM_UKR_ROW_PREF,   BLIS_FLOAT,    FALSE,
+	  BLIS_GEMM_UKR_ROW_PREF,   BLIS_DOUBLE,   FALSE,
+	  BLIS_GEMM_UKR_ROW_PREF,   BLIS_SCOMPLEX, FALSE,
+	  BLIS_GEMM_UKR_ROW_PREF,   BLIS_DCOMPLEX, FALSE,
+	  BLIS_TRSM_L_UKR_ROW_PREF, BLIS_FLOAT,    FALSE,
+	  BLIS_TRSM_U_UKR_ROW_PREF, BLIS_FLOAT,    FALSE,
+	  BLIS_TRSM_L_UKR_ROW_PREF, BLIS_DOUBLE,   FALSE,
+	  BLIS_TRSM_U_UKR_ROW_PREF, BLIS_DOUBLE,   FALSE,
+	  BLIS_TRSM_L_UKR_ROW_PREF, BLIS_SCOMPLEX, FALSE,
+	  BLIS_TRSM_U_UKR_ROW_PREF, BLIS_SCOMPLEX, FALSE,
+	  BLIS_TRSM_L_UKR_ROW_PREF, BLIS_DCOMPLEX, FALSE,
+	  BLIS_TRSM_U_UKR_ROW_PREF, BLIS_DCOMPLEX, FALSE,
+
+	  BLIS_VA_END
+	);
+
+
+	bli_blksz_init_easy( &blkszs[ BLIS_MR ],    -1,    12,    -1,    -1 );
+	bli_blksz_init     ( &blkszs[ BLIS_NR ],    -1,     6,    -1,    -1,
+	                                            -1,    12,    -1,    -1 );
+	bli_blksz_init_easy( &blkszs[ BLIS_MC ],    -1,   576,    -1,    -1 );
+	bli_blksz_init_easy( &blkszs[ BLIS_KC ],    -1,  1408,    -1,    -1 );
+	bli_blksz_init_easy( &blkszs[ BLIS_NC ],    -1,  8190,    -1,    -1 );
+
 
 	// Update the context with the current architecture's register and cache
 	// blocksizes (and multiples) for native execution.
 	bli_cntx_set_blkszs
 	(
-	  BLIS_NAT, 5,
+	  cntx,
+
+	  // level-3
 	  BLIS_NC, &blkszs[ BLIS_NC ], BLIS_NR,
 	  BLIS_KC, &blkszs[ BLIS_KC ], BLIS_KR,
 	  BLIS_MC, &blkszs[ BLIS_MC ], BLIS_MR,
 	  BLIS_NR, &blkszs[ BLIS_NR ], BLIS_NR,
 	  BLIS_MR, &blkszs[ BLIS_MR ], BLIS_MR,
-	  cntx
-	);
-*/
-}
 
+	  BLIS_VA_END
+	);
+}

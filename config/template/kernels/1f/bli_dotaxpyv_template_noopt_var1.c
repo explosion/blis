@@ -46,7 +46,7 @@ void bli_zdotaxpyv_template_noopt
        dcomplex* restrict y, inc_t incy,
        dcomplex* restrict rho,
        dcomplex* restrict z, inc_t incz,
-       cntx_t*   restrict cntx
+       cntx_t*            cntx
      )
 {
 /*
@@ -123,7 +123,7 @@ void bli_zdotaxpyv_template_noopt
 	dcomplex*   zp;
 	dcomplex    dotxy;
 
-	bool_t      use_ref         = FALSE;
+	bool        use_ref         = FALSE;
 
 	dim_t       n_pre           = 0;
 	dim_t       n_iter;

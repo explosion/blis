@@ -45,8 +45,8 @@
 \
 void PASTEMAC(opname,EX_SUF) \
      ( \
-       obj_t*  x, \
-       obj_t*  asum  \
+       const obj_t* x, \
+       const obj_t* asum  \
        BLIS_OAPI_EX_PARAMS  \
      ) \
 { \
@@ -54,29 +54,29 @@ void PASTEMAC(opname,EX_SUF) \
 \
 	BLIS_OAPI_EX_DECLS \
 \
-	num_t     dt        = bli_obj_dt( x ); \
+	num_t dt    = bli_obj_dt( x ); \
 \
-	dim_t     n         = bli_obj_vector_dim( x ); \
-	void*     buf_x     = bli_obj_buffer_at_off( x ); \
-	inc_t     incx      = bli_obj_vector_inc( x ); \
+	dim_t n     = bli_obj_vector_dim( x ); \
+	void* buf_x = bli_obj_buffer_at_off( x ); \
+	inc_t incx  = bli_obj_vector_inc( x ); \
 \
-	void*     buf_asum  = bli_obj_buffer_at_off( asum ); \
+	void* buf_asum = bli_obj_buffer_at_off( asum ); \
 \
 	if ( bli_error_checking_is_enabled() ) \
-	    PASTEMAC(opname,_check)( x, asum ); \
+		PASTEMAC(opname,_check)( x, asum ); \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH2(opname,BLIS_TAPI_EX_SUF,_vft) f = \
 	PASTEMAC2(opname,BLIS_TAPI_EX_SUF,_qfp)( dt ); \
 \
 	f \
 	( \
-	   n, \
-	   buf_x, incx, \
-	   buf_asum, \
-	   cntx, \
-	   rntm  \
+	  n, \
+	  buf_x, incx, \
+	  buf_asum, \
+	  cntx, \
+	  rntm  \
 	); \
 }
 
@@ -88,7 +88,7 @@ GENFRONT( asumv )
 \
 void PASTEMAC(opname,EX_SUF) \
      ( \
-       obj_t*  a  \
+       const obj_t* a  \
        BLIS_OAPI_EX_PARAMS  \
      ) \
 { \
@@ -96,29 +96,29 @@ void PASTEMAC(opname,EX_SUF) \
 \
 	BLIS_OAPI_EX_DECLS \
 \
-	num_t     dt        = bli_obj_dt( a ); \
+	num_t  dt    = bli_obj_dt( a ); \
 \
-	uplo_t    uploa     = bli_obj_uplo( a ); \
-	dim_t     m         = bli_obj_length( a ); \
-	void*     buf_a     = bli_obj_buffer_at_off( a ); \
-	inc_t     rs_a      = bli_obj_row_stride( a ); \
-	inc_t     cs_a      = bli_obj_col_stride( a ); \
+	uplo_t uploa = bli_obj_uplo( a ); \
+	dim_t  m     = bli_obj_length( a ); \
+	void*  buf_a = bli_obj_buffer_at_off( a ); \
+	inc_t  rs_a  = bli_obj_row_stride( a ); \
+	inc_t  cs_a  = bli_obj_col_stride( a ); \
 \
 	if ( bli_error_checking_is_enabled() ) \
-	    PASTEMAC(opname,_check)( a ); \
+		PASTEMAC(opname,_check)( a ); \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH2(opname,BLIS_TAPI_EX_SUF,_vft) f = \
 	PASTEMAC2(opname,BLIS_TAPI_EX_SUF,_qfp)( dt ); \
 \
 	f \
 	( \
-	   uploa, \
-	   m, \
-	   buf_a, rs_a, cs_a, \
-	   cntx, \
-	   rntm  \
+	  uploa, \
+	  m, \
+	  buf_a, rs_a, cs_a, \
+	  cntx, \
+	  rntm  \
 	); \
 }
 
@@ -132,8 +132,8 @@ GENFRONT( mktrim )
 \
 void PASTEMAC(opname,EX_SUF) \
      ( \
-       obj_t*  x, \
-       obj_t*  norm  \
+       const obj_t* x, \
+       const obj_t* norm  \
        BLIS_OAPI_EX_PARAMS  \
      ) \
 { \
@@ -141,28 +141,28 @@ void PASTEMAC(opname,EX_SUF) \
 \
 	BLIS_OAPI_EX_DECLS \
 \
-	num_t     dt        = bli_obj_dt( x ); \
+	num_t dt       = bli_obj_dt( x ); \
 \
-	dim_t     n         = bli_obj_vector_dim( x ); \
-	void*     buf_x     = bli_obj_buffer_at_off( x ); \
-	inc_t     incx      = bli_obj_vector_inc( x ); \
-	void*     buf_norm  = bli_obj_buffer_at_off( norm ); \
+	dim_t n        = bli_obj_vector_dim( x ); \
+	void* buf_x    = bli_obj_buffer_at_off( x ); \
+	inc_t incx     = bli_obj_vector_inc( x ); \
+	void* buf_norm = bli_obj_buffer_at_off( norm ); \
 \
 	if ( bli_error_checking_is_enabled() ) \
-	    PASTEMAC(opname,_check)( x, norm ); \
+		PASTEMAC(opname,_check)( x, norm ); \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH2(opname,BLIS_TAPI_EX_SUF,_vft) f = \
 	PASTEMAC2(opname,BLIS_TAPI_EX_SUF,_qfp)( dt ); \
 \
 	f \
 	( \
-	   n, \
-	   buf_x, incx, \
-	   buf_norm, \
-	   cntx, \
-	   rntm  \
+	  n, \
+	  buf_x, incx, \
+	  buf_norm, \
+	  cntx, \
+	  rntm  \
 	); \
 }
 
@@ -176,8 +176,8 @@ GENFRONT( normiv )
 \
 void PASTEMAC(opname,EX_SUF) \
      ( \
-       obj_t*  x, \
-       obj_t*  norm  \
+       const obj_t* x, \
+       const obj_t* norm  \
        BLIS_OAPI_EX_PARAMS  \
      ) \
 { \
@@ -185,37 +185,37 @@ void PASTEMAC(opname,EX_SUF) \
 \
 	BLIS_OAPI_EX_DECLS \
 \
-	num_t     dt        = bli_obj_dt( x ); \
+	num_t  dt       = bli_obj_dt( x ); \
 \
-	doff_t    diagoffx  = bli_obj_diag_offset( x ); \
-	diag_t    diagx     = bli_obj_diag( x ); \
-	uplo_t    uplox     = bli_obj_uplo( x ); \
-	dim_t     m         = bli_obj_length( x ); \
-	dim_t     n         = bli_obj_width( x ); \
-	void*     buf_x     = bli_obj_buffer_at_off( x ); \
-	inc_t     rs_x      = bli_obj_row_stride( x ); \
-	inc_t     cs_x      = bli_obj_col_stride( x ); \
-	void*     buf_norm  = bli_obj_buffer_at_off( norm ); \
+	doff_t diagoffx = bli_obj_diag_offset( x ); \
+	diag_t diagx    = bli_obj_diag( x ); \
+	uplo_t uplox    = bli_obj_uplo( x ); \
+	dim_t  m        = bli_obj_length( x ); \
+	dim_t  n        = bli_obj_width( x ); \
+	void*  buf_x    = bli_obj_buffer_at_off( x ); \
+	inc_t  rs_x     = bli_obj_row_stride( x ); \
+	inc_t  cs_x     = bli_obj_col_stride( x ); \
+	void*  buf_norm = bli_obj_buffer_at_off( norm ); \
 \
 	if ( bli_error_checking_is_enabled() ) \
-	    PASTEMAC(opname,_check)( x, norm ); \
+		PASTEMAC(opname,_check)( x, norm ); \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH2(opname,BLIS_TAPI_EX_SUF,_vft) f = \
 	PASTEMAC2(opname,BLIS_TAPI_EX_SUF,_qfp)( dt ); \
 \
 	f \
 	( \
-	   diagoffx, \
-	   diagx, \
-	   uplox, \
-	   m, \
-	   n, \
-	   buf_x, rs_x, cs_x, \
-	   buf_norm, \
-	   cntx, \
-	   rntm  \
+	  diagoffx, \
+	  diagx, \
+	  uplox, \
+	  m, \
+	  n, \
+	  buf_x, rs_x, cs_x, \
+	  buf_norm, \
+	  cntx, \
+	  rntm  \
 	); \
 }
 
@@ -229,11 +229,7 @@ GENFRONT( normim )
 \
 void PASTEMAC(opname,EX_SUF) \
      ( \
-       FILE*   file, \
-       char*   s1, \
-       obj_t*  x, \
-       char*   format, \
-       char*   s2  \
+       const obj_t* x  \
        BLIS_OAPI_EX_PARAMS  \
      ) \
 { \
@@ -241,14 +237,367 @@ void PASTEMAC(opname,EX_SUF) \
 \
 	BLIS_OAPI_EX_DECLS \
 \
-	num_t     dt        = bli_obj_dt( x ); \
+	num_t dt    = bli_obj_dt( x ); \
 \
-	dim_t     n         = bli_obj_vector_dim( x ); \
-	void*     buf_x     = bli_obj_buffer_at_off( x ); \
-	inc_t     incx      = bli_obj_vector_inc( x ); \
+	dim_t n     = bli_obj_vector_dim( x ); \
+	void* buf_x = bli_obj_buffer_at_off( x ); \
+	inc_t incx  = bli_obj_vector_inc( x ); \
 \
 	if ( bli_error_checking_is_enabled() ) \
-	    PASTEMAC(opname,_check)( file, s1, x, format, s2 ); \
+		PASTEMAC(opname,_check)( x ); \
+\
+	/* Query a type-specific function pointer, except one that uses
+	   void* for function arguments instead of typed pointers. */ \
+	PASTECH2(opname,BLIS_TAPI_EX_SUF,_vft) f = \
+	PASTEMAC2(opname,BLIS_TAPI_EX_SUF,_qfp)( dt ); \
+\
+	f \
+	( \
+	  n, \
+	  buf_x, incx, \
+	  cntx, \
+	  rntm  \
+	); \
+}
+
+GENFRONT( randv )
+GENFRONT( randnv )
+
+
+#undef  GENFRONT
+#define GENFRONT( opname ) \
+\
+void PASTEMAC(opname,EX_SUF) \
+     ( \
+       const obj_t* x  \
+       BLIS_OAPI_EX_PARAMS  \
+     ) \
+{ \
+	bli_init_once(); \
+\
+	BLIS_OAPI_EX_DECLS \
+\
+	num_t  dt       = bli_obj_dt( x ); \
+\
+	doff_t diagoffx = bli_obj_diag_offset( x ); \
+	uplo_t uplox    = bli_obj_uplo( x ); \
+	dim_t  m        = bli_obj_length( x ); \
+	dim_t  n        = bli_obj_width( x ); \
+	void*  buf_x    = bli_obj_buffer_at_off( x ); \
+	inc_t  rs_x     = bli_obj_row_stride( x ); \
+	inc_t  cs_x     = bli_obj_col_stride( x ); \
+\
+	if ( bli_error_checking_is_enabled() ) \
+		PASTEMAC(opname,_check)( x ); \
+\
+	/* Query a type-specific function pointer, except one that uses
+	   void* for function arguments instead of typed pointers. */ \
+	PASTECH2(opname,BLIS_TAPI_EX_SUF,_vft) f = \
+	PASTEMAC2(opname,BLIS_TAPI_EX_SUF,_qfp)( dt ); \
+\
+	f \
+	( \
+	  diagoffx, \
+	  uplox, \
+	  m, \
+	  n, \
+	  buf_x, rs_x, cs_x, \
+	  cntx, \
+	  rntm  \
+	); \
+}
+
+GENFRONT( randm )
+GENFRONT( randnm )
+
+
+#undef  GENFRONT
+#define GENFRONT( opname ) \
+\
+void PASTEMAC(opname,EX_SUF) \
+     ( \
+       const obj_t* x, \
+       const obj_t* scale, \
+       const obj_t* sumsq  \
+       BLIS_OAPI_EX_PARAMS  \
+     ) \
+{ \
+	bli_init_once(); \
+\
+	BLIS_OAPI_EX_DECLS \
+\
+	num_t dt        = bli_obj_dt( x ); \
+\
+	dim_t n         = bli_obj_vector_dim( x ); \
+	void* buf_x     = bli_obj_buffer_at_off( x ); \
+	inc_t incx      = bli_obj_vector_inc( x ); \
+	void* buf_scale = bli_obj_buffer_at_off( scale ); \
+	void* buf_sumsq = bli_obj_buffer_at_off( sumsq ); \
+\
+	if ( bli_error_checking_is_enabled() ) \
+		PASTEMAC(opname,_check)( x, scale, sumsq ); \
+\
+	/* Query a type-specific function pointer, except one that uses
+	   void* for function arguments instead of typed pointers. */ \
+	PASTECH2(opname,BLIS_TAPI_EX_SUF,_vft) f = \
+	PASTEMAC2(opname,BLIS_TAPI_EX_SUF,_qfp)( dt ); \
+\
+	f \
+	( \
+	  n, \
+	  buf_x, incx, \
+	  buf_scale, \
+	  buf_sumsq, \
+	  cntx, \
+	  rntm  \
+	); \
+}
+
+GENFRONT( sumsqv )
+
+// -----------------------------------------------------------------------------
+
+// Operations with only basic interfaces.
+
+#ifdef BLIS_OAPI_BASIC
+
+#undef  GENFRONT
+#define GENFRONT( opname ) \
+\
+void PASTEMAC0(opname) \
+     ( \
+       const obj_t* chi, \
+       const obj_t* psi, \
+             bool*  is_eq  \
+     ) \
+{ \
+	bli_init_once(); \
+\
+	num_t dt_chi = bli_obj_dt( chi ); \
+	num_t dt_psi = bli_obj_dt( psi ); \
+	num_t dt; \
+\
+	if ( bli_error_checking_is_enabled() ) \
+		PASTEMAC(opname,_check)( chi, psi, is_eq ); \
+\
+	/* Decide which datatype will be used to query the buffer from the
+	   constant object (if there is one). */ \
+	if ( bli_is_constant( dt_psi ) ) dt = dt_chi; \
+	else                             dt = dt_psi; \
+\
+	/* If chi and psi are both constants, then we compare only the dcomplex
+	   fields. */ \
+	if ( bli_is_constant( dt ) ) dt = BLIS_DCOMPLEX; \
+\
+	void* buf_chi = bli_obj_buffer_for_1x1( dt, chi ); \
+	void* buf_psi = bli_obj_buffer_for_1x1( dt, psi ); \
+\
+	/* Integer objects are handled separately. */ \
+	if ( bli_is_int( dt ) ) \
+	{ \
+		*is_eq = bli_ieqa( buf_chi, buf_psi ); \
+		return; \
+	} \
+\
+	/* Query the conj status of each object and use the two to come up with a
+	   single "net" conj_t value. */ \
+	conj_t conjchi = bli_obj_conj_status( chi ); \
+	conj_t conjpsi = bli_obj_conj_status( psi ); \
+	conj_t conj    = bli_apply_conj( conjchi, conjpsi ); \
+\
+	/* Query a type-specific function pointer, except one that uses
+	   void* for function arguments instead of typed pointers. */ \
+	PASTECH(opname,_vft) f = \
+	PASTEMAC(opname,_qfp)( dt ); \
+\
+	f \
+	( \
+	  conj, \
+	  buf_chi, \
+	  buf_psi, \
+	  is_eq  \
+	); \
+}
+
+GENFRONT( eqsc )
+
+
+#undef  GENFRONT
+#define GENFRONT( opname ) \
+\
+void PASTEMAC0(opname) \
+     ( \
+       const obj_t* x, \
+       const obj_t* y, \
+             bool*  is_eq  \
+     ) \
+{ \
+	bli_init_once(); \
+\
+	num_t dt    = bli_obj_dt( x ); \
+\
+	dim_t n     = bli_obj_vector_dim( x ); \
+	void* buf_x = bli_obj_buffer_at_off( x ); \
+	inc_t inc_x = bli_obj_vector_inc( x ); \
+	void* buf_y = bli_obj_buffer_at_off( y ); \
+	inc_t inc_y = bli_obj_vector_inc( y ); \
+\
+	if ( bli_error_checking_is_enabled() ) \
+		PASTEMAC(opname,_check)( x, y, is_eq ); \
+\
+	/* Query the conj status of each object and use the two to come up with a
+	   single "net" conj_t value. */ \
+	conj_t conjx = bli_obj_conj_status( x ); \
+	conj_t conjy = bli_obj_conj_status( y ); \
+	conj_t conj  = bli_apply_conj( conjx, conjy ); \
+\
+	/* Query a type-specific function pointer, except one that uses
+	   void* for function arguments instead of typed pointers. */ \
+	PASTECH(opname,_vft) f = \
+	PASTEMAC(opname,_qfp)( dt ); \
+\
+	f \
+	( \
+	  conj, \
+	  n, \
+	  buf_x, inc_x, \
+	  buf_y, inc_y, \
+	  is_eq  \
+	); \
+}
+
+GENFRONT( eqv )
+
+
+#undef  GENFRONT
+#define GENFRONT( opname ) \
+\
+void PASTEMAC0(opname) \
+     ( \
+       const obj_t* x, \
+       const obj_t* y, \
+             bool*  is_eq  \
+     ) \
+{ \
+	bli_init_once(); \
+\
+	num_t  dt       = bli_obj_dt( x ); \
+\
+	doff_t diagoffx = bli_obj_diag_offset( x ); \
+	diag_t diagx    = bli_obj_diag( x ); \
+	uplo_t uplox    = bli_obj_uplo( x ); \
+	dim_t  m        = bli_obj_length( y ); \
+	dim_t  n        = bli_obj_width( y ); \
+	void*  buf_x    = bli_obj_buffer_at_off( x ); \
+	inc_t  rs_x     = bli_obj_row_stride( x ); \
+	inc_t  cs_x     = bli_obj_col_stride( x ); \
+	void*  buf_y    = bli_obj_buffer_at_off( y ); \
+	inc_t  rs_y     = bli_obj_row_stride( y ); \
+	inc_t  cs_y     = bli_obj_col_stride( y ); \
+\
+	if ( bli_error_checking_is_enabled() ) \
+		PASTEMAC(opname,_check)( x, y, is_eq ); \
+\
+	/* Query the combined trans and conj status of each object and use the two
+	   to come up with a single "net" trans_t value. */ \
+	trans_t transx = bli_obj_conjtrans_status( x ); \
+	trans_t transy = bli_obj_conjtrans_status( y ); \
+	trans_t trans  = bli_apply_trans( transy, transx ); \
+\
+	/* Query a type-specific function pointer, except one that uses
+	   void* for function arguments instead of typed pointers. */ \
+	PASTECH(opname,_vft) f = \
+	PASTEMAC(opname,_qfp)( dt ); \
+\
+	f \
+	( \
+	  diagoffx, \
+	  diagx, \
+	  uplox, \
+	  trans, \
+	  m, \
+	  n, \
+	  buf_x, rs_x, cs_x, \
+	  buf_y, rs_y, cs_y, \
+	  is_eq  \
+	); \
+}
+
+GENFRONT( eqm )
+
+
+#undef  GENFRONT
+#define GENFRONT( opname ) \
+\
+void PASTEMAC0(opname) \
+     ( \
+       const obj_t* chi, \
+       const obj_t* psi, \
+             bool*  is  \
+     ) \
+{ \
+	bli_init_once(); \
+\
+	num_t dt_chi = bli_obj_dt( chi ); \
+	num_t dt_psi = bli_obj_dt( psi ); \
+	num_t dt; \
+\
+	if ( bli_error_checking_is_enabled() ) \
+		PASTEMAC(opname,_check)( chi, psi, is ); \
+\
+	/* Decide which datatype will be used to query the buffer from the
+	   constant object (if there is one). */ \
+	if ( bli_is_constant( dt_psi ) ) dt = dt_chi; \
+	else                             dt = dt_psi; \
+\
+	/* If chi and psi are both constants, then we compare only the dcomplex
+	   fields. */ \
+	if ( bli_is_constant( dt ) ) dt = BLIS_DOUBLE; \
+\
+	void* buf_chi = bli_obj_buffer_for_1x1( dt, chi ); \
+	void* buf_psi = bli_obj_buffer_for_1x1( dt, psi ); \
+\
+	/* Query a type-specific function pointer, except one that uses
+	   void* for function arguments instead of typed pointers. */ \
+	PASTECH(opname,_vft) f = \
+	PASTEMAC(opname,_qfp)( dt ); \
+\
+	f \
+	( \
+	  buf_chi, \
+	  buf_psi, \
+	  is  \
+	); \
+}
+
+GENFRONT( ltsc )
+GENFRONT( ltesc )
+GENFRONT( gtsc )
+GENFRONT( gtesc )
+
+
+#undef  GENFRONT
+#define GENFRONT( opname ) \
+\
+void PASTEMAC0(opname) \
+     ( \
+             FILE*  file, \
+       const char*  s1, \
+       const obj_t* x, \
+       const char*  format, \
+       const char*  s2  \
+     ) \
+{ \
+	bli_init_once(); \
+\
+	num_t dt    = bli_obj_dt( x ); \
+\
+	dim_t n     = bli_obj_vector_dim( x ); \
+	void* buf_x = bli_obj_buffer_at_off( x ); \
+	inc_t incx  = bli_obj_vector_inc( x ); \
+\
+	if ( bli_error_checking_is_enabled() ) \
+		PASTEMAC(opname,_check)( file, s1, x, format, s2 ); \
 \
 	/* Handle constants up front. */ \
 	if ( dt == BLIS_CONSTANT ) \
@@ -257,18 +606,18 @@ void PASTEMAC(opname,EX_SUF) \
 	} \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH(opname,_vft) f = \
 	PASTEMAC(opname,_qfp)( dt ); \
 \
 	f \
 	( \
-	   file, \
-	   s1, \
-	   n, \
-	   buf_x, incx, \
-	   format, \
-	   s2  \
+	  file, \
+	  s1, \
+	  n, \
+	  buf_x, incx, \
+	  format, \
+	  s2  \
 	); \
 }
 
@@ -278,39 +627,36 @@ GENFRONT( fprintv )
 #undef  GENFRONT
 #define GENFRONT( opname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+void PASTEMAC0(opname) \
      ( \
-       FILE*   file, \
-       char*   s1, \
-       obj_t*  x, \
-       char*   format, \
-       char*   s2  \
-       BLIS_OAPI_EX_PARAMS  \
+             FILE*  file, \
+       const char*  s1, \
+       const obj_t* x, \
+       const char*  format, \
+       const char*  s2  \
      ) \
 { \
 	bli_init_once(); \
 \
-	BLIS_OAPI_EX_DECLS \
+	num_t dt    = bli_obj_dt( x ); \
 \
-	num_t     dt        = bli_obj_dt( x ); \
-\
-	dim_t     m         = bli_obj_length( x ); \
-	dim_t     n         = bli_obj_width( x ); \
-	void*     buf_x     = bli_obj_buffer_at_off( x ); \
-	inc_t     rs_x      = bli_obj_row_stride( x ); \
-	inc_t     cs_x      = bli_obj_col_stride( x ); \
+	dim_t m     = bli_obj_length( x ); \
+	dim_t n     = bli_obj_width( x ); \
+	void* buf_x = bli_obj_buffer_at_off( x ); \
+	inc_t rs_x  = bli_obj_row_stride( x ); \
+	inc_t cs_x  = bli_obj_col_stride( x ); \
 \
 	if ( bli_error_checking_is_enabled() ) \
-	    PASTEMAC(opname,_check)( file, s1, x, format, s2 ); \
+		PASTEMAC(opname,_check)( file, s1, x, format, s2 ); \
 \
 	/* Handle constants up front. */ \
 	if ( dt == BLIS_CONSTANT ) \
 	{ \
-		float*    sp = bli_obj_buffer_for_const( BLIS_FLOAT,    x ); \
-		double*   dp = bli_obj_buffer_for_const( BLIS_DOUBLE,   x ); \
-		scomplex* cp = bli_obj_buffer_for_const( BLIS_SCOMPLEX, x ); \
-		dcomplex* zp = bli_obj_buffer_for_const( BLIS_DCOMPLEX, x ); \
-		gint_t*   ip = bli_obj_buffer_for_const( BLIS_INT,      x ); \
+		const float*    sp = bli_obj_buffer_for_const( BLIS_FLOAT,    x ); \
+		const double*   dp = bli_obj_buffer_for_const( BLIS_DOUBLE,   x ); \
+		const scomplex* cp = bli_obj_buffer_for_const( BLIS_SCOMPLEX, x ); \
+		const dcomplex* zp = bli_obj_buffer_for_const( BLIS_DCOMPLEX, x ); \
+		const gint_t*   ip = bli_obj_buffer_for_const( BLIS_INT,      x ); \
 \
 		fprintf( file, "%s\n", s1 ); \
 		fprintf( file, " float:     %9.2e\n",         bli_sreal( *sp ) ); \
@@ -325,19 +671,19 @@ void PASTEMAC(opname,EX_SUF) \
 	} \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
+	   void* for function arguments instead of typed pointers. */ \
 	PASTECH(opname,_vft) f = \
 	PASTEMAC(opname,_qfp)( dt ); \
 \
 	f \
 	( \
-	   file, \
-	   s1, \
-	   m, \
-	   n, \
-	   buf_x, rs_x, cs_x, \
-	   format, \
-	   s2  \
+	  file, \
+	  s1, \
+	  m, \
+	  n, \
+	  buf_x, rs_x, cs_x, \
+	  format, \
+	  s2  \
 	); \
 }
 
@@ -347,168 +693,31 @@ GENFRONT( fprintm )
 #undef  GENFRONT
 #define GENFRONT( opname, varname ) \
 \
-void PASTEMAC(opname,EX_SUF) \
+void PASTEMAC0(opname) \
      ( \
-       char*   s1, \
-       obj_t*  x, \
-       char*   format, \
-       char*   s2  \
-       BLIS_OAPI_EX_PARAMS  \
+       const char*  s1, \
+       const obj_t* x, \
+       const char*  format, \
+       const char*  s2  \
      ) \
 { \
 	bli_init_once(); \
 \
-	BLIS_OAPI_EX_DECLS \
-\
-	/* Suppress compiler warning about unused variables. */ \
-	( void )cntx; \
-\
 	/* Invoke the typed function. */ \
 	PASTEMAC0(varname) \
 	( \
-	   stdout, \
-	   s1, \
-	   x, \
-	   format, \
-	   s2  \
+	  stdout, \
+	  s1, \
+	  x, \
+	  format, \
+	  s2  \
 	); \
 }
 
 GENFRONT( printv, fprintv )
 GENFRONT( printm, fprintm )
 
-
-#undef  GENFRONT
-#define GENFRONT( opname ) \
-\
-void PASTEMAC(opname,EX_SUF) \
-     ( \
-       obj_t*  x  \
-       BLIS_OAPI_EX_PARAMS  \
-     ) \
-{ \
-	bli_init_once(); \
-\
-	BLIS_OAPI_EX_DECLS \
-\
-	num_t     dt        = bli_obj_dt( x ); \
-\
-	dim_t     n         = bli_obj_vector_dim( x ); \
-	void*     buf_x     = bli_obj_buffer_at_off( x ); \
-	inc_t     incx      = bli_obj_vector_inc( x ); \
-\
-	if ( bli_error_checking_is_enabled() ) \
-	    PASTEMAC(opname,_check)( x ); \
-\
-	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
-	PASTECH2(opname,BLIS_TAPI_EX_SUF,_vft) f = \
-	PASTEMAC2(opname,BLIS_TAPI_EX_SUF,_qfp)( dt ); \
-\
-	f \
-	( \
-	   n, \
-	   buf_x, incx, \
-	   cntx, \
-	   rntm  \
-	); \
-}
-
-GENFRONT( randv )
-GENFRONT( randnv )
-
-
-#undef  GENFRONT
-#define GENFRONT( opname ) \
-\
-void PASTEMAC(opname,EX_SUF) \
-     ( \
-       obj_t*  x  \
-       BLIS_OAPI_EX_PARAMS  \
-     ) \
-{ \
-	bli_init_once(); \
-\
-	BLIS_OAPI_EX_DECLS \
-\
-	num_t     dt        = bli_obj_dt( x ); \
-\
-	doff_t    diagoffx  = bli_obj_diag_offset( x ); \
-	uplo_t    uplox     = bli_obj_uplo( x ); \
-	dim_t     m         = bli_obj_length( x ); \
-	dim_t     n         = bli_obj_width( x ); \
-	void*     buf_x     = bli_obj_buffer_at_off( x ); \
-	inc_t     rs_x      = bli_obj_row_stride( x ); \
-	inc_t     cs_x      = bli_obj_col_stride( x ); \
-\
-	if ( bli_error_checking_is_enabled() ) \
-	    PASTEMAC(opname,_check)( x ); \
-\
-	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
-	PASTECH2(opname,BLIS_TAPI_EX_SUF,_vft) f = \
-	PASTEMAC2(opname,BLIS_TAPI_EX_SUF,_qfp)( dt ); \
-\
-	f \
-	( \
-	   diagoffx, \
-	   uplox, \
-	   m, \
-	   n, \
-	   buf_x, rs_x, cs_x, \
-	   cntx, \
-	   rntm  \
-	); \
-}
-
-GENFRONT( randm )
-GENFRONT( randnm )
-
-
-#undef  GENFRONT
-#define GENFRONT( opname ) \
-\
-void PASTEMAC(opname,EX_SUF) \
-     ( \
-       obj_t*  x, \
-       obj_t*  scale, \
-       obj_t*  sumsq  \
-       BLIS_OAPI_EX_PARAMS  \
-     ) \
-{ \
-	bli_init_once(); \
-\
-	BLIS_OAPI_EX_DECLS \
-\
-	num_t     dt        = bli_obj_dt( x ); \
-\
-	dim_t     n         = bli_obj_vector_dim( x ); \
-	void*     buf_x     = bli_obj_buffer_at_off( x ); \
-	inc_t     incx      = bli_obj_vector_inc( x ); \
-	void*     buf_scale = bli_obj_buffer_at_off( scale ); \
-	void*     buf_sumsq = bli_obj_buffer_at_off( sumsq ); \
-\
-	if ( bli_error_checking_is_enabled() ) \
-	    PASTEMAC(opname,_check)( x, scale, sumsq ); \
-\
-	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
-	PASTECH2(opname,BLIS_TAPI_EX_SUF,_vft) f = \
-	PASTEMAC2(opname,BLIS_TAPI_EX_SUF,_qfp)( dt ); \
-\
-	f \
-	( \
-	   n, \
-	   buf_x, incx, \
-	   buf_scale, \
-	   buf_sumsq, \
-	   cntx, \
-	   rntm  \
-	); \
-}
-
-GENFRONT( sumsqv )
-
+#endif // #ifdef BLIS_OAPI_BASIC
 
 
 #endif

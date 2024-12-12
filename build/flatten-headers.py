@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-#  BLIS    
+#  BLIS
 #  An object-based framework for developing high-performance BLAS-like
 #  libraries.
 #
@@ -215,8 +215,18 @@ def flatten_header( inputfile, header_dirpaths, cursp ):
 	# Open the input file to process.
 	ifile = open( inputfile, "r" )
 
+	# A counter to track the line number being parsed within the current file.
+	# This counter, when selectively encoded into the flattened header via #line
+	# directives, facilitates easier debugging. (When the compiler finds an
+	# issue, it will be able to refer to the line number within the constituent
+	# header file rather than the flattened one.)
+	lineno = 0
+
 	# Iterate over the lines in the file.
 	while True:
+
+		# Increment the line number.
+		lineno += 1
 
 		# Read a line in the file.
 		line = ifile.readline()
@@ -244,22 +254,40 @@ def flatten_header( inputfile, header_dirpaths, cursp ):
 			# directive.
 			header_path = get_header_path( header, header_dirpaths )
 
-			# If the header was found, we recurse. Otherwise, we output
-			# the #include directive with a comment indicating that it
-			# was skipped.
-			if header_path:
+			# First, check if the header is our root header (and if so, ignore it).
+			# Otherwise, if the header was found, we recurse. Otherwise, we output
+			# the #include directive with a comment indicating that it as skipped
+			if header == root_inputfile:
+
+				markl = result.group(1)
+				markr = result.group(3)
+
+				echov2( "%sthis is the root header '%s'; commenting out / skipping." \
+				        % ( cursp, header ) )
+
+				# If the header found is our root header, then we cannot
+				# recurse into it lest we enter an infinite loop. Output the
+				# line but make sure it's commented out entirely.
+				ostring += "%s #include %c%s%c %c" \
+				           % ( skipstr, markl, header, markr, '\n' )
+
+			elif header_path:
 
 				echov2( "%slocated file '%s'; recursing." \
 				        % ( cursp, header_path ) )
 
 				# Mark the beginning of the header being inserted.
 				ostring += "%s%s%c" % ( beginstr, header, '\n' )
+				if line_numbers:
+					ostring += "#line %d \"%s\"%c\n" % ( 1, header_path, '\n' )
 
 				# Recurse on the header, accumulating the string.
 				ostring += flatten_header( header_path, header_dirpaths, cursp + "  " )
 
 				# Mark the end of the header being inserted.
 				ostring += "%s%s%c" % ( endstr, header, '\n' )
+				if line_numbers:
+					ostring += "#line %d \"%s\"%c\n" % ( lineno+1, inputfile, '\n' )
 
 				echov2( "%sheader file '%s' fully processed." \
 				        % ( cursp, header_path ) )
@@ -286,7 +314,7 @@ def flatten_header( inputfile, header_dirpaths, cursp ):
 		# endif
 
 	# endwhile
-	
+
 	# Close the input file.
 	ifile.close()
 
@@ -316,7 +344,6 @@ def find_header_dirs( dirpath ):
 	#endfor
 
 	return header_dirpaths
-	
 
 # ------------------------------------------------------------------------------
 
@@ -325,8 +352,10 @@ script_name    = None
 output_name    = None
 strip_comments = None
 recursive_flag = None
+line_numbers   = None
 verbose_flag   = None
 regex          = None
+root_inputfile = None
 
 def main():
 
@@ -334,8 +363,10 @@ def main():
 	global output_name
 	global strip_comments
 	global recursive_flag
+	global line_numbers
 	global verbose_flag
 	global regex
+	global root_inputfile
 
 	# Obtain the script name.
 	path, script_name = os.path.split(sys.argv[0])
@@ -344,13 +375,14 @@ def main():
 
 	strip_comments = False
 	recursive_flag = False
+	line_numbers   = False
 	verbose_flag   = "1"
 
 	nestsp         = "  "
 
 	# Process our command line options.
 	try:
-		opts, args = getopt.getopt( sys.argv[1:], "o:rchv:" )
+		opts, args = getopt.getopt( sys.argv[1:], "o:rclhv:" )
 
 	except getopt.GetoptError as err:
 		# print help information and exit:
@@ -363,6 +395,8 @@ def main():
 			output_name = optarg
 		elif opt == "-r":
 			recursive_flag = True
+		elif opt == "-l":
+			line_numbers = True
 		elif opt == "-c":
 			strip_comments = True
 		elif opt == "-v":
@@ -373,6 +407,9 @@ def main():
 		else:
 			print_usage()
 			sys.exit()
+
+	if line_numbers and strip_comments:
+		my_print( "WARNING: stripping comments will result in inaccurate line numbers" )
 
 	# Make sure that the verboseness level is valid.
 	if ( verbose_flag != "0" and
@@ -396,6 +433,10 @@ def main():
 	outputfile = args[1]
 	temp_dir   = args[2]
 	dir_list   = args[3]
+
+	# Save the filename (basename) part of the input file (or root file) into a
+	# global variable that we can access later from within flatten_header().
+	root_inputfile = os.path.basename( inputfile )
 
 	# Separate the directories into distinct strings.
 	dir_list = dir_list.split()

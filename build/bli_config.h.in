@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -45,12 +45,39 @@
 // Enabled kernel sets (kernel_list)
 @kernel_list_defines@
 
+#define BLIS_VERSION_STRING "@version@"
+
+#if @enable_system@
+#define BLIS_ENABLE_SYSTEM
+#else
+#define BLIS_DISABLE_SYSTEM
+#endif
+
+#if @enable_tls@
+#define BLIS_ENABLE_TLS
+#else
+#define BLIS_DISABLE_TLS
+#endif
+
 #if @enable_openmp@
 #define BLIS_ENABLE_OPENMP
+#if @enable_openmp_as_def@
+#define BLIS_ENABLE_OPENMP_AS_DEFAULT
+#endif
 #endif
 
 #if @enable_pthreads@
 #define BLIS_ENABLE_PTHREADS
+#if @enable_pthreads_as_def@
+#define BLIS_ENABLE_PTHREADS_AS_DEFAULT
+#endif
+#endif
+
+#if @enable_hpx@
+#define BLIS_ENABLE_HPX
+#if @enable_hpx_as_def@
+#define BLIS_ENABLE_HPX_AS_DEFAULT
+#endif
 #endif
 
 #if @enable_jrir_slab@
@@ -59,6 +86,10 @@
 
 #if @enable_jrir_rr@
 #define BLIS_ENABLE_JRIR_RR
+#endif
+
+#if @enable_jrir_tlb@
+#define BLIS_ENABLE_JRIR_TLB
 #endif
 
 #if @enable_pba_pools@
@@ -135,10 +166,22 @@
 #endif
 #endif
 
+#if @enable_sup_handling@
+#define BLIS_ENABLE_SUP_HANDLING
+#else
+#define BLIS_DISABLE_SUP_HANDLING
+#endif
+
 #if @enable_memkind@
 #define BLIS_ENABLE_MEMKIND
 #else
 #define BLIS_DISABLE_MEMKIND
+#endif
+
+#if @enable_trsm_preinversion@
+#define BLIS_ENABLE_TRSM_PREINVERSION
+#else
+#define BLIS_DISABLE_TRSM_PREINVERSION
 #endif
 
 #if @enable_pragma_omp_simd@
@@ -159,23 +202,11 @@
 #define BLIS_DISABLE_SHARED
 #endif
 
-#if !defined(BLIS_ENABLE_SHARED)
-    #define BLIS_EXPORT
+#if @complex_return_intel@
+#define BLIS_ENABLE_COMPLEX_RETURN_INTEL
 #else
-    #if defined(_WIN32) || defined(__CYGWIN__)
-        #ifdef BLIS_IS_BUILDING_LIBRARY
-            #define BLIS_EXPORT __declspec(dllexport)
-        #else
-            #define BLIS_EXPORT __declspec(dllimport)
-        #endif
-    #elif defined(__GNUC__) && __GNUC__ >= 4
-        #define BLIS_EXPORT __attribute__ ((visibility ("default")))
-    #else
-        #define BLIS_EXPORT
-    #endif
+#define BLIS_DISABLE_COMPLEX_RETURN_INTEL
 #endif
 
-#define BLIS_EXPORT_BLIS BLIS_EXPORT
-#define BLIS_EXPORT_BLAS BLIS_EXPORT
 
 #endif

@@ -36,15 +36,15 @@
 
 void bli_gemm_check
      (
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx
      )
 {
-	//err_t e_val;
+	err_t e_val;
 
 	// Check basic properties of the operation.
 
@@ -52,47 +52,87 @@ void bli_gemm_check
 
 	// Check object structure.
 
-	// NOTE: Can't perform these checks as long as bli_gemm_check() is called
-	// from bli_gemm_int(), which is in the execution path for structured
-	// level-3 operations such as hemm.
+	e_val = bli_check_general_object( a );
+	bli_check_error_code( e_val );
 
-	//e_val = bli_check_general_object( a );
-	//bli_check_error_code( e_val );
+	e_val = bli_check_general_object( b );
+	bli_check_error_code( e_val );
 
-	//e_val = bli_check_general_object( b );
-	//bli_check_error_code( e_val );
+	e_val = bli_check_general_object( c );
+	bli_check_error_code( e_val );
 }
 
-void bli_hemm_check
+void bli_gemmt_check
      (
-       side_t  side,
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx
      )
 {
 	err_t e_val;
 
-	// Perform checks common to hemm/symm.
+	// Check basic properties of the operation.
+
+	bli_gemmt_basic_check( alpha, a, b, beta, c, cntx );
+
+	// Check matrix squareness.
+
+	e_val = bli_check_square_object( c );
+	bli_check_error_code( e_val );
+
+	// Check object structure.
+
+	e_val = bli_check_general_object( a );
+	bli_check_error_code( e_val );
+
+	e_val = bli_check_general_object( b );
+	bli_check_error_code( e_val );
+}
+
+void bli_hemm_check
+     (
+             side_t  side,
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx
+     )
+{
+	err_t e_val;
+
+	// Perform checks common to hemm/symm/trmm/trsm.
 
 	bli_hemm_basic_check( side, alpha, a, b, beta, c, cntx );
+
+	// Check matrix squareness.
+
+	e_val = bli_check_square_object( a );
+	bli_check_error_code( e_val );
 
 	// Check object structure.
 
 	e_val = bli_check_hermitian_object( a );
 	bli_check_error_code( e_val );
+
+	e_val = bli_check_general_object( b );
+	bli_check_error_code( e_val );
+
+	e_val = bli_check_general_object( c );
+	bli_check_error_code( e_val );
 }
 
 void bli_herk_check
-     ( 
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx
+     (
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx
      )
 {
 	err_t e_val;
@@ -105,6 +145,19 @@ void bli_herk_check
 
 	bli_herk_basic_check( alpha, a, &ah, beta, c, cntx );
 
+	// Check matrix squareness.
+
+	e_val = bli_check_square_object( c );
+	bli_check_error_code( e_val );
+
+	// Check matrix structure.
+
+	e_val = bli_check_hermitian_object( c );
+	bli_check_error_code( e_val );
+
+	e_val = bli_check_general_object( a );
+	bli_check_error_code( e_val );
+
 	// Check for real-valued alpha and beta.
 
 	e_val = bli_check_real_valued_object( alpha );
@@ -112,21 +165,16 @@ void bli_herk_check
 
 	e_val = bli_check_real_valued_object( beta );
 	bli_check_error_code( e_val );
-
-	// Check matrix structure.
-
-	e_val = bli_check_hermitian_object( c );
-	bli_check_error_code( e_val );
 }
 
 void bli_her2k_check
      (
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx
      )
 {
 	err_t e_val;
@@ -140,26 +188,37 @@ void bli_her2k_check
 
 	bli_her2k_basic_check( alpha, a, &bh, b, &ah, beta, c, cntx );
 
-	// Check for real-valued beta.
+	// Check matrix squareness.
 
-	e_val = bli_check_real_valued_object( beta );
+	e_val = bli_check_square_object( c );
 	bli_check_error_code( e_val );
 
 	// Check matrix structure.
 
 	e_val = bli_check_hermitian_object( c );
 	bli_check_error_code( e_val );
+
+	e_val = bli_check_general_object( a );
+	bli_check_error_code( e_val );
+
+	e_val = bli_check_general_object( b );
+	bli_check_error_code( e_val );
+
+	// Check for real-valued beta.
+
+	e_val = bli_check_real_valued_object( beta );
+	bli_check_error_code( e_val );
 }
 
 void bli_symm_check
      (
-       side_t  side,
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx
+             side_t  side,
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx
      )
 {
 	err_t e_val;
@@ -168,19 +227,30 @@ void bli_symm_check
 
 	bli_hemm_basic_check( side, alpha, a, b, beta, c, cntx );
 
+	// Check matrix squareness.
+
+	e_val = bli_check_square_object( a );
+	bli_check_error_code( e_val );
+
 	// Check object structure.
 
 	e_val = bli_check_symmetric_object( a );
 	bli_check_error_code( e_val );
+
+	e_val = bli_check_general_object( b );
+	bli_check_error_code( e_val );
+
+	e_val = bli_check_general_object( c );
+	bli_check_error_code( e_val );
 }
 
 void bli_syrk_check
-     ( 
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx
+     (
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx
      )
 {
 	err_t e_val;
@@ -193,20 +263,28 @@ void bli_syrk_check
 
 	bli_herk_basic_check( alpha, a, &at, beta, c, cntx );
 
+	// Check matrix squareness.
+
+	e_val = bli_check_square_object( c );
+	bli_check_error_code( e_val );
+
 	// Check matrix structure.
 
 	e_val = bli_check_symmetric_object( c );
+	bli_check_error_code( e_val );
+
+	e_val = bli_check_general_object( a );
 	bli_check_error_code( e_val );
 }
 
 void bli_syr2k_check
      (
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx
      )
 {
 	err_t e_val;
@@ -220,55 +298,112 @@ void bli_syr2k_check
 
 	bli_her2k_basic_check( alpha, a, &bt, b, &at, beta, c, cntx );
 
+	// Check matrix squareness.
+
+	e_val = bli_check_square_object( c );
+	bli_check_error_code( e_val );
+
 	// Check matrix structure.
 
 	e_val = bli_check_symmetric_object( c );
+	bli_check_error_code( e_val );
+
+	e_val = bli_check_general_object( a );
+	bli_check_error_code( e_val );
+
+	e_val = bli_check_general_object( b );
+	bli_check_error_code( e_val );
+}
+
+void bli_trmm3_check
+     (
+             side_t  side,
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx
+     )
+{
+	err_t e_val;
+
+	// Check basic properties of the operation.
+
+	bli_hemm_basic_check( side, alpha, a, b, beta, c, cntx );
+
+	// Check matrix squareness.
+
+	e_val = bli_check_square_object( a );
+	bli_check_error_code( e_val );
+
+	// Check object structure.
+
+	e_val = bli_check_triangular_object( a );
+	bli_check_error_code( e_val );
+
+	e_val = bli_check_general_object( b );
+	bli_check_error_code( e_val );
+
+	e_val = bli_check_general_object( c );
 	bli_check_error_code( e_val );
 }
 
 void bli_trmm_check
      (
-       side_t  side,
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx
+             side_t  side,
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const cntx_t* cntx
      )
 {
 	err_t e_val;
 
-	// Perform checks common to hemm/symm.
+	// Check basic properties of the operation.
 
-	bli_hemm_basic_check( side, alpha, a, b, beta, c, cntx );
+	bli_hemm_basic_check( side, alpha, a, b, &BLIS_ZERO, b, cntx );
+
+	// Check matrix squareness.
+
+	e_val = bli_check_square_object( a );
+	bli_check_error_code( e_val );
 
 	// Check object structure.
 
 	e_val = bli_check_triangular_object( a );
 	bli_check_error_code( e_val );
+
+	e_val = bli_check_general_object( b );
+	bli_check_error_code( e_val );
 }
 
 void bli_trsm_check
      (
-       side_t  side,
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx
+             side_t  side,
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const cntx_t* cntx
      )
 {
 	err_t e_val;
 
-	// Perform checks common to hemm/symm.
+	// Perform checks common to hemm/symm/trmm/trsm.
 
-	bli_hemm_basic_check( side, alpha, a, b, beta, c, cntx );
+	bli_hemm_basic_check( side, alpha, a, b, &BLIS_ZERO, b, cntx );
+
+	// Check matrix squareness.
+
+	e_val = bli_check_square_object( a );
+	bli_check_error_code( e_val );
 
 	// Check object structure.
 
 	e_val = bli_check_triangular_object( a );
+	bli_check_error_code( e_val );
+
+	e_val = bli_check_general_object( b );
 	bli_check_error_code( e_val );
 }
 
@@ -276,12 +411,12 @@ void bli_trsm_check
 
 void bli_gemm_basic_check
      (
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx
      )
 {
 	err_t e_val;
@@ -324,15 +459,45 @@ void bli_gemm_basic_check
 #endif
 }
 
+void bli_gemmt_basic_check
+     (
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx
+     )
+{
+	err_t e_val;
+
+	// Perform standard checks.
+
+	bli_l3_basic_check( alpha, a, b, beta, c, cntx );
+
+	// Check object dimensions.
+
+	e_val = bli_check_level3_dims( a, b, c );
+	bli_check_error_code( e_val );
+
+	// Check for consistent datatypes.
+
+	e_val = bli_check_consistent_object_datatypes( c, a );
+	bli_check_error_code( e_val );
+
+	e_val = bli_check_consistent_object_datatypes( c, b );
+	bli_check_error_code( e_val );
+}
+
 void bli_hemm_basic_check
      (
-       side_t  side,
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx
+             side_t  side,
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx
      )
 {
 	err_t e_val;
@@ -354,11 +519,6 @@ void bli_hemm_basic_check
 		bli_check_error_code( e_val );
 	}
 
-	// Check matrix squareness.
-
-	e_val = bli_check_square_object( a );
-	bli_check_error_code( e_val );
-
 	// Check for consistent datatypes.
 
 	e_val = bli_check_consistent_object_datatypes( c, a );
@@ -370,12 +530,12 @@ void bli_hemm_basic_check
 
 void bli_herk_basic_check
      (
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  ah,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  ah,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx
      )
 {
 	err_t e_val;
@@ -389,19 +549,6 @@ void bli_herk_basic_check
 	e_val = bli_check_level3_dims( a, ah, c );
 	bli_check_error_code( e_val );
 
-	// Check matrix squareness.
-
-	e_val = bli_check_square_object( c );
-	bli_check_error_code( e_val );
-
-	// Check matrix structure.
-
-	e_val = bli_check_general_object( a );
-	bli_check_error_code( e_val );
-
-	e_val = bli_check_general_object( ah );
-	bli_check_error_code( e_val );
-
 	// Check for consistent datatypes.
 
 	e_val = bli_check_consistent_object_datatypes( c, a );
@@ -413,14 +560,14 @@ void bli_herk_basic_check
 
 void bli_her2k_basic_check
      (
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  bh,
-       obj_t*  b,
-       obj_t*  ah,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  bh,
+       const obj_t*  b,
+       const obj_t*  ah,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx
      )
 {
 	err_t e_val;
@@ -436,25 +583,6 @@ void bli_her2k_basic_check
 	bli_check_error_code( e_val );
 
 	e_val = bli_check_level3_dims( b, ah, c );
-	bli_check_error_code( e_val );
-
-	// Check matrix squareness.
-
-	e_val = bli_check_square_object( c );
-	bli_check_error_code( e_val );
-
-	// Check matrix structure.
-
-	e_val = bli_check_general_object( a );
-	bli_check_error_code( e_val );
-
-	e_val = bli_check_general_object( bh );
-	bli_check_error_code( e_val );
-
-	e_val = bli_check_general_object( b );
-	bli_check_error_code( e_val );
-
-	e_val = bli_check_general_object( ah );
 	bli_check_error_code( e_val );
 
 	// Check for consistent datatypes.
@@ -474,12 +602,12 @@ void bli_her2k_basic_check
 
 void bli_l3_basic_check
      (
-       obj_t*  alpha,
-       obj_t*  a,
-       obj_t*  b,
-       obj_t*  beta,
-       obj_t*  c,
-       cntx_t* cntx
+       const obj_t*  alpha,
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  beta,
+       const obj_t*  c,
+       const cntx_t* cntx
      )
 {
 	err_t e_val;
@@ -523,21 +651,16 @@ void bli_l3_basic_check
 	e_val = bli_check_object_buffer( alpha );
 	bli_check_error_code( e_val );
 
+	e_val = bli_check_object_buffer( beta );
+	bli_check_error_code( e_val );
+
 	e_val = bli_check_object_buffer( a );
 	bli_check_error_code( e_val );
 
 	e_val = bli_check_object_buffer( b );
 	bli_check_error_code( e_val );
 
-	e_val = bli_check_object_buffer( beta );
-	bli_check_error_code( e_val );
-
 	e_val = bli_check_object_buffer( c );
-	bli_check_error_code( e_val );
-
-	// Check for sufficiently sized stack buffers
-
-	e_val = bli_check_sufficient_stack_buf_size( bli_obj_dt( a ), cntx );
 	bli_check_error_code( e_val );
 }
 

@@ -31,6 +31,7 @@
 
 config.mk
 bli_config.h
+bli_addon.h
 
 # -- monolithic headers --
 
@@ -44,6 +45,15 @@ include/*/*.h
 
 # BLIS testsuite output file
 output.testsuite
+output.testsuite.*
 
 # BLAS test output files
 out.*
+
+# GTAGS database
+GPATH
+GRTAGS
+GTAGS
+
+# Mac DS.store files
+.DS_Store

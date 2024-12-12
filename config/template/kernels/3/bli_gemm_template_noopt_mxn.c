@@ -37,14 +37,16 @@
 
 void bli_zgemm_template_noopt
      (
+       dim_t               m,
+       dim_t               n,
        dim_t               k,
        dcomplex*  restrict alpha,
        dcomplex*  restrict a1,
        dcomplex*  restrict b1,
        dcomplex*  restrict beta,
        dcomplex*  restrict c11, inc_t rs_c, inc_t cs_c,
-       auxinfo_t* restrict data,
-       cntx_t*    restrict cntx
+       auxinfo_t*          data,
+       cntx_t*             cntx
      )
 {
 /*
@@ -88,8 +90,7 @@ void bli_zgemm_template_noopt
 
 	dim_t              l, j, i;
 
-	dcomplex           ab[ bli_zmr *
-	                       bli_znr ];
+	dcomplex           ab[ mr * nr ];
 	dcomplex*          abij;
 	dcomplex           ai, bj;
 
@@ -137,16 +138,16 @@ void bli_zgemm_template_noopt
 	if ( bli_zeq0( *beta ) )
 	{
 		/* c11 := ab */
-		bli_zcopys_mxn( mr,
-		                nr,
+		bli_zcopys_mxn( m,
+		                n,
 		                ab,  rs_ab, cs_ab,
 		                c11, rs_c,  cs_c );
 	}
 	else
 	{
 		/* c11 := beta * c11 + ab */
-		bli_zxpbys_mxn( mr,
-		                nr,
+		bli_zxpbys_mxn( m,
+		                n,
 		                ab,  rs_ab, cs_ab,
 		                beta,
 		                c11, rs_c,  cs_c );

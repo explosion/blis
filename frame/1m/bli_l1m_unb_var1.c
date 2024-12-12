@@ -51,21 +51,17 @@ void PASTEMAC(ch,opname) \
        dim_t   n, \
        ctype*  x, inc_t rs_x, inc_t cs_x, \
        ctype*  y, inc_t rs_y, inc_t cs_y, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx \
      ) \
 { \
 	const num_t dt = PASTEMAC(ch,type); \
 \
-	ctype*   x1; \
-	ctype*   y1; \
 	uplo_t   uplox_eff; \
 	conj_t   conjx; \
 	dim_t    n_iter; \
-	dim_t    n_elem, n_elem_max; \
+	dim_t    n_elem_max; \
 	inc_t    ldx, incx; \
 	inc_t    ldy, incy; \
-	dim_t    j, i; \
 	dim_t    ij0, n_shift; \
 \
 	/* Set various loop parameters. */ \
@@ -83,75 +79,78 @@ void PASTEMAC(ch,opname) \
 	conjx = bli_extract_conj( transx ); \
 \
 	/* Query the kernel needed for this operation. */ \
-	PASTECH2(ch,kername,_ker_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH(kername,_ker_ft) f = bli_cntx_get_ukr_dt( dt, kerid, cntx ); \
 \
 	/* Handle dense and upper/lower storage cases separately. */ \
 	if ( bli_is_dense( uplox_eff ) ) \
 	{ \
-		for ( j = 0; j < n_iter; ++j ) \
+		for ( dim_t j = 0; j < n_iter; ++j ) \
 		{ \
-			n_elem = n_elem_max; \
+			const dim_t n_elem = n_elem_max; \
 \
-			x1     = x + (j  )*ldx + (0  )*incx; \
-			y1     = y + (j  )*ldy + (0  )*incy; \
+			ctype* x1 = x + (j  )*ldx + (0  )*incx; \
+			ctype* y1 = y + (j  )*ldy + (0  )*incy; \
 \
 			/* Invoke the kernel with the appropriate parameters. */ \
-			f( \
-			   conjx, \
-			   n_elem, \
-			   x1, incx, \
-			   y1, incy, \
-			   cntx  \
-			 ); \
+			f \
+			( \
+			  conjx, \
+			  n_elem, \
+			  x1, incx, \
+			  y1, incy, \
+			  cntx  \
+			); \
 		} \
 	} \
 	else \
 	{ \
 		if ( bli_is_upper( uplox_eff ) ) \
 		{ \
-			for ( j = 0; j < n_iter; ++j ) \
+			for ( dim_t j = 0; j < n_iter; ++j ) \
 			{ \
-				n_elem = bli_min( n_shift + j + 1, n_elem_max ); \
+				const dim_t n_elem = bli_min( n_shift + j + 1, n_elem_max ); \
 \
-				x1     = x + (ij0+j  )*ldx + (0  )*incx; \
-				y1     = y + (ij0+j  )*ldy + (0  )*incy; \
+				ctype* x1 = x + (ij0+j  )*ldx + (0  )*incx; \
+				ctype* y1 = y + (ij0+j  )*ldy + (0  )*incy; \
 \
 				/* Invoke the kernel with the appropriate parameters. */ \
-				f( \
-				   conjx, \
-				   n_elem, \
-				   x1, incx, \
-				   y1, incy, \
-				   cntx  \
-				 ); \
+				f \
+				( \
+				  conjx, \
+				  n_elem, \
+				  x1, incx, \
+				  y1, incy, \
+				  cntx  \
+				); \
 			} \
 		} \
 		else if ( bli_is_lower( uplox_eff ) ) \
 		{ \
-			for ( j = 0; j < n_iter; ++j ) \
+			for ( dim_t j = 0; j < n_iter; ++j ) \
 			{ \
-				i      = bli_max( 0, ( doff_t )j - ( doff_t )n_shift ); \
-				n_elem = n_elem_max - i; \
+				const dim_t offi   = bli_max( 0, ( doff_t )j - ( doff_t )n_shift ); \
+				const dim_t n_elem = n_elem_max - offi; \
 \
-				x1     = x + (j  )*ldx + (ij0+i  )*incx; \
-				y1     = y + (j  )*ldy + (ij0+i  )*incy; \
+				ctype* x1 = x + (j  )*ldx + (ij0+offi  )*incx; \
+				ctype* y1 = y + (j  )*ldy + (ij0+offi  )*incy; \
 \
 				/* Invoke the kernel with the appropriate parameters. */ \
-				f( \
-				   conjx, \
-				   n_elem, \
-				   x1, incx, \
-				   y1, incy, \
-				   cntx  \
-				 ); \
+				f \
+				( \
+				  conjx, \
+				  n_elem, \
+				  x1, incx, \
+				  y1, incy, \
+				  cntx  \
+				); \
 			} \
 		} \
 	} \
 }
 
-INSERT_GENTFUNC_BASIC2( addm_unb_var1,  addv,  BLIS_ADDV_KER )
-INSERT_GENTFUNC_BASIC2( copym_unb_var1, copyv, BLIS_COPYV_KER )
-INSERT_GENTFUNC_BASIC2( subm_unb_var1,  subv,  BLIS_SUBV_KER )
+INSERT_GENTFUNC_BASIC( addm_unb_var1,  addv,  BLIS_ADDV_KER )
+INSERT_GENTFUNC_BASIC( copym_unb_var1, copyv, BLIS_COPYV_KER )
+INSERT_GENTFUNC_BASIC( subm_unb_var1,  subv,  BLIS_SUBV_KER )
 
 
 #undef  GENTFUNC
@@ -168,21 +167,17 @@ void PASTEMAC(ch,opname) \
        ctype*  alpha, \
        ctype*  x, inc_t rs_x, inc_t cs_x, \
        ctype*  y, inc_t rs_y, inc_t cs_y, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx \
      ) \
 { \
 	const num_t dt = PASTEMAC(ch,type); \
 \
-	ctype*   x1; \
-	ctype*   y1; \
 	uplo_t   uplox_eff; \
 	conj_t   conjx; \
 	dim_t    n_iter; \
-	dim_t    n_elem, n_elem_max; \
+	dim_t    n_elem_max; \
 	inc_t    ldx, incx; \
 	inc_t    ldy, incy; \
-	dim_t    j, i; \
 	dim_t    ij0, n_shift; \
 \
 	/* Set various loop parameters. */ \
@@ -200,77 +195,80 @@ void PASTEMAC(ch,opname) \
 	conjx = bli_extract_conj( transx ); \
 \
 	/* Query the kernel needed for this operation. */ \
-	PASTECH2(ch,kername,_ker_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH(kername,_ker_ft) f = bli_cntx_get_ukr_dt( dt, kerid, cntx ); \
 \
 	/* Handle dense and upper/lower storage cases separately. */ \
 	if ( bli_is_dense( uplox_eff ) ) \
 	{ \
-		for ( j = 0; j < n_iter; ++j ) \
+		for ( dim_t j = 0; j < n_iter; ++j ) \
 		{ \
-			n_elem = n_elem_max; \
+			const dim_t n_elem = n_elem_max; \
 \
-			x1     = x + (j  )*ldx + (0  )*incx; \
-			y1     = y + (j  )*ldy + (0  )*incy; \
+			ctype* x1 = x + (j  )*ldx + (0  )*incx; \
+			ctype* y1 = y + (j  )*ldy + (0  )*incy; \
 \
 			/* Invoke the kernel with the appropriate parameters. */ \
-			f( \
-			   conjx, \
-			   n_elem, \
-			   alpha, \
-			   x1, incx, \
-			   y1, incy, \
-			   cntx  \
-			 ); \
+			f \
+			( \
+			  conjx, \
+			  n_elem, \
+			  alpha, \
+			  x1, incx, \
+			  y1, incy, \
+			  cntx  \
+			); \
 		} \
 	} \
 	else \
 	{ \
 		if ( bli_is_upper( uplox_eff ) ) \
 		{ \
-			for ( j = 0; j < n_iter; ++j ) \
+			for ( dim_t j = 0; j < n_iter; ++j ) \
 			{ \
-				n_elem = bli_min( n_shift + j + 1, n_elem_max ); \
+				const dim_t n_elem = bli_min( n_shift + j + 1, n_elem_max ); \
 \
-				x1     = x + (ij0+j  )*ldx + (0  )*incx; \
-				y1     = y + (ij0+j  )*ldy + (0  )*incy; \
+				ctype* x1 = x + (ij0+j  )*ldx + (0  )*incx; \
+				ctype* y1 = y + (ij0+j  )*ldy + (0  )*incy; \
 \
 				/* Invoke the kernel with the appropriate parameters. */ \
-				f( \
-				   conjx, \
-				   n_elem, \
-				   alpha, \
-				   x1, incx, \
-				   y1, incy, \
-				   cntx  \
-				 ); \
+				f \
+				( \
+				  conjx, \
+				  n_elem, \
+				  alpha, \
+				  x1, incx, \
+				  y1, incy, \
+				  cntx  \
+				); \
 			} \
 		} \
 		else if ( bli_is_lower( uplox_eff ) ) \
 		{ \
-			for ( j = 0; j < n_iter; ++j ) \
+			for ( dim_t j = 0; j < n_iter; ++j ) \
 			{ \
-				i      = bli_max( 0, ( doff_t )j - ( doff_t )n_shift ); \
-				n_elem = n_elem_max - i; \
+				const dim_t offi   = bli_max( 0, ( doff_t )j - ( doff_t )n_shift ); \
+				const dim_t n_elem = n_elem_max - offi; \
 \
-				x1     = x + (j  )*ldx + (ij0+i  )*incx; \
-				y1     = y + (j  )*ldy + (ij0+i  )*incy; \
+				ctype* x1 = x + (j  )*ldx + (ij0+offi  )*incx; \
+				ctype* y1 = y + (j  )*ldy + (ij0+offi  )*incy; \
 \
 				/* Invoke the kernel with the appropriate parameters. */ \
-				f( \
-				   conjx, \
-				   n_elem, \
-				   alpha, \
-				   x1, incx, \
-				   y1, incy, \
-				   cntx  \
-				 ); \
+				f \
+				( \
+				  conjx, \
+				  n_elem, \
+				  alpha, \
+				  x1, incx, \
+				  y1, incy, \
+				  cntx  \
+				); \
 			} \
 		} \
 	} \
 }
 
-INSERT_GENTFUNC_BASIC2( axpym_unb_var1,  axpyv,  BLIS_AXPYV_KER )
-INSERT_GENTFUNC_BASIC2( scal2m_unb_var1, scal2v, BLIS_SCAL2V_KER )
+INSERT_GENTFUNC_BASIC( axpym_unb_var1,  axpyv,  BLIS_AXPYV_KER )
+INSERT_GENTFUNC_BASIC( scal2m_unb_var1, scal2v, BLIS_SCAL2V_KER )
 
 
 #undef  GENTFUNC
@@ -286,18 +284,15 @@ void PASTEMAC(ch,opname) \
        dim_t   n, \
        ctype*  alpha, \
        ctype*  x, inc_t rs_x, inc_t cs_x, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx \
      ) \
 { \
 	const num_t dt = PASTEMAC(ch,type); \
 \
-	ctype*   x1; \
 	uplo_t   uplox_eff; \
 	dim_t    n_iter; \
-	dim_t    n_elem, n_elem_max; \
+	dim_t    n_elem_max; \
 	inc_t    ldx, incx; \
-	dim_t    j, i; \
 	dim_t    ij0, n_shift; \
 \
 	/* Set various loop parameters. */ \
@@ -312,71 +307,75 @@ void PASTEMAC(ch,opname) \
 	if ( bli_is_zeros( uplox_eff ) ) return; \
 \
 	/* Query the kernel needed for this operation. */ \
-	PASTECH2(ch,kername,_ker_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH(kername,_ker_ft) f = bli_cntx_get_ukr_dt( dt, kerid, cntx ); \
 \
 	/* Handle dense and upper/lower storage cases separately. */ \
 	if ( bli_is_dense( uplox_eff ) ) \
 	{ \
-		for ( j = 0; j < n_iter; ++j ) \
+		for ( dim_t j = 0; j < n_iter; ++j ) \
 		{ \
-			n_elem = n_elem_max; \
+			const dim_t n_elem = n_elem_max; \
 \
-			x1     = x + (j  )*ldx + (0  )*incx; \
+			ctype* x1 = x + (j  )*ldx + (0  )*incx; \
 \
 			/* Invoke the kernel with the appropriate parameters. */ \
-			f( \
-			   conjalpha, \
-			   n_elem, \
-			   alpha, \
-			   x1, incx, \
-			   cntx  \
-			 ); \
+			f \
+			( \
+			  conjalpha, \
+			  n_elem, \
+			  alpha, \
+			  x1, incx, \
+			  cntx  \
+			); \
 		} \
 	} \
 	else \
 	{ \
 		if ( bli_is_upper( uplox_eff ) ) \
 		{ \
-			for ( j = 0; j < n_iter; ++j ) \
+			for ( dim_t j = 0; j < n_iter; ++j ) \
 			{ \
-				n_elem = bli_min( n_shift + j + 1, n_elem_max ); \
+				const dim_t n_elem = bli_min( n_shift + j + 1, n_elem_max ); \
 \
-				x1     = x + (ij0+j  )*ldx + (0  )*incx; \
+				ctype* x1 = x + (ij0+j  )*ldx + (0  )*incx; \
 \
 				/* Invoke the kernel with the appropriate parameters. */ \
-				f( \
-				   conjalpha, \
-				   n_elem, \
-				   alpha, \
-				   x1, incx, \
-				   cntx  \
-				 ); \
+				f \
+				( \
+				  conjalpha, \
+				  n_elem, \
+				  alpha, \
+				  x1, incx, \
+				  cntx  \
+				); \
 			} \
 		} \
 		else if ( bli_is_lower( uplox_eff ) ) \
 		{ \
-			for ( j = 0; j < n_iter; ++j ) \
+			for ( dim_t j = 0; j < n_iter; ++j ) \
 			{ \
-				i      = bli_max( 0, ( doff_t )j - ( doff_t )n_shift ); \
-				n_elem = n_elem_max - i; \
+				const dim_t offi   = bli_max( 0, ( doff_t )j - ( doff_t )n_shift ); \
+				const dim_t n_elem = n_elem_max - offi; \
 \
-				x1     = x + (j  )*ldx + (ij0+i  )*incx; \
+				ctype* x1 = x + (j  )*ldx + (ij0+offi  )*incx; \
 \
 				/* Invoke the kernel with the appropriate parameters. */ \
-				f( \
-				   conjalpha, \
-				   n_elem, \
-				   alpha, \
-				   x1, incx, \
-				   cntx  \
-				 ); \
+				f \
+				( \
+				  conjalpha, \
+				  n_elem, \
+				  alpha, \
+				  x1, incx, \
+				  cntx  \
+				); \
 			} \
 		} \
 	} \
 }
 
-INSERT_GENTFUNC_BASIC2( scalm_unb_var1, scalv, BLIS_SCALV_KER )
-INSERT_GENTFUNC_BASIC2( setm_unb_var1,  setv,  BLIS_SETV_KER )
+INSERT_GENTFUNC_BASIC( invscalm_unb_var1, invscalv, BLIS_INVSCALV_KER )
+INSERT_GENTFUNC_BASIC( scalm_unb_var1, scalv, BLIS_SCALV_KER )
+INSERT_GENTFUNC_BASIC( setm_unb_var1,  setv,  BLIS_SETV_KER )
 
 
 #undef  GENTFUNC
@@ -393,21 +392,17 @@ void PASTEMAC(ch,opname) \
        ctype*  x, inc_t rs_x, inc_t cs_x, \
        ctype*  beta, \
        ctype*  y, inc_t rs_y, inc_t cs_y, \
-       cntx_t* cntx, \
-       rntm_t* rntm  \
+       cntx_t* cntx \
      ) \
 { \
 	const num_t dt = PASTEMAC(ch,type); \
 \
-	ctype*   x1; \
-	ctype*   y1; \
 	uplo_t   uplox_eff; \
 	conj_t   conjx; \
 	dim_t    n_iter; \
-	dim_t    n_elem, n_elem_max; \
+	dim_t    n_elem_max; \
 	inc_t    ldx, incx; \
 	inc_t    ldy, incy; \
-	dim_t    j, i; \
 	dim_t    ij0, n_shift; \
 \
 	/* Set various loop parameters. */ \
@@ -425,76 +420,79 @@ void PASTEMAC(ch,opname) \
 	conjx = bli_extract_conj( transx ); \
 \
 	/* Query the kernel needed for this operation. */ \
-	PASTECH2(ch,kername,_ker_ft) f = bli_cntx_get_l1v_ker_dt( dt, kerid, cntx ); \
+	PASTECH(kername,_ker_ft) f = bli_cntx_get_ukr_dt( dt, kerid, cntx ); \
 \
 	/* Handle dense and upper/lower storage cases separately. */ \
 	if ( bli_is_dense( uplox_eff ) ) \
 	{ \
-		for ( j = 0; j < n_iter; ++j ) \
+		for ( dim_t j = 0; j < n_iter; ++j ) \
 		{ \
-			n_elem = n_elem_max; \
+			const dim_t n_elem = n_elem_max; \
 \
-			x1     = x + (j  )*ldx + (0  )*incx; \
-			y1     = y + (j  )*ldy + (0  )*incy; \
+			ctype* x1 = x + (j  )*ldx + (0  )*incx; \
+			ctype* y1 = y + (j  )*ldy + (0  )*incy; \
 \
 			/* Invoke the kernel with the appropriate parameters. */ \
-			f( \
-			   conjx, \
-			   n_elem, \
-			   x1, incx, \
-			   beta, \
-			   y1, incy, \
-			   cntx  \
-			 ); \
+			f \
+			( \
+			  conjx, \
+			  n_elem, \
+			  x1, incx, \
+			  beta, \
+			  y1, incy, \
+			  cntx  \
+			); \
 		} \
 	} \
 	else \
 	{ \
 		if ( bli_is_upper( uplox_eff ) ) \
 		{ \
-			for ( j = 0; j < n_iter; ++j ) \
+			for ( dim_t j = 0; j < n_iter; ++j ) \
 			{ \
-				n_elem = bli_min( n_shift + j + 1, n_elem_max ); \
+				const dim_t n_elem = bli_min( n_shift + j + 1, n_elem_max ); \
 \
-				x1     = x + (ij0+j  )*ldx + (0  )*incx; \
-				y1     = y + (ij0+j  )*ldy + (0  )*incy; \
+				ctype* x1 = x + (ij0+j  )*ldx + (0  )*incx; \
+				ctype* y1 = y + (ij0+j  )*ldy + (0  )*incy; \
 \
 				/* Invoke the kernel with the appropriate parameters. */ \
-				f( \
-				   conjx, \
-				   n_elem, \
-				   x1, incx, \
-				   beta, \
-				   y1, incy, \
-				   cntx  \
-				 ); \
+				f \
+				( \
+				  conjx, \
+				  n_elem, \
+				  x1, incx, \
+				  beta, \
+				  y1, incy, \
+				  cntx  \
+				); \
 			} \
 		} \
 		else if ( bli_is_lower( uplox_eff ) ) \
 		{ \
-			for ( j = 0; j < n_iter; ++j ) \
+			for ( dim_t j = 0; j < n_iter; ++j ) \
 			{ \
-				i      = bli_max( 0, ( doff_t )j - ( doff_t )n_shift ); \
-				n_elem = n_elem_max - i; \
+				const dim_t offi   = bli_max( 0, ( doff_t )j - ( doff_t )n_shift ); \
+				const dim_t n_elem = n_elem_max - offi; \
 \
-				x1     = x + (j  )*ldx + (ij0+i  )*incx; \
-				y1     = y + (j  )*ldy + (ij0+i  )*incy; \
+				ctype* x1 = x + (j  )*ldx + (ij0+offi  )*incx; \
+				ctype* y1 = y + (j  )*ldy + (ij0+offi  )*incy; \
 \
 				/* Invoke the kernel with the appropriate parameters. */ \
-				f( \
-				   conjx, \
-				   n_elem, \
-				   x1, incx, \
-				   beta, \
-				   y1, incy, \
-				   cntx  \
-				 ); \
+				f \
+				( \
+				  conjx, \
+				  n_elem, \
+				  x1, incx, \
+				  beta, \
+				  y1, incy, \
+				  cntx  \
+				); \
 			} \
 		} \
 	} \
 }
 
-INSERT_GENTFUNC_BASIC2( xpbym_unb_var1,  xpbyv,  BLIS_XPBYV_KER )
+INSERT_GENTFUNC_BASIC( xpbym_unb_var1,  xpbyv,  BLIS_XPBYV_KER )
 
 
 #undef  GENTFUNC2
@@ -511,19 +509,15 @@ void PASTEMAC2(chx,chy,opname) \
        ctype_x* x, inc_t rs_x, inc_t cs_x, \
        ctype_y* beta, \
        ctype_y* y, inc_t rs_y, inc_t cs_y, \
-       cntx_t*  cntx, \
-       rntm_t*  rntm  \
+       cntx_t*  cntx \
      ) \
 { \
-	ctype_x* restrict x1; \
-	ctype_y* restrict y1; \
-	uplo_t            uplox_eff; \
-	dim_t             n_iter; \
-	dim_t             n_elem, n_elem_max; \
-	inc_t             ldx, incx; \
-	inc_t             ldy, incy; \
-	dim_t             j, i; \
-	dim_t             ij0, n_shift; \
+	uplo_t uplox_eff; \
+	dim_t  n_iter; \
+	dim_t  n_elem_max; \
+	inc_t  ldx, incx; \
+	inc_t  ldy, incy; \
+	dim_t  ij0, n_shift; \
 \
 	/* Set various loop parameters. */ \
 	bli_set_dims_incs_uplo_2m \
@@ -542,35 +536,32 @@ void PASTEMAC2(chx,chy,opname) \
 	{ \
 		if ( incx == 1 && incy == 1 ) \
 		{ \
-			n_elem = n_elem_max; \
+			const dim_t n_elem = n_elem_max; \
 \
-			for ( j = 0; j < n_iter; ++j ) \
+			for ( dim_t j = 0; j < n_iter; ++j ) \
 			{ \
-				x1     = x + (j  )*ldx + (0  )*incx; \
-				y1     = y + (j  )*ldy + (0  )*incy; \
+				ctype_x* restrict x1 = x + (j  )*ldx + (0  )*incx; \
+				ctype_y* restrict y1 = y + (j  )*ldy + (0  )*incy; \
 \
-				ctype_x* restrict chi1 = x1; \
-				ctype_y* restrict psi1 = y1; \
-\
-				for ( i = 0; i < n_elem; ++i ) \
+				for ( dim_t i = 0; i < n_elem; ++i ) \
 				{ \
-					PASTEMAC2(chx,chy,adds)( chi1[i], psi1[i] ); \
+					PASTEMAC2(chx,chy,adds)( x1[i], y1[i] ); \
 				} \
 			} \
 		} \
 		else \
 		{ \
-			n_elem = n_elem_max; \
+			const dim_t n_elem = n_elem_max; \
 \
-			for ( j = 0; j < n_iter; ++j ) \
+			for ( dim_t j = 0; j < n_iter; ++j ) \
 			{ \
-				x1     = x + (j  )*ldx + (0  )*incx; \
-				y1     = y + (j  )*ldy + (0  )*incy; \
+				ctype_x* restrict x1 = x + (j  )*ldx + (0  )*incx; \
+				ctype_y* restrict y1 = y + (j  )*ldy + (0  )*incy; \
 \
 				ctype_x* restrict chi1 = x1; \
 				ctype_y* restrict psi1 = y1; \
 \
-				for ( i = 0; i < n_elem; ++i ) \
+				for ( dim_t i = 0; i < n_elem; ++i ) \
 				{ \
 					PASTEMAC2(chx,chy,adds)( *chi1, *psi1 ); \
 \
@@ -584,35 +575,32 @@ void PASTEMAC2(chx,chy,opname) \
 	{ \
 		if ( incx == 1 && incy == 1 ) \
 		{ \
-			n_elem = n_elem_max; \
+			const dim_t n_elem = n_elem_max; \
 \
-			for ( j = 0; j < n_iter; ++j ) \
+			for ( dim_t j = 0; j < n_iter; ++j ) \
 			{ \
-				x1     = x + (j  )*ldx + (0  )*incx; \
-				y1     = y + (j  )*ldy + (0  )*incy; \
+				ctype_x* restrict x1 = x + (j  )*ldx + (0  )*incx; \
+				ctype_y* restrict y1 = y + (j  )*ldy + (0  )*incy; \
 \
-				ctype_x* restrict chi1 = x1; \
-				ctype_y* restrict psi1 = y1; \
-\
-				for ( i = 0; i < n_elem; ++i ) \
+				for ( dim_t i = 0; i < n_elem; ++i ) \
 				{ \
-					PASTEMAC3(chx,chy,chy,xpbys)( chi1[i], *beta, psi1[i] ); \
+					PASTEMAC3(chx,chy,chy,xpbys)( x1[i], *beta, y1[i] ); \
 				} \
 			} \
 		} \
 		else \
 		{ \
-			n_elem = n_elem_max; \
+			const dim_t n_elem = n_elem_max; \
 \
-			for ( j = 0; j < n_iter; ++j ) \
+			for ( dim_t j = 0; j < n_iter; ++j ) \
 			{ \
-				x1     = x + (j  )*ldx + (0  )*incx; \
-				y1     = y + (j  )*ldy + (0  )*incy; \
+				ctype_x* restrict x1 = x + (j  )*ldx + (0  )*incx; \
+				ctype_y* restrict y1 = y + (j  )*ldy + (0  )*incy; \
 \
 				ctype_x* restrict chi1 = x1; \
 				ctype_y* restrict psi1 = y1; \
 \
-				for ( i = 0; i < n_elem; ++i ) \
+				for ( dim_t i = 0; i < n_elem; ++i ) \
 				{ \
 					PASTEMAC3(chx,chy,chy,xpbys)( *chi1, *beta, *psi1 ); \
 \
@@ -624,6 +612,6 @@ void PASTEMAC2(chx,chy,opname) \
 	} \
 }
 
-INSERT_GENTFUNC2_BASIC0( xpbym_md_unb_var1 )
-INSERT_GENTFUNC2_MIXDP0( xpbym_md_unb_var1 )
+INSERT_GENTFUNC2_BASIC( xpbym_md_unb_var1 )
+INSERT_GENTFUNC2_MIX_DP( xpbym_md_unb_var1 )
 

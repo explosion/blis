@@ -46,7 +46,7 @@ void bli_zdotxf_template_noopt
        dcomplex* restrict x, inc_t incx,
        dcomplex* restrict beta,
        dcomplex* restrict y, inc_t incy,
-       cntx_t*   restrict cntx
+       cntx_t*            cntx
      )
 {
 /*
@@ -129,7 +129,7 @@ void bli_zdotxf_template_noopt
 
 	dcomplex    Atx[ bli_zdotxf_fusefac ];
 
-	bool_t      use_ref         = FALSE;
+	bool        use_ref         = FALSE;
 
 	dim_t       m_pre           = 0;
 	dim_t       m_iter;
@@ -239,7 +239,7 @@ void bli_zdotxf_template_noopt
 	if ( bli_is_conj( conjx ) )
 		bli_toggle_conj( &conjat_use );
 
-	
+
 	// Iterate over columns of A and rows of x to compute:
 	//   Atx = conjat_use( A^T ) * x;
 	if ( bli_is_noconj( conjat_use ) )

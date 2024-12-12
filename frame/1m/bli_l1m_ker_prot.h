@@ -32,109 +32,26 @@
 
 */
 
+#ifndef BLIS_L1M_KER_PROT_H
+#define BLIS_L1M_KER_PROT_H
 
 //
 // Define template prototypes for level-1m kernels.
 //
 
-// native packm kernels
-
-#define PACKM_KER_PROT( ctype, ch, varname ) \
+#undef  L1MTPROT
+#define L1MTPROT( ctype, ch, funcname, opname ) \
 \
-void PASTEMAC(ch,varname) \
+void PASTEMAC(ch,funcname) \
      ( \
-       conj_t           conja, \
-       dim_t            cdim, \
-       dim_t            n, \
-       dim_t            n_max, \
-       void*   restrict kappa, \
-       void*   restrict a, inc_t inca, inc_t lda, \
-       void*   restrict p,             inc_t ldp, \
-       cntx_t* restrict cntx  \
+       PASTECH(opname,_params), \
+       BLIS_CNTX_PARAM  \
      );
 
-
-// native unpackm kernels
-
-#define UNPACKM_KER_PROT( ctype, ch, varname ) \
-\
-void PASTEMAC(ch,varname) \
-     ( \
-       conj_t           conja, \
-       dim_t            n, \
-       void*   restrict kappa, \
-       void*   restrict p,             inc_t ldp, \
-       void*   restrict a, inc_t inca, inc_t lda, \
-       cntx_t* restrict cntx  \
-     );
+#define PACKM_KER_PROT(      ctype, ch, fn )  L1MTPROT( ctype, ch, fn, packm_cxk );
+#define UNPACKM_KER_PROT(    ctype, ch, fn )  L1MTPROT( ctype, ch, fn, unpackm_cxk );
+#define PACKM_DIAG_KER_PROT( ctype, ch, fn )  L1MTPROT( ctype, ch, fn, packm_cxc_diag );
 
 
-// 3mis packm kernels
-
-#define PACKM_3MIS_KER_PROT( ctype, ch, varname ) \
-\
-void PASTEMAC(ch,varname) \
-     ( \
-       conj_t           conja, \
-       dim_t            cdim, \
-       dim_t            n, \
-       dim_t            n_max, \
-       void*   restrict kappa, \
-       void*   restrict a, inc_t inca, inc_t lda, \
-       void*   restrict p, inc_t is_p, inc_t ldp, \
-       cntx_t* restrict cntx  \
-     );
-
-
-// 4mi packm kernels
-
-#define PACKM_4MI_KER_PROT( ctype, ch, varname ) \
-\
-void PASTEMAC(ch,varname) \
-     ( \
-       conj_t           conja, \
-       dim_t            cdim, \
-       dim_t            n, \
-       dim_t            n_max, \
-       void*   restrict kappa, \
-       void*   restrict a, inc_t inca, inc_t lda, \
-       void*   restrict p, inc_t is_p, inc_t ldp, \
-       cntx_t* restrict cntx  \
-     );
-
-
-// rih packm kernels
-
-#define PACKM_RIH_KER_PROT( ctype, ch, varname ) \
-\
-void PASTEMAC(ch,varname) \
-     ( \
-       conj_t           conja, \
-       pack_t           schema, \
-       dim_t            cdim, \
-       dim_t            n, \
-       dim_t            n_max, \
-       void*   restrict kappa, \
-       void*   restrict a, inc_t inca, inc_t lda, \
-       void*   restrict p,             inc_t ldp, \
-       cntx_t* restrict cntx  \
-     );
-
-
-// 1e/1r packm kernels
-
-#define PACKM_1ER_KER_PROT( ctype, ch, varname ) \
-\
-void PASTEMAC(ch,varname) \
-     ( \
-       conj_t           conja, \
-       pack_t           schema, \
-       dim_t            cdim, \
-       dim_t            n, \
-       dim_t            n_max, \
-       void*   restrict kappa, \
-       void*   restrict a, inc_t inca, inc_t lda, \
-       void*   restrict p,             inc_t ldp, \
-       cntx_t* restrict cntx  \
-     );
+#endif
 

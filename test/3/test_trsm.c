@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -35,9 +35,12 @@
 
 #include <unistd.h>
 #include "blis.h"
-
+#include "test_utils.h"
 
 //#define PRINT
+
+static const char* LOCAL_OPNAME_STR = "trsm";
+static const char* LOCAL_PC_STR     = "llnn";
 
 int main( int argc, char** argv )
 {
@@ -65,67 +68,44 @@ int main( int argc, char** argv )
 	double   dtime_save;
 	double   gflops;
 
-	//bli_init();
-
-	//bli_error_checking_level_set( BLIS_NO_ERROR_CHECKING );
-
-	n_repeats = 3;
-
-	dt      = DT;
-
-	ind     = IND;
-
-	p_begin = P_BEGIN;
-	p_max   = P_MAX;
-	p_inc   = P_INC;
-
-	m_input = -1;
-	n_input = -1;
-
+	params_t params;
 
 	// Supress compiler warnings about unused variable 'ind'.
 	( void )ind;
 
-#if 0
 
-	cntx_t* cntx;
+	//bli_init();
 
-	ind_t ind_mod = ind;
+	//bli_error_checking_level_set( BLIS_NO_ERROR_CHECKING );
 
-	// A hack to use 3m1 as 1mpb (with 1m as 1mbp).
-	if ( ind == BLIS_3M1 ) ind_mod = BLIS_1M;
+	// Parse the command line options into strings, integers, enums,
+	// and doubles, as appropriate.
+	parse_cl_params( argc, argv, init_def_params, &params );
 
-	// Initialize a context for the current induced method and datatype.
-	cntx = bli_gks_query_ind_cntx( ind_mod, dt );
+	dt        = params.dt;
 
-	// Set k to the kc blocksize for the current datatype.
-	k_input = bli_cntx_get_blksz_def_dt( dt, BLIS_KC, cntx );
+	ind       = params.im;
 
-#elif 1
+	p_begin   = params.sta;
+	p_max     = params.end;
+	p_inc     = params.inc;
 
-	//k_input = 256;
+	m_input   = params.m;
+	n_input   = params.n;
 
-#endif
+	n_repeats = params.nr;
 
-	// Choose the char corresponding to the requested datatype.
-	if      ( bli_is_float( dt ) )    dt_ch = 's';
-	else if ( bli_is_double( dt ) )   dt_ch = 'd';
-	else if ( bli_is_scomplex( dt ) ) dt_ch = 'c';
-	else                              dt_ch = 'z';
 
-#if 0
-	side   = BLIS_LEFT;
-#else
-	side   = BLIS_RIGHT;
-#endif
-#if 0
-	uploa  = BLIS_LOWER;
-#else
-	uploa  = BLIS_UPPER;
-#endif
-	transa = BLIS_NO_TRANSPOSE;
-	diaga  = BLIS_NONUNIT_DIAG;
+	// Map the datatype to its corresponding char.
+	bli_param_map_blis_to_char_dt( dt, &dt_ch );
 
+	// Map the parameter chars to their corresponding BLIS enum type values.
+	bli_param_map_char_to_blis_side( params.pc_str[0], &side );
+	bli_param_map_char_to_blis_uplo( params.pc_str[1], &uploa );
+	bli_param_map_char_to_blis_trans( params.pc_str[2], &transa );
+	bli_param_map_char_to_blis_diag( params.pc_str[3], &diaga );
+
+	// Map the BLIS enum type values to their corresponding BLAS chars.
 	bli_param_map_blis_to_netlib_side( side, &f77_side );
 	bli_param_map_blis_to_netlib_uplo( uploa, &f77_uploa );
 	bli_param_map_blis_to_netlib_trans( transa, &f77_transa );
@@ -135,14 +115,15 @@ int main( int argc, char** argv )
 	// matlab allocates space for the entire array once up-front.
 	for ( p = p_begin; p + p_inc <= p_max; p += p_inc ) ;
 
-	printf( "data_%s_%ctrsm_%s", THR_STR, dt_ch, STR );
-	printf( "( %2lu, 1:3 ) = [ %4lu %4lu %7.2f ];\n",
-	        ( unsigned long )(p - p_begin + 1)/p_inc + 1,
+	printf( "data_%s_%ctrsm_%s", THR_STR, dt_ch, IMPL_STR );
+	printf( "( %4lu, 1:3 ) = [ %5lu %5lu %8.2f ];\n",
+	        ( unsigned long )(p - p_begin)/p_inc + 1,
 	        ( unsigned long )0,
 	        ( unsigned long )0, 0.0 );
 
 
-	for ( p = p_begin; p <= p_max; p += p_inc )
+	//for ( p = p_begin; p <= p_max; p += p_inc )
+	for ( p = p_max; p_begin <= p; p -= p_inc )
 	{
 
 		if ( m_input < 0 ) m = p / ( dim_t )abs(m_input);
@@ -152,13 +133,26 @@ int main( int argc, char** argv )
 
 		bli_obj_create( dt, 1, 1, 0, 0, &alpha );
 
-		if ( bli_does_trans( side ) )
-			bli_obj_create( dt, m, m, 0, 0, &a );
-        else
-			bli_obj_create( dt, n, n, 0, 0, &a );
-		bli_obj_create( dt, m, n, 0, 0, &c );
-		//bli_obj_create( dt, m, n, n, 1, &c );
-		bli_obj_create( dt, m, n, 0, 0, &c_save );
+		// Choose the storage of each matrix based on the corresponding
+		// char in the params_t struct. Note that the expected order of
+		// storage specifers in sc_str is CA (not AC). Also note that
+		// C plays the role of matrix B.
+		if ( params.sc_str[1] == 'c' )
+		{
+			if ( bli_is_left( side ) ) bli_obj_create( dt, m, m, 0, 0, &a );
+			else                       bli_obj_create( dt, n, n, 0, 0, &a );
+		}
+		else // if ( params.sc_str[1] == 'r' )
+		{
+			if ( bli_is_left( side ) ) bli_obj_create( dt, m, m, m, 1, &a );
+			else                       bli_obj_create( dt, n, n, n, 1, &a );
+		}
+
+		if ( params.sc_str[0] == 'c' ) bli_obj_create( dt, m, n, 0, 0, &c );
+		else                           bli_obj_create( dt, m, n, n, 1, &c );
+
+		if ( params.sc_str[0] == 'c' ) bli_obj_create( dt, m, n, 0, 0, &c_save );
+		else                           bli_obj_create( dt, m, n, n, 1, &c_save );
 
 		bli_randm( &a );
 		bli_randm( &c );
@@ -168,19 +162,26 @@ int main( int argc, char** argv )
 		bli_obj_set_conjtrans( transa, &a );
 		bli_obj_set_diag( diaga, &a );
 
-		bli_randm( &a );
+		// Zero the unstored triangle.
 		bli_mktrim( &a );
 
 		// Load the diagonal of A to make it more likely to be invertible.
 		bli_shiftd( &BLIS_TWO, &a );
 
-		bli_setsc(  (2.0/1.0), 0.0, &alpha );
+		//bli_setsc(  (2.0/1.0), 0.0, &alpha );
+		bli_setsc( params.alpha, 0.0, &alpha );
 
 		bli_copym( &c, &c_save );
-	
-#if 0 //def BLIS
-		bli_ind_disable_all_dt( dt );
-		bli_ind_enable_dt( ind, dt );
+
+#ifdef BLIS
+		// Switch to the induced method specified by ind, unless the 'auto'
+		// option was given, in which case we leave the induced method
+		// unchanged.
+		if ( params.im_is_auto == FALSE )
+		{
+			bli_ind_disable_all_dt( dt );
+			bli_ind_enable_dt( ind, dt );
+		}
 #endif
 
 		dtime_save = DBL_MAX;
@@ -211,19 +212,19 @@ int main( int argc, char** argv )
 				f77_int   kk     = bli_obj_width( &c );
 				f77_int   lda    = bli_obj_col_stride( &a );
 				f77_int   ldc    = bli_obj_col_stride( &c );
-				float*    alphap = bli_obj_buffer( &alpha );
-				float*    ap     = bli_obj_buffer( &a );
-				float*    cp     = bli_obj_buffer( &c );
+				float*    alphap = ( float* )bli_obj_buffer( &alpha );
+				float*    ap     = ( float* )bli_obj_buffer( &a );
+				float*    cp     = ( float* )bli_obj_buffer( &c );
 
 				strsm_( &f77_side,
-						&f77_uploa,
-						&f77_transa,
-						&f77_diaga,
-						&mm,
-						&kk,
-						alphap,
-						ap, &lda,
-						cp, &ldc );
+				        &f77_uploa,
+				        &f77_transa,
+				        &f77_diaga,
+				        &mm,
+				        &kk,
+				        alphap,
+				        ap, &lda,
+				        cp, &ldc );
 			}
 			else if ( bli_is_double( dt ) )
 			{
@@ -231,19 +232,19 @@ int main( int argc, char** argv )
 				f77_int   kk     = bli_obj_width( &c );
 				f77_int   lda    = bli_obj_col_stride( &a );
 				f77_int   ldc    = bli_obj_col_stride( &c );
-				double*   alphap = bli_obj_buffer( &alpha );
-				double*   ap     = bli_obj_buffer( &a );
-				double*   cp     = bli_obj_buffer( &c );
+				double*   alphap = ( double* )bli_obj_buffer( &alpha );
+				double*   ap     = ( double* )bli_obj_buffer( &a );
+				double*   cp     = ( double* )bli_obj_buffer( &c );
 
 				dtrsm_( &f77_side,
-						&f77_uploa,
-						&f77_transa,
-						&f77_diaga,
-						&mm,
-						&kk,
-						alphap,
-						ap, &lda,
-						cp, &ldc );
+				        &f77_uploa,
+				        &f77_transa,
+				        &f77_diaga,
+				        &mm,
+				        &kk,
+				        alphap,
+				        ap, &lda,
+				        cp, &ldc );
 			}
 			else if ( bli_is_scomplex( dt ) )
 			{
@@ -251,39 +252,51 @@ int main( int argc, char** argv )
 				f77_int   kk     = bli_obj_width( &c );
 				f77_int   lda    = bli_obj_col_stride( &a );
 				f77_int   ldc    = bli_obj_col_stride( &c );
-				scomplex* alphap = bli_obj_buffer( &alpha );
-				scomplex* ap     = bli_obj_buffer( &a );
-				scomplex* cp     = bli_obj_buffer( &c );
+#ifdef EIGEN
+				float*    alphap = ( float*    )bli_obj_buffer( &alpha );
+				float*    ap     = ( float*    )bli_obj_buffer( &a );
+				float*    cp     = ( float*    )bli_obj_buffer( &c );
+#else
+				scomplex* alphap = ( scomplex* )bli_obj_buffer( &alpha );
+				scomplex* ap     = ( scomplex* )bli_obj_buffer( &a );
+				scomplex* cp     = ( scomplex* )bli_obj_buffer( &c );
+#endif
 
 				ctrsm_( &f77_side,
-						&f77_uploa,
-						&f77_transa,
-						&f77_diaga,
-						&mm,
-						&kk,
-						alphap,
-						ap, &lda,
-						cp, &ldc );
+				        &f77_uploa,
+				        &f77_transa,
+				        &f77_diaga,
+				        &mm,
+				        &kk,
+				        alphap,
+				        ap, &lda,
+				        cp, &ldc );
 			}
 			else if ( bli_is_dcomplex( dt ) )
 			{
-				f77_int    mm     = bli_obj_length( &c );
-				f77_int    kk     = bli_obj_width( &c );
-				f77_int    lda    = bli_obj_col_stride( &a );
-				f77_int    ldc    = bli_obj_col_stride( &c );
-				dcomplex*  alphap = bli_obj_buffer( &alpha );
-				dcomplex*  ap     = bli_obj_buffer( &a );
-				dcomplex*  cp     = bli_obj_buffer( &c );
+				f77_int   mm     = bli_obj_length( &c );
+				f77_int   kk     = bli_obj_width( &c );
+				f77_int   lda    = bli_obj_col_stride( &a );
+				f77_int   ldc    = bli_obj_col_stride( &c );
+#ifdef EIGEN
+				double*   alphap = ( double*   )bli_obj_buffer( &alpha );
+				double*   ap     = ( double*   )bli_obj_buffer( &a );
+				double*   cp     = ( double*   )bli_obj_buffer( &c );
+#else
+				dcomplex* alphap = ( dcomplex* )bli_obj_buffer( &alpha );
+				dcomplex* ap     = ( dcomplex* )bli_obj_buffer( &a );
+				dcomplex* cp     = ( dcomplex* )bli_obj_buffer( &c );
+#endif
 
 				ztrsm_( &f77_side,
-						&f77_uploa,
-						&f77_transa,
-						&f77_diaga,
-						&mm,
-						&kk,
-						alphap,
-						ap, &lda,
-						cp, &ldc );
+				        &f77_uploa,
+				        &f77_transa,
+				        &f77_diaga,
+				        &mm,
+				        &kk,
+				        alphap,
+				        ap, &lda,
+				        cp, &ldc );
 			}
 #endif
 
@@ -302,11 +315,12 @@ int main( int argc, char** argv )
 
 		if ( bli_is_complex( dt ) ) gflops *= 4.0;
 
-		printf( "data_%s_%ctrsm_%s", THR_STR, dt_ch, STR );
-		printf( "( %2lu, 1:3 ) = [ %4lu %4lu %7.2f ];\n",
-		        ( unsigned long )(p - p_begin + 1)/p_inc + 1,
+		printf( "data_%s_%ctrsm_%s", THR_STR, dt_ch, IMPL_STR );
+		printf( "( %4lu, 1:3 ) = [ %5lu %5lu %8.2f ];\n",
+		        ( unsigned long )(p - p_begin)/p_inc + 1,
 		        ( unsigned long )m,
 		        ( unsigned long )n, gflops );
+		fflush( stdout );
 
 		bli_obj_free( &alpha );
 
@@ -318,5 +332,27 @@ int main( int argc, char** argv )
 	//bli_finalize();
 
 	return 0;
+}
+
+void init_def_params( params_t* params )
+{
+	params->opname    = LOCAL_OPNAME_STR;
+	params->impl      = IMPL_STR;
+
+	params->pc_str    = LOCAL_PC_STR;
+	params->dt_str    = GLOB_DEF_DT_STR;
+	params->sc_str    = GLOB_DEF_SC_STR;
+
+	params->im_str    = GLOB_DEF_IM_STR;
+
+	params->ps_str    = GLOB_DEF_PS_STR;
+	params->m_str     = GLOB_DEF_M_STR;
+	params->n_str     = GLOB_DEF_N_STR;
+	params->k_str     = GLOB_DEF_K_STR;
+
+	params->nr_str    = GLOB_DEF_NR_STR;
+
+	params->alpha_str = GLOB_DEF_ALPHA_STR;
+	params->beta_str  = GLOB_DEF_BETA_STR;
 }
 

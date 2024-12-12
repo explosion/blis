@@ -35,39 +35,13 @@
 #ifndef BLIS_THRCOMM_SINGLE_H
 #define BLIS_THRCOMM_SINGLE_H
 
-// Define thrcomm_t for situations when multithreading is disabled.
-#ifndef BLIS_ENABLE_MULTITHREADING 
+// Always define these prototypes since disabling multithreading is always
+// an option.
 
-//thread communicators may be implementation dependent
-#ifdef BLIS_TREE_BARRIER
-struct barrier_s
-{   
-	int               arity;
-	int               count;
-	struct barrier_s* dad;
-	int               signal;
-};  
-typedef struct barrier_s barrier_t;
-
-struct thrcomm_s
-{   
-	void*       sent_object;
-	dim_t       n_threads;
-	barrier_t** barriers;
-}; 
-#else
-struct thrcomm_s
-{
-	void*   sent_object;
-	dim_t   n_threads;
-
-	bool_t  barrier_sense;
-	dim_t   barrier_threads_arrived;
-};
-#endif
-typedef struct thrcomm_s thrcomm_t;
-
-#endif
+// Sequential-specific function prototypes.
+void bli_thrcomm_init_single( dim_t nt, thrcomm_t* comm );
+void bli_thrcomm_cleanup_single( thrcomm_t* comm );
+void bli_thrcomm_barrier_single( dim_t tid, thrcomm_t* comm );
 
 #endif
 

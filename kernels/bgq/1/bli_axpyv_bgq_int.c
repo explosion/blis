@@ -34,21 +34,25 @@
 
 #include "blis.h"
 
-void bli_daxpyv_bgq_int 
-     ( 
-       conj_t           conjx,
-       dim_t            n,
-       double* restrict alpha,
-       double* restrict x, inc_t incx,
-       double* restrict y, inc_t incy,
-       cntx_t* restrict cntx
+void bli_daxpyv_bgq_int
+     (
+             conj_t  conjx,
+             dim_t   n,
+       const void*   alpha0,
+       const void*   x0, inc_t incx,
+             void*   y0, inc_t incy,
+       const cntx_t* cntx
      )
 {
+	const double* alpha = alpha0;
+	const double* x     = x0;
+	const double* y     = y0;
+
 	if ( bli_zero_dim1( n ) ) return;
 
 	// If there is anything that would interfere with our use of aligned
 	// vector loads/stores, call the reference implementation.
-	bool_t use_ref = FALSE;
+	bool   use_ref = FALSE;
 	if ( incx != 1 || incy != 1 || bli_is_unaligned_to( ( siz_t )x, 32 ) || bli_is_unaligned_to( ( siz_t )y, 32 ) ) {
 		use_ref = TRUE;
 	}
@@ -70,7 +74,7 @@ void bli_daxpyv_bgq_int
         xv = vec_lda( 0 * sizeof(double), &x[i*4] );
         yv = vec_lda( 0 * sizeof(double), &y[i*4] );
         zv = vec_madd( alphav, xv, yv );
-        vec_sta( zv, 0 * sizeof(double), &y[i*4] );   
+        vec_sta( zv, 0 * sizeof(double), &y[i*4] );
 	}
     for ( dim_t i = 0; i < n_left; i++ )
     {

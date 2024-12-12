@@ -4,7 +4,7 @@
    An object-based framework for developing high-performance BLAS-like
    libraries.
 
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -42,34 +42,33 @@ apool_t* bli_sba_query( void );
 void bli_sba_init( void );
 void bli_sba_finalize( void );
 
+void* bli_sba_acquire
+     (
+       pool_t* sba_pool,
+       siz_t   req_size
+     );
+
+void bli_sba_release
+     (
+       pool_t* sba_pool,
+       void*   block
+     );
+
 array_t* bli_sba_checkout_array
      (
-       const siz_t n_threads
+       siz_t n_threads
      );
 
 void bli_sba_checkin_array
      (
-       array_t* restrict array
+       array_t* array
      );
 
-void bli_sba_rntm_set_pool
+pool_t* bli_sba_array_elem
      (
-       siz_t             index,
-       array_t* restrict array,
-       rntm_t*  restrict rntm
+       siz_t    index,
+       array_t* array
      );
-
-void* bli_sba_acquire
-     (
-       rntm_t* restrict rntm,
-       siz_t            req_size
-     );
-void bli_sba_release
-     (
-       rntm_t* restrict rntm,
-       void*   restrict block
-     );
-
 
 #endif
 

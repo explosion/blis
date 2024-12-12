@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2017, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -35,77 +35,6 @@
 
 #ifndef BLIS_MACRO_DEFS_H
 #define BLIS_MACRO_DEFS_H
-
-
-// -- Undefine restrict for C++ and C89/90 --
-
-#ifdef __cplusplus
-  // Language is C++; define restrict as nothing.
-  #ifndef restrict
-  #define restrict
-  #endif
-#elif __STDC_VERSION__ >= 199901L
-  // Language is C99 (or later); do nothing since restrict is recognized.
-#else
-  // Language is pre-C99; define restrict as nothing.
-  #ifndef restrict
-  #define restrict
-  #endif
-#endif
-
-
-// -- Define typeof() operator if using non-GNU compiler --
-
-#ifndef __GNUC__
-  #define typeof __typeof__
-#else
-  #ifndef typeof
-  #define typeof __typeof__
-  #endif
-#endif
-
-
-// -- BLIS Thread Local Storage Keyword --
-
-// __thread for TLS is supported by GCC, CLANG, ICC, and IBMC.
-// There is a small risk here as __GNUC__ can also be defined by some other
-// compiler (other than ICC and CLANG which we know define it) that
-// doesn't support __thread, as __GNUC__ is not quite unique to GCC.
-// But the possibility of someone using such non-main-stream compiler
-// for building BLIS is low.
-#if defined(__GNUC__) || defined(__clang__) || defined(__ICC) || defined(__IBMC__)
-  #define BLIS_THREAD_LOCAL __thread
-#else
-  #define BLIS_THREAD_LOCAL
-#endif
-
-
-// -- BLIS constructor/destructor function attribute --
-
-// __attribute__((constructor/destructor)) is supported by GCC only.
-// There is a small risk here as __GNUC__ can also be defined by some other
-// compiler (other than ICC and CLANG which we know define it) that
-// doesn't support this, as __GNUC__ is not quite unique to GCC.
-// But the possibility of someone using such non-main-stream compiler
-// for building BLIS is low.
-
-#if defined(__ICC) || defined(__INTEL_COMPILER)
-  // ICC defines __GNUC__ but doesn't support this
-  #define BLIS_ATTRIB_CTOR
-  #define BLIS_ATTRIB_DTOR
-#elif defined(__clang__)
-  // CLANG supports __attribute__, but its documentation doesn't
-  // mention support for constructor/destructor. Compiling with
-  // clang and testing shows that it does support.
-  #define BLIS_ATTRIB_CTOR __attribute__((constructor))
-  #define BLIS_ATTRIB_DTOR __attribute__((destructor))
-#elif defined(__GNUC__)
-  #define BLIS_ATTRIB_CTOR __attribute__((constructor))
-  #define BLIS_ATTRIB_DTOR __attribute__((destructor))
-#else
-  #define BLIS_ATTRIB_CTOR
-  #define BLIS_ATTRIB_DTOR
-#endif
 
 
 // -- Concatenation macros --
@@ -140,6 +69,9 @@
 #define PASTEBLACHK_(op)           bla_ ## op ## _check
 #define PASTEBLACHK(op)            PASTEBLACHK_(op)
 
+#define PASTECH0_(op)              op
+#define PASTECH0(op)               PASTECH0_(op)
+
 #define PASTECH_(ch,op)            ch ## op
 #define PASTECH(ch,op)             PASTECH_(ch,op)
 
@@ -166,6 +98,7 @@
 #include "bli_gentprot_macro_defs.h"
 
 #include "bli_misc_macro_defs.h"
+#include "bli_edge_case_macro_defs.h"
 #include "bli_param_macro_defs.h"
 #include "bli_obj_macro_defs.h"
 #include "bli_complex_macro_defs.h"

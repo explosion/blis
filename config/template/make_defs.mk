@@ -47,7 +47,7 @@ THIS_CONFIG    := template
 # may specify additional flags here as needed.
 CPPROCFLAGS    :=
 CMISCFLAGS     :=
-CPICFLAGS      :=
+CPICFLAGS      := -fPIC
 CWARNFLAGS     :=
 
 ifneq ($(DEBUG_TYPE),off)
@@ -57,11 +57,11 @@ endif
 ifeq ($(DEBUG_TYPE),noopt)
 COPTFLAGS      := -O0
 else
-COPTFLAGS      := -O3
+COPTFLAGS      := -O2
 endif
 
 # Flags specific to optimized kernels.
-CKOPTFLAGS     := $(COPTFLAGS)
+CKOPTFLAGS     := $(COPTFLAGS) -O3
 CKVECFLAGS     :=
 
 # Flags specific to reference kernels.

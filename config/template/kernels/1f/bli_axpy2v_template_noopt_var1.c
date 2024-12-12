@@ -45,7 +45,7 @@ void bli_zaxpy2v_template_noopt
        dcomplex* restrict x, inc_t incx,
        dcomplex* restrict y, inc_t incy,
        dcomplex* restrict z, inc_t incz,
-       cntx_t*   restrict cntx
+       cntx_t*            cntx
      )
 {
 /*
@@ -116,7 +116,7 @@ void bli_zaxpy2v_template_noopt
 	dcomplex*   yp;
 	dcomplex*   zp;
 
-	bool_t      use_ref         = FALSE;
+	bool        use_ref         = FALSE;
 
 	dim_t       n_pre           = 0;
 	dim_t       n_iter;

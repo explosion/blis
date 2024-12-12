@@ -51,6 +51,8 @@ void PASTEMAC0(opname) \
 \
 	num_t     dt        = bli_obj_dt( c ); \
 \
+	dim_t     m         = bli_obj_length( c ); \
+	dim_t     n         = bli_obj_width( c ); \
 	dim_t     k         = bli_obj_width( a ); \
 	void*     buf_a     = bli_obj_buffer_at_off( a ); \
 	void*     buf_b     = bli_obj_buffer_at_off( b ); \
@@ -69,12 +71,14 @@ void PASTEMAC0(opname) \
 	bli_auxinfo_set_is_b( 1, &data ); \
 \
 	/* Query a type-specific function pointer, except one that uses
-	   void* instead of typed pointers. */ \
-	PASTECH2(tname,_ukr,_vft) f = \
+	   void* for function arguments instead of typed pointers. */ \
+	PASTECH(tname,_ukr_ft) f = \
 	PASTEMAC(opname,_qfp)( dt ); \
 \
 	f \
 	( \
+	  m, \
+	  n, \
 	  k, \
 	  buf_alpha, \
 	  buf_a, \
@@ -107,6 +111,8 @@ void PASTEMAC0(opname) \
 \
 	num_t     dt        = bli_obj_dt( c11 ); \
 \
+	dim_t     m         = bli_obj_length( c11 ); \
+	dim_t     n         = bli_obj_width( c11 ); \
 	dim_t     k         = bli_obj_width( a1x ); \
 	void*     buf_a1x   = bli_obj_buffer_at_off( a1x ); \
 	void*     buf_a11   = bli_obj_buffer_at_off( a11 ); \
@@ -130,12 +136,14 @@ void PASTEMAC0(opname) \
 	if ( bli_obj_is_lower( a11 ) ) \
 	{ \
 		/* Query a type-specific function pointer, except one that uses
-		   void* instead of typed pointers. */ \
-		PASTECH2(tname,_ukr,_vft) f = \
+		   void* for function arguments instead of typed pointers. */ \
+		PASTECH(tname,_ukr_ft) f = \
 		PASTEMAC(opnamel,_qfp)( dt ); \
 \
 		f \
 		( \
+		  m, \
+		  n, \
 		  k, \
 		  buf_alpha, \
 		  buf_a1x, \
@@ -150,12 +158,14 @@ void PASTEMAC0(opname) \
 	else /* if ( bli_obj_is_upper( a11 ) ) */ \
 	{ \
 		/* Query a type-specific function pointer, except one that uses
-		   void* instead of typed pointers. */ \
-		PASTECH2(tname,_ukr,_vft) f = \
+		   void* for function arguments instead of typed pointers. */ \
+		PASTECH(tname,_ukr_ft) f = \
 		PASTEMAC(opnameu,_qfp)( dt ); \
 \
 		f \
 		( \
+		  m, \
+		  n, \
 		  k, \
 		  buf_alpha, \
 		  buf_a1x, \
@@ -205,8 +215,8 @@ void PASTEMAC0(opname) \
 	if ( bli_obj_is_lower( a ) ) \
 	{ \
 		/* Query a type-specific function pointer, except one that uses
-		   void* instead of typed pointers. */ \
-		PASTECH2(tname,_ukr,_vft) f = \
+		   void* for function arguments instead of typed pointers. */ \
+		PASTECH(tname,_ukr_ft) f = \
 		PASTEMAC(opnamel,_qfp)( dt ); \
 \
 		f \
@@ -221,8 +231,8 @@ void PASTEMAC0(opname) \
 	else /* if ( bli_obj_is_upper( a ) ) */ \
 	{ \
 		/* Query a type-specific function pointer, except one that uses
-		   void* instead of typed pointers. */ \
-		PASTECH2(tname,_ukr,_vft) f = \
+		   void* for function arguments instead of typed pointers. */ \
+		PASTECH(tname,_ukr_ft) f = \
 		PASTEMAC(opnameu,_qfp)( dt ); \
 \
 		f \

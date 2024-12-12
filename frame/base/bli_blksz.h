@@ -34,19 +34,19 @@
 
 // blksz_t query
 
-static dim_t bli_blksz_get_def
+BLIS_INLINE dim_t bli_blksz_get_def
      (
-       num_t    dt,
-       blksz_t* b
+             num_t    dt,
+       const blksz_t* b
      )
 {
 	return b->v[ dt ];
 }
 
-static dim_t bli_blksz_get_max
+BLIS_INLINE dim_t bli_blksz_get_max
      (
-       num_t    dt,
-       blksz_t* b
+             num_t    dt,
+       const blksz_t* b
      )
 {
 	return b->e[ dt ];
@@ -55,7 +55,7 @@ static dim_t bli_blksz_get_max
 
 // blksz_t modification
 
-static void bli_blksz_set_def
+BLIS_INLINE void bli_blksz_set_def
      (
        dim_t    val,
        num_t    dt,
@@ -65,7 +65,7 @@ static void bli_blksz_set_def
 	b->v[ dt ] = val;
 }
 
-static void bli_blksz_set_max
+BLIS_INLINE void bli_blksz_set_max
      (
        dim_t    val,
        num_t    dt,
@@ -75,23 +75,24 @@ static void bli_blksz_set_max
 	b->e[ dt ] = val;
 }
 
-static void bli_blksz_copy
+BLIS_INLINE void bli_blksz_copy
      (
-       blksz_t* b_src,
-       blksz_t* b_dst
+       const blksz_t* b_src,
+             blksz_t* b_dst
      )
 {
 	*b_dst = *b_src;
 }
 
-static void bli_blksz_copy_if_pos
+BLIS_INLINE void bli_blksz_copy_if_nonneg
      (
-       blksz_t* b_src,
-       blksz_t* b_dst
+       const blksz_t* b_src,
+             blksz_t* b_dst
      )
 {
-	// Copy the blocksize values over to b_dst one-by-one so that
-	// we can skip the ones that are non-positive.
+	// Copy the blocksize values over to b_dst one-by-one. Note that we
+	// only copy valuse that are zero or positive (and skip copying any
+	// values that are negative).
 
 	const dim_t v_s = bli_blksz_get_def( BLIS_FLOAT,    b_src );
 	const dim_t v_d = bli_blksz_get_def( BLIS_DOUBLE,   b_src );
@@ -103,21 +104,21 @@ static void bli_blksz_copy_if_pos
 	const dim_t e_c = bli_blksz_get_max( BLIS_SCOMPLEX, b_src );
 	const dim_t e_z = bli_blksz_get_max( BLIS_DCOMPLEX, b_src );
 
-	if ( v_s > 0 ) bli_blksz_set_def( v_s, BLIS_FLOAT,    b_dst );
-	if ( v_d > 0 ) bli_blksz_set_def( v_d, BLIS_DOUBLE,   b_dst );
-	if ( v_c > 0 ) bli_blksz_set_def( v_c, BLIS_SCOMPLEX, b_dst );
-	if ( v_z > 0 ) bli_blksz_set_def( v_z, BLIS_DCOMPLEX, b_dst );
+	if ( v_s >= 0 ) bli_blksz_set_def( v_s, BLIS_FLOAT,    b_dst );
+	if ( v_d >= 0 ) bli_blksz_set_def( v_d, BLIS_DOUBLE,   b_dst );
+	if ( v_c >= 0 ) bli_blksz_set_def( v_c, BLIS_SCOMPLEX, b_dst );
+	if ( v_z >= 0 ) bli_blksz_set_def( v_z, BLIS_DCOMPLEX, b_dst );
 
-	if ( e_s > 0 ) bli_blksz_set_max( e_s, BLIS_FLOAT,    b_dst );
-	if ( e_d > 0 ) bli_blksz_set_max( e_d, BLIS_DOUBLE,   b_dst );
-	if ( e_c > 0 ) bli_blksz_set_max( e_c, BLIS_SCOMPLEX, b_dst );
-	if ( e_z > 0 ) bli_blksz_set_max( e_z, BLIS_DCOMPLEX, b_dst );
+	if ( e_s >= 0 ) bli_blksz_set_max( e_s, BLIS_FLOAT,    b_dst );
+	if ( e_d >= 0 ) bli_blksz_set_max( e_d, BLIS_DOUBLE,   b_dst );
+	if ( e_c >= 0 ) bli_blksz_set_max( e_c, BLIS_SCOMPLEX, b_dst );
+	if ( e_z >= 0 ) bli_blksz_set_max( e_z, BLIS_DCOMPLEX, b_dst );
 }
 
-static void bli_blksz_copy_def_dt
+BLIS_INLINE void bli_blksz_copy_def_dt
      (
-       num_t dt_src, blksz_t* b_src,
-       num_t dt_dst, blksz_t* b_dst
+       num_t dt_src, const blksz_t* b_src,
+       num_t dt_dst,       blksz_t* b_dst
      )
 {
 	const dim_t val = bli_blksz_get_def( dt_src, b_src );
@@ -125,10 +126,10 @@ static void bli_blksz_copy_def_dt
 	bli_blksz_set_def( val, dt_dst, b_dst );
 }
 
-static void bli_blksz_copy_max_dt
+BLIS_INLINE void bli_blksz_copy_max_dt
      (
-       num_t dt_src, blksz_t* b_src,
-       num_t dt_dst, blksz_t* b_dst
+       num_t dt_src, const blksz_t* b_src,
+       num_t dt_dst,       blksz_t* b_dst
      )
 {
 	const dim_t val = bli_blksz_get_max( dt_src, b_src );
@@ -136,17 +137,17 @@ static void bli_blksz_copy_max_dt
 	bli_blksz_set_max( val, dt_dst, b_dst );
 }
 
-static void bli_blksz_copy_dt
+BLIS_INLINE void bli_blksz_copy_dt
      (
-       num_t dt_src, blksz_t* b_src,
-       num_t dt_dst, blksz_t* b_dst
+       num_t dt_src, const blksz_t* b_src,
+       num_t dt_dst,       blksz_t* b_dst
      )
 {
 	bli_blksz_copy_def_dt( dt_src, b_src, dt_dst, b_dst );
 	bli_blksz_copy_max_dt( dt_src, b_src, dt_dst, b_dst );
 }
 
-static void bli_blksz_scale_def
+BLIS_INLINE void bli_blksz_scale_def
      (
        dim_t    num,
        dim_t    den,
@@ -159,7 +160,7 @@ static void bli_blksz_scale_def
 	bli_blksz_set_def( ( val * num ) / den, dt, b );
 }
 
-static void bli_blksz_scale_max
+BLIS_INLINE void bli_blksz_scale_max
      (
        dim_t    num,
        dim_t    den,
@@ -172,7 +173,7 @@ static void bli_blksz_scale_max
 	bli_blksz_set_max( ( val * num ) / den, dt, b );
 }
 
-static void bli_blksz_scale_def_max
+BLIS_INLINE void bli_blksz_scale_def_max
      (
        dim_t    num,
        dim_t    den,
@@ -252,30 +253,30 @@ void bli_blksz_reduce_max_to
 
 dim_t bli_determine_blocksize
      (
-       dir_t   direct,
-       dim_t   i,
-       dim_t   dim,
-       obj_t*  obj,
-       bszid_t bszid,
-       cntx_t* cntx
+             dir_t   direct,
+             dim_t   i,
+             dim_t   dim,
+       const obj_t*  obj,
+             bszid_t bszid,
+       const cntx_t* cntx
      );
 
 dim_t bli_determine_blocksize_f
      (
-       dim_t   i,
-       dim_t   dim,
-       obj_t*  obj,
-       bszid_t bszid,
-       cntx_t* cntx
+             dim_t   i,
+             dim_t   dim,
+       const obj_t*  obj,
+             bszid_t bszid,
+       const cntx_t* cntx
      );
 
 dim_t bli_determine_blocksize_b
      (
-       dim_t   i,
-       dim_t   dim,
-       obj_t*  obj,
-       bszid_t bszid,
-       cntx_t* cntx
+             dim_t   i,
+             dim_t   dim,
+       const obj_t*  obj,
+             bszid_t bszid,
+       const cntx_t* cntx
      );
 
 dim_t bli_determine_blocksize_f_sub

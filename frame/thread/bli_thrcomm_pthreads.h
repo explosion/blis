@@ -35,34 +35,13 @@
 #ifndef BLIS_THRCOMM_PTHREADS_H
 #define BLIS_THRCOMM_PTHREADS_H
 
-// Define thrcomm_t for situations when POSIX multithreading is enabled.
+// Define these prototypes for situations when POSIX multithreading is enabled.
 #ifdef BLIS_ENABLE_PTHREADS 
 
-#ifdef BLIS_USE_PTHREAD_BARRIER
-struct thrcomm_s
-{
-	void*                 sent_object;
-	dim_t                 n_threads;
-
-	bli_pthread_barrier_t barrier;
-};
-#else
-struct thrcomm_s
-{
-	void*  sent_object;
-	dim_t  n_threads;
-
-//#ifdef BLIS_USE_PTHREAD_MUTEX
-//	bli_pthread_mutex_t mutex;
-//#endif
-
-	//volatile bool_t  barrier_sense;
-	bool_t barrier_sense;
-	dim_t  barrier_threads_arrived;
-};
-#endif
-
-typedef struct thrcomm_s thrcomm_t;
+// pthreads-specific function prototypes.
+void bli_thrcomm_init_pthreads( dim_t nt, thrcomm_t* comm );
+void bli_thrcomm_cleanup_pthreads( thrcomm_t* comm );
+void bli_thrcomm_barrier_pthreads( dim_t tid, thrcomm_t* comm );
 
 #endif
 

@@ -45,9 +45,9 @@
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       dim_t    n, \
-       ctype*   x, inc_t incx, \
-       ctype_r* asum  \
+             dim_t    n, \
+       const ctype*   x, inc_t incx, \
+             ctype_r* asum  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -71,14 +71,14 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	PASTEMAC2(ch,opname,_unb_var1) \
 	( \
 	  n, \
-	  x, incx, \
-	  asum, \
-	  cntx, \
-	  rntm  \
+	  ( ctype* )x, incx, \
+	            asum, \
+	  ( cntx_t* )cntx, \
+	  ( rntm_t* )rntm  \
 	); \
 }
 
-INSERT_GENTFUNCR_BASIC0( asumv )
+INSERT_GENTFUNCR_BASIC( asumv )
 
 
 #undef  GENTFUNC
@@ -86,9 +86,9 @@ INSERT_GENTFUNCR_BASIC0( asumv )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       uplo_t  uploa, \
-       dim_t   m, \
-       ctype*  a, inc_t rs_a, inc_t cs_a  \
+       uplo_t uploa, \
+       dim_t  m, \
+       ctype* a, inc_t rs_a, inc_t cs_a  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -109,14 +109,14 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	  uploa, \
 	  m, \
 	  a, rs_a, cs_a, \
-	  cntx, \
-	  rntm  \
+	  ( cntx_t* )cntx, \
+	  ( rntm_t* )rntm  \
 	); \
 }
 
-INSERT_GENTFUNC_BASIC0( mkherm )
-INSERT_GENTFUNC_BASIC0( mksymm )
-INSERT_GENTFUNC_BASIC0( mktrim )
+INSERT_GENTFUNC_BASIC( mkherm )
+INSERT_GENTFUNC_BASIC( mksymm )
+INSERT_GENTFUNC_BASIC( mktrim )
 
 
 #undef  GENTFUNCR
@@ -124,9 +124,9 @@ INSERT_GENTFUNC_BASIC0( mktrim )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       dim_t    n, \
-       ctype*   x, inc_t incx, \
-       ctype_r* norm  \
+             dim_t    n, \
+       const ctype*   x, inc_t incx, \
+             ctype_r* norm  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -150,16 +150,16 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	PASTEMAC2(ch,opname,_unb_var1) \
 	( \
 	  n, \
-	  x, incx, \
-	  norm, \
-	  cntx, \
-	  rntm  \
+	  ( ctype* )x, incx, \
+	            norm, \
+	  ( cntx_t* )cntx, \
+	  ( rntm_t* )rntm  \
 	); \
 }
 
-INSERT_GENTFUNCR_BASIC0( norm1v )
-INSERT_GENTFUNCR_BASIC0( normfv )
-INSERT_GENTFUNCR_BASIC0( normiv )
+INSERT_GENTFUNCR_BASIC( norm1v )
+INSERT_GENTFUNCR_BASIC( normfv )
+INSERT_GENTFUNCR_BASIC( normiv )
 
 
 #undef  GENTFUNCR
@@ -167,13 +167,13 @@ INSERT_GENTFUNCR_BASIC0( normiv )
 \
 void PASTEMAC2(ch,opname,EX_SUF) \
      ( \
-       doff_t   diagoffx, \
-       diag_t   diagx, \
-       uplo_t   uplox, \
-       dim_t    m, \
-       dim_t    n, \
-       ctype*   x, inc_t rs_x, inc_t cs_x, \
-       ctype_r* norm  \
+             doff_t   diagoffx, \
+             diag_t   diagx, \
+             uplo_t   uplox, \
+             dim_t    m, \
+             dim_t    n, \
+       const ctype*   x, inc_t rs_x, inc_t cs_x, \
+             ctype_r* norm  \
        BLIS_TAPI_EX_PARAMS  \
      ) \
 { \
@@ -201,28 +201,311 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 	  uplox, \
 	  m, \
 	  n, \
-	  x, rs_x, cs_x, \
-	  norm, \
-	  cntx, \
-	  rntm  \
+	  ( ctype* )x, rs_x, cs_x, \
+	            norm, \
+	  ( cntx_t* )cntx, \
+	  ( rntm_t* )rntm  \
 	); \
 }
 
-INSERT_GENTFUNCR_BASIC0( norm1m )
-INSERT_GENTFUNCR_BASIC0( normfm )
-INSERT_GENTFUNCR_BASIC0( normim )
+INSERT_GENTFUNCR_BASIC( norm1m )
+INSERT_GENTFUNCR_BASIC( normfm )
+INSERT_GENTFUNCR_BASIC( normim )
+
+
+#undef  GENTFUNCR
+#define GENTFUNCR( ctype, ctype_r, ch, chr, opname ) \
+\
+void PASTEMAC2(ch,opname,EX_SUF) \
+     ( \
+       dim_t  n, \
+       ctype* x, inc_t incx  \
+       BLIS_TAPI_EX_PARAMS  \
+     ) \
+{ \
+	bli_init_once(); \
+\
+	BLIS_TAPI_EX_DECLS \
+\
+	/* If the vector length is zero, return early. */ \
+	if ( bli_zero_dim1( n ) ) return; \
+\
+	/* Obtain a valid context from the gks if necessary. */ \
+	/*if ( cntx == NULL ) cntx = bli_gks_query_cntx();*/ \
+\
+	ctype_r norm; \
+\
+	/* Set the norm to zero. */ \
+	PASTEMAC(chr,set0s)( norm ); \
+\
+	/* Iterate at least once, but continue iterating until the norm is not zero. */ \
+	while ( PASTEMAC(chr,eq0)( norm ) ) \
+	{ \
+		/* Invoke the helper variant, which loops over the appropriate kernel
+		   to implement the current operation. */ \
+		PASTEMAC2(ch,opname,_unb_var1) \
+		( \
+		  n, \
+		  x, incx, \
+		  ( cntx_t* )cntx, \
+		  ( rntm_t* )rntm  \
+		); \
+\
+		/* Check the 1-norm of the randomzied vector. In the unlikely event that
+		   the 1-norm is zero, it means that *all* elements are zero, in which
+		   case we want to re-randomize until the 1-norm is not zero. */ \
+		PASTEMAC2(ch,norm1v,BLIS_TAPI_EX_SUF) \
+		( \
+		  n, \
+		  x, incx, \
+		  &norm, \
+		  cntx, \
+		  rntm  \
+		); \
+	} \
+}
+
+INSERT_GENTFUNCR_BASIC( randv )
+INSERT_GENTFUNCR_BASIC( randnv )
+
+
+#undef  GENTFUNCR
+#define GENTFUNCR( ctype, ctype_r, ch, chr, opname ) \
+\
+void PASTEMAC2(ch,opname,EX_SUF) \
+     ( \
+       doff_t diagoffx, \
+       uplo_t uplox, \
+       dim_t  m, \
+       dim_t  n, \
+       ctype* x, inc_t rs_x, inc_t cs_x  \
+       BLIS_TAPI_EX_PARAMS  \
+     ) \
+{ \
+	bli_init_once(); \
+\
+	BLIS_TAPI_EX_DECLS \
+\
+	/* If either dimension is zero, return early. */ \
+	if ( bli_zero_dim2( m, n ) ) return; \
+\
+	/* Obtain a valid context from the gks if necessary. */ \
+	/*if ( cntx == NULL ) cntx = bli_gks_query_cntx();*/ \
+\
+	ctype_r norm; \
+\
+	/* Set the norm to zero. */ \
+	PASTEMAC(chr,set0s)( norm ); \
+\
+	/* Iterate at least once, but continue iterating until the norm is not zero. */ \
+	while ( PASTEMAC(chr,eq0)( norm ) ) \
+	{ \
+		/* Invoke the helper variant, which loops over the appropriate kernel
+		   to implement the current operation. */ \
+		PASTEMAC2(ch,opname,_unb_var1) \
+		( \
+		  diagoffx, \
+		  uplox, \
+		  m, \
+		  n, \
+		  x, rs_x, cs_x, \
+		  ( cntx_t* )cntx, \
+		  ( rntm_t* )rntm  \
+		); \
+\
+		/* Check the 1-norm of the randomzied matrix. In the unlikely event that
+		   the 1-norm is zero, it means that *all* elements are zero, in which
+		   case we want to re-randomize until the 1-norm is not zero. */ \
+		PASTEMAC2(ch,norm1m,BLIS_TAPI_EX_SUF) \
+		( \
+		  diagoffx, \
+		  BLIS_NONUNIT_DIAG, \
+		  uplox, \
+		  m, \
+		  n, \
+		  x, rs_x, cs_x, \
+		  &norm, \
+		  cntx, \
+		  rntm  \
+		); \
+	} \
+}
+
+INSERT_GENTFUNCR_BASIC( randm )
+INSERT_GENTFUNCR_BASIC( randnm )
+
+
+#undef  GENTFUNCR
+#define GENTFUNCR( ctype, ctype_r, ch, chr, opname ) \
+\
+void PASTEMAC2(ch,opname,EX_SUF) \
+     ( \
+             dim_t    n, \
+       const ctype*   x, inc_t incx, \
+             ctype_r* scale, \
+             ctype_r* sumsq  \
+       BLIS_TAPI_EX_PARAMS  \
+     ) \
+{ \
+	bli_init_once(); \
+\
+	BLIS_TAPI_EX_DECLS \
+\
+	/* If x is zero length, return with scale and sumsq unchanged. */ \
+	if ( bli_zero_dim1( n ) ) return; \
+\
+	/* Obtain a valid context from the gks if necessary. */ \
+	/*if ( cntx == NULL ) cntx = bli_gks_query_cntx();*/ \
+\
+	/* Invoke the helper variant, which loops over the appropriate kernel
+	   to implement the current operation. */ \
+	PASTEMAC2(ch,opname,_unb_var1) \
+	( \
+	  n, \
+	  ( ctype* )x, incx, \
+	            scale, \
+	            sumsq, \
+	  ( cntx_t* )cntx, \
+	  ( rntm_t* )rntm  \
+	); \
+}
+
+INSERT_GENTFUNCR_BASIC( sumsqv )
+
+// -----------------------------------------------------------------------------
+
+// Operations with only basic interfaces.
+
+#ifdef BLIS_TAPI_BASIC
+
+#undef  GENTFUNC
+#define GENTFUNC( ctype, ch, opname ) \
+\
+void PASTEMAC(ch,opname) \
+     ( \
+             conj_t conjchi, \
+       const ctype* chi, \
+       const ctype* psi, \
+             bool*  is_eq  \
+     ) \
+{ \
+	bli_init_once(); \
+\
+	ctype chi_conj; \
+\
+	PASTEMAC(ch,copycjs)( conjchi, *chi, chi_conj ); \
+\
+	*is_eq = PASTEMAC(ch,eq)( chi_conj, *psi ); \
+}
+
+INSERT_GENTFUNC_BASIC( eqsc )
+
+
+#undef  GENTFUNC
+#define GENTFUNC( ctype, ch, opname ) \
+\
+void PASTEMAC(ch,opname) \
+     ( \
+             conj_t conjx, \
+             dim_t  n, \
+       const ctype* x, inc_t incx, \
+       const ctype* y, inc_t incy, \
+             bool*  is_eq  \
+     ) \
+{ \
+	bli_init_once(); \
+\
+	/* If x is zero length, return with a result of TRUE. */ \
+	if ( bli_zero_dim1( n ) ) { *is_eq = TRUE; return; } \
+\
+	/* Obtain a valid context from the gks if necessary. */ \
+	/*if ( cntx == NULL ) cntx = bli_gks_query_cntx();*/ \
+\
+	*is_eq = PASTEMAC2(ch,opname,_unb_var1) \
+	( \
+	  conjx, \
+	  n, \
+	  ( ctype* )x, incx, \
+	  ( ctype* )y, incy  \
+	); \
+}
+
+INSERT_GENTFUNC_BASIC( eqv )
+
+
+#undef  GENTFUNC
+#define GENTFUNC( ctype, ch, opname ) \
+\
+void PASTEMAC(ch,opname) \
+     ( \
+             doff_t  diagoffx, \
+             diag_t  diagx, \
+             uplo_t  uplox, \
+             trans_t transx, \
+             dim_t   m, \
+             dim_t   n, \
+       const ctype*  x, inc_t rs_x, inc_t cs_x, \
+       const ctype*  y, inc_t rs_y, inc_t cs_y, \
+             bool*   is_eq  \
+     ) \
+{ \
+	bli_init_once(); \
+\
+	/* If x has a zero dimension, return with a result of TRUE. See the
+	   _unb_var() variant for why we return TRUE in this scenario. */ \
+	if ( bli_zero_dim2( m, n ) ) { *is_eq = TRUE; return; } \
+\
+	/* Obtain a valid context from the gks if necessary. */ \
+	/*if ( cntx == NULL ) cntx = bli_gks_query_cntx();*/ \
+\
+	/* Invoke the helper variant. */ \
+	*is_eq = PASTEMAC2(ch,opname,_unb_var1) \
+	( \
+	  diagoffx, \
+	  diagx, \
+	  uplox, \
+	  transx, \
+	  m, \
+	  n, \
+	  ( ctype* )x, rs_x, cs_x, \
+	  ( ctype* )y, rs_y, cs_y  \
+	); \
+}
+
+INSERT_GENTFUNC_BASIC( eqm )
+
+
+#undef  GENTFUNC
+#define GENTFUNC( ctype, ch, opname, kername ) \
+\
+void PASTEMAC(ch,opname) \
+     ( \
+       const ctype* chi, \
+       const ctype* psi, \
+             bool*  is  \
+     ) \
+{ \
+	bli_init_once(); \
+\
+	*is = PASTEMAC(ch,kername)( *chi, *psi ); \
+}
+
+INSERT_GENTFUNC_BASIC( ltsc,  lt )
+INSERT_GENTFUNC_BASIC( ltesc, lte )
+INSERT_GENTFUNC_BASIC( gtsc,  gt )
+INSERT_GENTFUNC_BASIC( gtesc, gte )
 
 
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, varname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
-       char*  s1, \
-       dim_t  n, \
-       void*  x, inc_t incx, \
-       char*  format, \
-       char*  s2  \
+       const char* s1, \
+             dim_t n, \
+       const void* x, inc_t incx, \
+       const char* format, \
+       const char* s2  \
      ) \
 { \
 	bli_init_once(); \
@@ -244,14 +527,14 @@ INSERT_GENTFUNC_BASIC_I( printv, fprintv )
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, varname ) \
 \
-void PASTEMAC2(ch,opname,EX_SUF) \
+void PASTEMAC(ch,opname) \
      ( \
-       char*  s1, \
-       dim_t  m, \
-       dim_t  n, \
-       void*  x, inc_t rs_x, inc_t cs_x, \
-       char*  format, \
-       char*  s2  \
+       const char* s1, \
+             dim_t m, \
+             dim_t n, \
+       const void* x, inc_t rs_x, inc_t cs_x, \
+       const char* format, \
+       const char* s2  \
      ) \
 { \
 	bli_init_once(); \
@@ -270,119 +553,7 @@ void PASTEMAC2(ch,opname,EX_SUF) \
 
 INSERT_GENTFUNC_BASIC_I( printm, fprintm )
 
-
-#undef  GENTFUNC
-#define GENTFUNC( ctype, ch, opname ) \
-\
-void PASTEMAC2(ch,opname,EX_SUF) \
-     ( \
-       dim_t    n, \
-       ctype*   x, inc_t incx  \
-       BLIS_TAPI_EX_PARAMS  \
-     ) \
-{ \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
-\
-	/* If the vector length is zero, return early. */ \
-	if ( bli_zero_dim1( n ) ) return; \
-\
-	/* Obtain a valid context from the gks if necessary. */ \
-	/*if ( cntx == NULL ) cntx = bli_gks_query_cntx();*/ \
-\
-	/* Invoke the helper variant, which loops over the appropriate kernel
-	   to implement the current operation. */ \
-	PASTEMAC2(ch,opname,_unb_var1) \
-	( \
-	  n, \
-	  x, incx, \
-	  cntx, \
-	  rntm  \
-	); \
-}
-
-INSERT_GENTFUNC_BASIC0( randv )
-INSERT_GENTFUNC_BASIC0( randnv )
-
-
-#undef  GENTFUNC
-#define GENTFUNC( ctype, ch, opname ) \
-\
-void PASTEMAC2(ch,opname,EX_SUF) \
-     ( \
-       doff_t  diagoffx, \
-       uplo_t  uplox, \
-       dim_t   m, \
-       dim_t   n, \
-       ctype*  x, inc_t rs_x, inc_t cs_x  \
-       BLIS_TAPI_EX_PARAMS  \
-     ) \
-{ \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
-\
-	/* If either dimension is zero, return early. */ \
-	if ( bli_zero_dim2( m, n ) ) return; \
-\
-	/* Obtain a valid context from the gks if necessary. */ \
-	/*if ( cntx == NULL ) cntx = bli_gks_query_cntx();*/ \
-\
-	/* Invoke the helper variant, which loops over the appropriate kernel
-	   to implement the current operation. */ \
-	PASTEMAC2(ch,opname,_unb_var1) \
-	( \
-	  diagoffx, \
-	  uplox, \
-	  m, \
-	  n, \
-	  x, rs_x, cs_x, \
-	  cntx, \
-	  rntm  \
-	); \
-}
-
-INSERT_GENTFUNC_BASIC0( randm )
-INSERT_GENTFUNC_BASIC0( randnm )
-
-
-#undef  GENTFUNCR
-#define GENTFUNCR( ctype, ctype_r, ch, chr, opname ) \
-\
-void PASTEMAC2(ch,opname,EX_SUF) \
-     ( \
-       dim_t    n, \
-       ctype*   x, inc_t incx, \
-       ctype_r* scale, \
-       ctype_r* sumsq  \
-       BLIS_TAPI_EX_PARAMS  \
-     ) \
-{ \
-	bli_init_once(); \
-\
-	BLIS_TAPI_EX_DECLS \
-\
-	/* If x is zero length, return with scale and sumsq unchanged. */ \
-	if ( bli_zero_dim1( n ) ) return; \
-\
-	/* Obtain a valid context from the gks if necessary. */ \
-	/*if ( cntx == NULL ) cntx = bli_gks_query_cntx();*/ \
-\
-	/* Invoke the helper variant, which loops over the appropriate kernel
-	   to implement the current operation. */ \
-	PASTEMAC2(ch,opname,_unb_var1) \
-	( \
-	  n, \
-	  x, incx, \
-	  scale, \
-	  sumsq, \
-	  cntx, \
-	  rntm  \
-	); \
-}
-
-INSERT_GENTFUNCR_BASIC0( sumsqv )
+#endif // #ifdef BLIS_TAPI_BASIC
 
 
 #endif

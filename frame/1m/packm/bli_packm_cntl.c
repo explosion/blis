@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -35,16 +35,15 @@
 
 #include "blis.h"
 
-cntl_t* bli_packm_cntl_create_node
+BLIS_EXPORT_BLIS cntl_t* bli_packm_cntl_create_node
      (
-       rntm_t*   rntm,
-       void*     var_func,
-       void*     packm_var_func,
+       pool_t*   sba_pool,
+       void_fp   var_func,
        bszid_t   bmid_m,
        bszid_t   bmid_n,
-       bool_t    does_invert_diag,
-       bool_t    rev_iter_if_upper,
-       bool_t    rev_iter_if_lower,
+       bool      does_invert_diag,
+       bool      rev_iter_if_upper,
+       bool      rev_iter_if_lower,
        pack_t    pack_schema,
        packbuf_t pack_buf_type,
        cntl_t*   sub_node
@@ -58,11 +57,10 @@ cntl_t* bli_packm_cntl_create_node
 	#endif
 
 	// Allocate a packm_params_t struct.
-	params = bli_sba_acquire( rntm, sizeof( packm_params_t ) );
+	params = bli_sba_acquire( sba_pool, sizeof( packm_params_t ) );
 
 	// Initialize the packm_params_t struct.
 	params->size              = sizeof( packm_params_t );
-	params->var_func          = packm_var_func;
 	params->bmid_m            = bmid_m;
 	params->bmid_n            = bmid_n;
 	params->does_invert_diag  = does_invert_diag;
@@ -81,7 +79,7 @@ cntl_t* bli_packm_cntl_create_node
 	// sync with the cntl_t tree.
 	cntl = bli_cntl_create_node
 	(
-	  rntm,
+	  sba_pool,
 	  BLIS_NOID,
 	  BLIS_NO_PART,
 	  var_func,

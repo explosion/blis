@@ -5,7 +5,7 @@
    libraries.
 
    Copyright (C) 2014, The University of Texas at Austin
-   Copyright (C) 2018, Advanced Micro Devices, Inc.
+   Copyright (C) 2018 - 2019, Advanced Micro Devices, Inc.
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions are
@@ -36,56 +36,23 @@
 #ifndef BLIS_THRCOMM_OPENMP_H
 #define BLIS_THRCOMM_OPENMP_H
 
-// Define thrcomm_t for situations when OpenMP multithreading is enabled.
+// Define these prototypes for situations when OpenMP multithreading is
+// enabled.
 #ifdef BLIS_ENABLE_OPENMP
 
 #include <omp.h>
 
-// Define thrcomm_t for tree barriers and non-tree barriers.
-#ifdef BLIS_TREE_BARRIER
-struct barrier_s
-{   
-	int               arity;
-	int               count;
-	struct barrier_s* dad;
-	volatile int      signal;
-};  
-typedef struct barrier_s barrier_t;
+// OpenMP-specific function prototypes.
+void bli_thrcomm_init_openmp( dim_t nt, thrcomm_t* comm );
+void bli_thrcomm_cleanup_openmp( thrcomm_t* comm );
+void bli_thrcomm_barrier_openmp( dim_t tid, thrcomm_t* comm );
 
-struct thrcomm_s
-{   
-	void*       sent_object;
-	dim_t       n_threads;
-	barrier_t** barriers;
-}; 
-#else
-struct thrcomm_s
-{
-	void*  sent_object;
-	dim_t  n_threads;
-
-	//volatile bool_t  barrier_sense;
-	bool_t barrier_sense;
-	dim_t  barrier_threads_arrived;
-};
-#endif
-
-typedef struct thrcomm_s thrcomm_t;
-
-// Prototypes specific to tree barriers.
+// Prototypes specific to the OpenMP tree barrier implementation.
 #ifdef BLIS_TREE_BARRIER
 barrier_t* bli_thrcomm_tree_barrier_create( int num_threads, int arity, barrier_t** leaves, int leaf_index );
-void        bli_thrcomm_tree_barrier_free( barrier_t* barrier );
-void        bli_thrcomm_tree_barrier( barrier_t* barack );
+void       bli_thrcomm_tree_barrier_free( barrier_t* barrier );
+void       bli_thrcomm_tree_barrier( barrier_t* barack );
 #endif
-
-void bli_l3_thread_decorator_thread_check
-     (
-       dim_t      n_threads,
-       dim_t      tid,
-	   thrcomm_t* gl_comm,
-       rntm_t*    rntm
-     );
 
 #endif
 
